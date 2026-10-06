@@ -42,6 +42,8 @@ services:
       # id_ed25519_shared must be mounted *as* id_ed25519, or set
       # SSH_IDENTITY_FILE to the path inside the container.
       # - ${HOME}/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
+      - ${HOME}/.ssh/id_ed25519_nvsync_cluster_assistant:/root/.ssh/id_ed25519:ro
+      - ${HOME}/.ssh/known_hosts:/root/.ssh/known_hosts:ro
     environment:
       # Secure default: host-networked service listens only on loopback.
       # See docs/REMOTE-ACCESS.md; direct non-loopback binds fail closed.
