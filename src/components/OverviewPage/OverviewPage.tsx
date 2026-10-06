@@ -1,14 +1,16 @@
 import { t, useI18n } from "../../i18n";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { SparkSnapshot } from "../../api/types";
 import { isWorkerSpark, resolveSparkRole } from "../../api/sparkRole";
-import { shutdownAllSparks, updateAllHermes, wakeAllSparks } from "../../api/client";
-import { ConfirmShutdownDialog } from "../ConfirmShutdownDialog";
+import { updateAllHermes } from "../../api/client";
 import { MetricBar } from "../ui/MetricBar";
+import { Sparkline } from "../ui/Sparkline";
+import { useMetricsHistoryTail } from "../../hooks/metricsStore";
+import { backendLabel } from "../../shared/llmBackends.js";
 import { FleetEnergyCard } from "./FleetEnergyCard";
 import { FleetAlertStrip } from "./FleetAlertStrip";
 import { FleetTokenTotals } from "./FleetTokenTotals";
-import { ActivityIcon, PowerOffIcon, PowerOnIcon, RotateIcon } from "../ui/icons";
+import { ActivityIcon, RotateIcon } from "../ui/icons";
 import { formatMb } from "../../shared/formatBytes";
 
 interface OverviewPageProps {
@@ -210,8 +212,15 @@ function SparkCard({
         </div>
       ) : (
         <>
-          {/* Three headline bars: GPU alloc, Temp, Usage */}
+          {/* Headline bars: GPU load, VRAM, GPU temp, CPU load, CPU temp */}
           <div className="flex flex-col gap-3.5">
+            <MetricBar
+              label={t("GPU Load")}
+              value={usage}
+              max={100}
+              color={usageBarColor}
+              caption={`${usage}%`}
+            />
             <MetricBar
               label={t("VRAM")}
               value={vramUsed}
@@ -237,16 +246,26 @@ function SparkCard({
               );
             })()}
             <MetricBar
-              label={
-                spark.kind === "host" || (spark.metrics.cpu?.temperature ?? 0) > 0
-                  ? "GPU"
-                  : t("Temperature")
-              }
+              label={t("GPU Temperature")}
               value={displayTemp}
-              max={temperatureUnit === "fahrenheit" ? 212 : 100}
+              max={temperatureUnit === "fahrenheit" ? 176 : 80}
               color={tempBarColor}
               caption={tempLabel}
             />
+            {spark.metrics.cpu && spark.metrics.cpu.usage > 0 && (() => {
+              const cpuUsage = spark.metrics.cpu?.usage ?? 0;
+              const cpuLoadBarColor =
+                cpuUsage > 85 ? "bg-danger" : cpuUsage > 60 ? "bg-warning" : "bg-accent";
+              return (
+                <MetricBar
+                  label={t("CPU Load")}
+                  value={cpuUsage}
+                  max={100}
+                  color={cpuLoadBarColor}
+                  caption={`${cpuUsage}%`}
+                />
+              );
+            })()}
             {(spark.metrics.cpu?.temperature ?? 0) > 0 && (() => {
               const cpuRaw = spark.metrics.cpu?.temperature ?? 0;
               const cpuDisplay =
@@ -257,9 +276,9 @@ function SparkCard({
                 cpuRaw > 95 ? "bg-danger" : cpuRaw > 85 ? "bg-warning" : cpuRaw > 50 ? "bg-accent" : "bg-success";
               return (
                 <MetricBar
-                  label="CPU"
+                  label={t("CPU Temperature")}
                   value={cpuDisplay}
-                  max={temperatureUnit === "fahrenheit" ? 212 : 100}
+                  max={temperatureUnit === "fahrenheit" ? 176 : 80}
                   color={cpuBarColor}
                   caption={cpuLabel}
                 />
@@ -272,13 +291,6 @@ function SparkCard({
               >
                 {t("Thermal throttle")}</div>
             )}
-            <MetricBar
-              label={t("Usage")}
-              value={usage}
-              max={100}
-              color={usageBarColor}
-              caption={`${usage}%`}
-            />
           </div>
 
           {/* Secondary stats */}
@@ -367,31 +379,85 @@ function SparkCard({
             })()}
           </div>
 
-          {(() => {
-            const role = resolveSparkRole(spark);
-            if (role === "worker") return null;
-            const llmArr = spark.metrics.llm;
-            const llm = Array.isArray(llmArr) ? llmArr.find((l) => l.available) : null;
-            if (!llm) return null;
-            return (
-              <div className="mt-3.5 grid grid-cols-2 gap-2 border-t border-border pt-3">
-                <div className="text-center">
-                  <span className="font-tabular text-[28px] font-bold leading-none text-text-strong">
-                    {llm.generationTps.toFixed(0)}
-                  </span>
-                  <span className="text-sm font-normal text-muted"> tok/s</span>
-                </div>
-                <div className="border-l border-border text-center">
-                  <span className="font-tabular text-[28px] font-bold leading-none text-text-strong">
-                    {llm.prefillTps.toFixed(0)}
-                  </span>
-                  <span className="text-sm font-normal text-muted"> {t(" prefill")}</span>
-                </div>
-              </div>
-            );
-          })()}
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Fleet-level LLM stats card — generation/prefill throughput for a head or
+ * standalone Spark's live LLM backend, shown as a sibling of the node cards.
+ */
+function LlmStatsCard({
+  spark,
+  onSelect,
+}: {
+  spark: SparkSnapshot;
+  onSelect?: (id: string) => void;
+}) {
+  useI18n();
+  const llmArr = Array.isArray(spark.metrics?.llm) ? spark.metrics.llm : [];
+  const idx = llmArr.findIndex((l) => l.available);
+  const port = spark.llmPorts?.[idx] ?? spark.llmPort ?? 8888;
+  const genTail = useMetricsHistoryTail(spark.id, `llm:${port}.tps`);
+  const prefillTail = useMetricsHistoryTail(spark.id, `llm:${port}.prefill`);
+  if (resolveSparkRole(spark) === "worker" || idx < 0) return null;
+  const llm = llmArr[idx];
+  return (
+    <div
+      className="overview-card flex flex-col"
+      style={{
+        padding: "var(--density-card-pad)",
+        gap: "var(--density-card-gap)",
+      }}
+    >
+      {/* Card header */}
+      <div className="flex items-center gap-2.5">
+        <span className="h-2 w-2 shrink-0 rounded-full bg-accent dot-glow-success" />
+        <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-text-strong">
+          {onSelect ? (
+            <button
+              type="button"
+              onClick={() => onSelect(spark.id)}
+              className="text-left font-inherit text-inherit hover:underline"
+            >
+              {spark.name}
+            </button>
+          ) : (
+            spark.name
+          )}
+        </span>
+        <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent">
+          {backendLabel(llm.backend) ?? "LLM"}
+        </span>
+        <span className="shrink-0 font-tabular text-[10px] text-muted">:{port}</span>
+      </div>
+      {llm.modelId && (
+        <div className="-mt-1.5 truncate text-[11px] text-muted" title={llm.modelId}>
+          {llm.modelId}
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-[10px] tracking-wide text-muted">{t("Generation tok/s")}</span>
+          <div className="flex items-end justify-between gap-2">
+            <Sparkline data={genTail} color="var(--color-accent)" height={24} />
+            <span className="font-tabular text-[22px] font-bold leading-none text-accent">
+              {llm.generationTps.toFixed(0)}
+            </span>
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-col gap-0.5 border-l border-border pl-2">
+          <span className="text-[10px] tracking-wide text-muted">{t("Prefill tok/s")}</span>
+          <div className="flex items-end justify-between gap-2">
+            <Sparkline data={prefillTail} color="var(--color-text)" height={24} />
+            <span className="font-tabular text-[22px] font-bold leading-none text-text-strong">
+              {llm.prefillTps.toFixed(0)}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -422,11 +488,9 @@ export function OverviewPage({
   const hiddenWorkerCount = hideWorkers ? sparks.filter(isWorkerSpark).length : 0;
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchMsg, setBatchMsg] = useState<{ text: string; tone: "ok" | "err" } | null>(null);
-  const [shutdownOpen, setShutdownOpen] = useState(false);
   /** Spark ids we started a batch Hermes update on; drives the live progress bar. */
   const [batchRun, setBatchRun] = useState<string[] | null>(null);
 
-  const onlineShutdownCount = sparks.filter((s) => s.online).length;
   const hermesMonitoredCount = sparks.filter((s) => s.hermes?.monitoring).length;
   const hermesPendingUpdateCount = sparks.filter((s) => s.hermes?.updateAvailable === true).length;
 
@@ -488,55 +552,6 @@ export function OverviewPage({
     } catch (err: unknown) {
       setBatchMsg({
         text: err instanceof Error ? err.message : "Batch hermes update failed",
-        tone: "err",
-      });
-    } finally {
-      setBatchLoading(false);
-      setTimeout(() => setBatchMsg(null), 6000);
-    }
-  }
-
-  async function handleShutdownAll() {
-    if (onlineShutdownCount === 0) return;
-    setBatchLoading(true);
-    setBatchMsg(null);
-    try {
-      const res = await shutdownAllSparks();
-      const ok = res.results.filter((r) => r.ok).length;
-      const fail = res.results.filter((r) => !r.ok && !r.skipped).length;
-      const skipped = res.results.filter((r) => r.skipped).length;
-      const parts = [`${ok} shut down`];
-      if (fail) parts.push(`${fail} failed`);
-      if (skipped) parts.push(`${skipped} skipped`);
-      setBatchMsg({
-        text: parts.join(", "),
-        tone: fail === 0 ? "ok" : "err",
-      });
-    } catch (err: unknown) {
-      setBatchMsg({
-        text: err instanceof Error ? err.message : "Batch shutdown failed",
-        tone: "err",
-      });
-    } finally {
-      setBatchLoading(false);
-      setTimeout(() => setBatchMsg(null), 6000);
-    }
-  }
-
-  async function handleWakeAll() {
-    setBatchLoading(true);
-    setBatchMsg(null);
-    try {
-      const res = await wakeAllSparks();
-      const ok = res.results.filter((r) => r.ok).length;
-      const fail = res.results.filter((r) => !r.ok).length;
-      setBatchMsg({
-        text: fail === 0 ? `${ok} wake packet(s) sent` : `${ok} sent, ${fail} failed`,
-        tone: fail === 0 ? "ok" : "err",
-      });
-    } catch (err: unknown) {
-      setBatchMsg({
-        text: err instanceof Error ? err.message : "Batch wake failed",
         tone: "err",
       });
     } finally {
@@ -642,24 +657,6 @@ export function OverviewPage({
                   )}
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => void handleWakeAll()}
-                disabled={batchLoading}
-                title={t("Wake all Sparks that have a MAC configured (WoL)")}
-                className="flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-[11px] text-muted hover:bg-success/20 hover:text-success transition-colors disabled:opacity-50"
-              >
-                <PowerOnIcon className="h-3 w-3" />
-                {t("Wake All")}</button>
-              <button
-                type="button"
-                onClick={() => setShutdownOpen(true)}
-                disabled={batchLoading || onlineShutdownCount === 0}
-                title={t("Shut down all online Sparks")}
-                className="flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:bg-danger/20 hover:text-danger disabled:opacity-50"
-              >
-                <PowerOffIcon className="h-3 w-3" />
-                {t("Shutdown All")}</button>
             </div>
           )}
           <span className="online-chip">
@@ -693,14 +690,6 @@ export function OverviewPage({
         </select>
       </div>
       ) : null}
-      <ConfirmShutdownDialog
-        open={shutdownOpen}
-        onClose={() => setShutdownOpen(false)}
-        onConfirm={handleShutdownAll}
-        title={t("Shutdown All")}
-        description={t("Gracefully shut down all {0} online Spark{1}? Offline nodes will be skipped.", onlineShutdownCount, onlineShutdownCount === 1 ? "" : "s")}
-        confirmLabel="Shut down all"
-      />
       {showLlmTokenTotals ? <FleetTokenTotals /> : null}
       <div className="overview-page grid sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--density-page-gap)" }}>
         {visibleSparks.length === 0 && (
@@ -708,17 +697,19 @@ export function OverviewPage({
             {t("No units match the current search and status filters.")}</p>
         )}
         {visibleSparks.map((spark) => (
-          <SparkCard
-            key={spark.id}
-            spark={spark}
-            headSparkName={
-              spark.workerHeadId
-                ? sparks.find((s) => s.id === spark.workerHeadId)?.name ?? null
-                : null
-            }
-            temperatureUnit={temperatureUnit}
-            onSelect={onSelectSpark}
-          />
+          <Fragment key={spark.id}>
+            <SparkCard
+              spark={spark}
+              headSparkName={
+                spark.workerHeadId
+                  ? sparks.find((s) => s.id === spark.workerHeadId)?.name ?? null
+                  : null
+              }
+              temperatureUnit={temperatureUnit}
+              onSelect={onSelectSpark}
+            />
+            <LlmStatsCard spark={spark} onSelect={onSelectSpark} />
+          </Fragment>
         ))}
       </div>
     </div>

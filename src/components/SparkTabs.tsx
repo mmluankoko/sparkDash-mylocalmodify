@@ -1,24 +1,5 @@
 import { t, useI18n } from "../i18n";
-import { memo, useEffect, useMemo, useState, useRef, useCallback } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  rectSortingStrategy,
-  sortableKeyboardCoordinates,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { memo, useEffect, useState, useRef, useCallback } from "react";
 import type { SparkSnapshot } from "../api/types";
 import { PlusIcon, GridIcon } from "./ui/icons";
 import { OVERVIEW_ID } from "../constants";
@@ -29,21 +10,6 @@ interface SparkTabsProps {
   onSelect: (id: string) => void;
   onAdd: () => void;
   onEdit?: (id: string) => void;
-  onReorder?: (orderedIds: string[]) => void;
-}
-
-function GripIcon() {
-  useI18n();
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden className="opacity-50">
-      <circle cx="4" cy="3" r="1" />
-      <circle cx="8" cy="3" r="1" />
-      <circle cx="4" cy="6" r="1" />
-      <circle cx="8" cy="6" r="1" />
-      <circle cx="4" cy="9" r="1" />
-      <circle cx="8" cy="9" r="1" />
-    </svg>
-  );
 }
 
 /* ─── Mobile helpers ──────────────────────────────────── */
@@ -142,49 +108,26 @@ const TabLabelButton = memo(
 );
 
 /**
- * Pill-nav tab item. When reorderable, a dedicated grip handle starts the
- * drag; clicking the label selects. Active = dark pill (via .pill-item-with-handle).
- * Not memoized as a whole — shell classes (active/drag/overlay) and handle props
- * must update every SortableTab render.
+ * Pill-nav tab item. Active = dark pill (via .pill-item-with-handle).
  */
 function TabChrome({
   spark,
   isActive,
   onSelect,
   onEdit,
-  dragHandleProps,
-  isDragging,
-  isOverlay,
 }: {
   spark: SparkSnapshot;
   isActive: boolean;
   onSelect: (id: string) => void;
   onEdit?: (id: string) => void;
-  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement> & { ref?: (el: HTMLButtonElement | null) => void };
-  isDragging?: boolean;
-  isOverlay?: boolean;
 }) {
   useI18n();
   return (
     <div
-      className={[
-        "pill-item-with-handle shrink-0",
-        isActive ? "is-active" : "",
-        isOverlay ? "shadow-lg ring-1 ring-border scale-[1.03]" : "",
-        isDragging && !isOverlay ? "opacity-40" : "",
-      ]
+      className={["pill-item-with-handle shrink-0", isActive ? "is-active" : ""]
         .filter(Boolean)
         .join(" ")}
     >
-      <button
-        type="button"
-        className="pill-handle"
-        title={t("Drag to reorder")}
-        aria-label={t("Reorder {0}", spark.name)}
-        {...dragHandleProps}
-      >
-        <GripIcon />
-      </button>
       <TabLabelButton
         id={spark.id}
         name={spark.name}
@@ -197,56 +140,14 @@ function TabChrome({
   );
 }
 
-function SortableTab({
-  spark,
-  isActive,
-  onSelect,
-  onEdit,
-}: {
-  spark: SparkSnapshot;
-  isActive: boolean;
-  onSelect: (id: string) => void;
-  onEdit?: (id: string) => void;
-}) {
-  useI18n();
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
-    useSortable({ id: spark.id });
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : undefined,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="shrink-0">
-      <TabChrome
-        spark={spark}
-        isActive={isActive}
-        onSelect={onSelect}
-        onEdit={onEdit}
-        isDragging={isDragging}
-        dragHandleProps={{
-          ref: setActivatorNodeRef,
-          ...attributes,
-          ...listeners,
-        }}
-      />
-    </div>
-  );
-}
-
 export function SparkTabs({
   sparks,
   activeId,
   onSelect,
   onAdd,
   onEdit,
-  onReorder,
 }: SparkTabsProps) {
   useI18n();
-  const [items, setItems] = useState<string[]>(() => sparks.map((s) => s.id));
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -254,34 +155,6 @@ export function SparkTabs({
   useEffect(() => {
     if (!isMobile) setMobileMenuOpen(false);
   }, [isMobile]);
-
-  useEffect(() => {
-    const ids = sparks.map((s) => s.id);
-    setItems((prev) => {
-      const same =
-        prev.length === ids.length &&
-        prev.every((id) => ids.includes(id)) &&
-        ids.every((id) => prev.includes(id));
-      if (!same) return ids;
-      if (!activeDragId && prev.join("\0") !== ids.join("\0")) return ids;
-      return prev;
-    });
-  }, [sparks, activeDragId]);
-
-  const byId = useMemo(() => new Map(sparks.map((s) => [s.id, s])), [sparks]);
-  const ordered = items.map((id) => byId.get(id)).filter(Boolean) as SparkSnapshot[];
-  const activeDragSpark = activeDragId ? byId.get(activeDragId) : null;
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 4 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const canReorder = Boolean(onReorder) && sparks.length > 1;
 
   // ── Mobile: hamburger + dropdown ────────────────────
   if (isMobile) {
@@ -312,101 +185,20 @@ export function SparkTabs({
 
   // ── Desktop: pill-nav ───────────────────────────────
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveDragId(String(event.active.id));
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveDragId(null);
-    if (!over || active.id === over.id) return;
-
-    setItems((prev) => {
-      const oldIndex = prev.indexOf(String(active.id));
-      const newIndex = prev.indexOf(String(over.id));
-      if (oldIndex < 0 || newIndex < 0) return prev;
-      const next = arrayMove(prev, oldIndex, newIndex);
-      onReorder?.(next);
-      return next;
-    });
-  };
-
-  const handleDragCancel = () => {
-    setActiveDragId(null);
-  };
-
-  if (!canReorder) {
-    return (
-      <nav className="pill-nav" aria-label={t("Sparks")}>
-        <OverviewTab isActive={activeId === OVERVIEW_ID} onSelect={onSelect} />
-        {sparks.map((spark) => (
-          <div key={spark.id} className="shrink-0">
-            <TabChrome
-              spark={spark}
-              isActive={activeId === spark.id}
-              onSelect={onSelect}
-              onEdit={onEdit}
-            />
-          </div>
-        ))}
-        <AddButton onAdd={onAdd} />
-      </nav>
-    );
-  }
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
-      <nav className="pill-nav" aria-label={t("Sparks")}>
-        <OverviewTab isActive={activeId === OVERVIEW_ID} onSelect={onSelect} />
-        {/* rect (not horizontal-list) strategy: .pill-nav wraps onto several
-            rows once there are more Sparks than fit one line, and the
-            horizontal strategy only ever shifts items along X. */}
-        <SortableContext items={items} strategy={rectSortingStrategy}>
-          {ordered.map((spark) => (
-            <SortableTab
-              key={spark.id}
-              spark={spark}
-              isActive={activeId === spark.id}
-              onSelect={onSelect}
-              onEdit={onEdit}
-            />
-          ))}
-        </SortableContext>
-        <AddButton onAdd={onAdd} />
-      </nav>
-
-      <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
-        {activeDragSpark ? (
+    <nav className="pill-nav" aria-label={t("Sparks")}>
+      <OverviewTab isActive={activeId === OVERVIEW_ID} onSelect={onSelect} />
+      {sparks.map((spark) => (
+        <div key={spark.id} className="shrink-0">
           <TabChrome
-            spark={activeDragSpark}
-            isActive={activeId === activeDragSpark.id}
-            onSelect={() => {}}
-            isOverlay
+            spark={spark}
+            isActive={activeId === spark.id}
+            onSelect={onSelect}
+            onEdit={onEdit}
           />
-        ) : null}
-      </DragOverlay>
-    </DndContext>
-  );
-}
-
-function AddButton({ onAdd }: { onAdd: () => void }) {
-  useI18n();
-  return (
-    <button
-      type="button"
-      onClick={onAdd}
-      title={t("Add Spark/GPU Host")}
-      aria-label={t("Add Spark/GPU Host")}
-      className="pill-add shrink-0"
-    >
-      <PlusIcon className="h-3.5 w-3.5" />
-    </button>
+        </div>
+      ))}
+    </nav>
   );
 }
 

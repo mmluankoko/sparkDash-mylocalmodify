@@ -2,7 +2,7 @@ import { t, useI18n } from "./i18n";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useSnapshot } from "./hooks/useSnapshot";
 import { useAppRoute, useRoute } from "./hooks/useRoute";
-import { fetchSparks, reorderSparks, fetchSettings } from "./api/client";
+import { fetchSparks, fetchSettings } from "./api/client";
 import { SparkTabs } from "./components/SparkTabs";
 import { AddSparkDialog } from "./components/AddSparkDialog";
 import { EditSparkDialog } from "./components/EditSparkDialog";
@@ -20,26 +20,6 @@ import { ErrorBanner } from "./components/ui/ErrorBanner";
 import { OVERVIEW_ID } from "./constants";
 import type { Settings, SparkSnapshot } from "./api/types";
 import { isWorkerSpark } from "./api/sparkRole";
-
-/** Keep hidden worker ids in their original slots when the visible tabs are reordered. */
-function mergeTabOrderKeepingHidden(
-  allSparks: SparkSnapshot[],
-  visibleOrder: string[],
-  hiddenIds: Set<string>
-): string[] {
-  if (hiddenIds.size === 0) return visibleOrder;
-  const result: string[] = [];
-  let vi = 0;
-  for (const spark of allSparks) {
-    if (hiddenIds.has(spark.id)) {
-      result.push(spark.id);
-    } else if (vi < visibleOrder.length) {
-      result.push(visibleOrder[vi++]);
-    }
-  }
-  while (vi < visibleOrder.length) result.push(visibleOrder[vi++]);
-  return result;
-}
 
 function placeholderSnapshot(
   id: string,
@@ -160,31 +140,7 @@ function DashboardApp() {
 
   // Prefer live WS data; fall back to API-fetched list when empty
   const liveSparks = sparks.length > 0 ? sparks : fallbackSparks;
-  /** Optimistic tab order while drag-save races the next WS snapshot */
-  const [orderOverride, setOrderOverride] = useState<string[] | null>(null);
-
-  const displaySparks = useMemo(() => {
-    if (!orderOverride?.length) return liveSparks;
-    const map = new Map(liveSparks.map((s) => [s.id, s]));
-    const ordered: SparkSnapshot[] = [];
-    for (const id of orderOverride) {
-      const s = map.get(id);
-      if (s) {
-        ordered.push(s);
-        map.delete(id);
-      }
-    }
-    for (const s of map.values()) ordered.push(s);
-    return ordered;
-  }, [liveSparks, orderOverride]);
-
-  // Drop override once server/WS order matches
-  useEffect(() => {
-    if (!orderOverride) return;
-    const live = liveSparks.map((s) => s.id).join("\0");
-    if (live === orderOverride.join("\0")) setOrderOverride(null);
-  }, [liveSparks, orderOverride]);
-
+  const displaySparks = liveSparks;
 
   const isOverview = activeId === OVERVIEW_ID;
   const hideWorkers = settings?.hideWorkers ?? false;
@@ -290,23 +246,6 @@ function DashboardApp() {
     }
   }, [sparks, activeId, setActiveId]);
 
-  const handleReorder = useCallback(
-    async (orderedIds: string[]) => {
-      const next = mergeTabOrderKeepingHidden(displaySparks, orderedIds, hiddenWorkerIds);
-      setOrderOverride(next);
-      try {
-        await reorderSparks(next);
-      } catch (err) {
-        console.error("Failed to reorder Sparks:", err);
-        setOrderOverride(null);
-        setActionError(
-          `Could not save the Spark order: ${err instanceof Error ? err.message : String(err)}. The previous order was restored.`
-        );
-      }
-    },
-    [displaySparks, hiddenWorkerIds]
-  );
-
   return (
     <div className="min-h-screen p-0 text-text sm:p-8">
       <div className="dashboard-shell">
@@ -327,7 +266,6 @@ function DashboardApp() {
             onSelect={navigate}
             onAdd={() => setShowAdd(true)}
             onEdit={(id) => setEditId(id)}
-            onReorder={handleReorder}
           />
           <div className="ml-auto flex items-center gap-2.5">
             <LanguageSwitch />
