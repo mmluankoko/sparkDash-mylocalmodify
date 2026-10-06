@@ -581,6 +581,8 @@ export interface FleetEnergy {
 
 // ─── API responses ────────────────────────────────────────
 export interface Settings {
+  /** Language used on page load; switching in the header does not save it. */
+  defaultLanguage: "zh-CN" | "en";
   pollIntervalMs: number;
   defaultLlmPort: number;
   autoHideOffline: boolean;

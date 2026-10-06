@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useState } from "react";
 import type { NetworkMetrics } from "../../api/types";
 import { updateDisabledInterfaces } from "../../api/client";
@@ -14,6 +15,7 @@ interface NetworkPanelProps {
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  useI18n();
   return (
     <button
       type="button"
@@ -39,6 +41,7 @@ export function NetworkPanel({
   onDisabledChange,
   className,
 }: NetworkPanelProps) {
+  useI18n();
   const [showSettings, setShowSettings] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -72,14 +75,14 @@ export function NetworkPanel({
 
   return (
     <Panel
-      title="Network"
+      title={t("Network")}
       accent
       icon={<NetworkIcon />}
       className={`panel-network ${className ?? ""}`}
       actions={
         <button
           type="button"
-          title={showSettings ? "Done" : "Interface settings"}
+          title={showSettings ? t("Done") : t("Interface settings")}
           onClick={() => setShowSettings(!showSettings)}
           disabled={saving}
           className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:bg-surface-hover disabled:opacity-50 ${
@@ -87,15 +90,15 @@ export function NetworkPanel({
           }`}
         >
           <GearIcon />
-          <span>{showSettings ? "Done" : "Settings"}</span>
+          <span>{showSettings ? t("Done") : t("Settings")}</span>
         </button>
       }
     >
       {showSettings ? (
         <div className="space-y-2">
-          <p className="mb-1 text-[10px] text-muted">Toggle adapters to monitor:</p>
+          <p className="mb-1 text-[10px] text-muted">{t("Toggle adapters to monitor:")}</p>
           {interfaces.length === 0 ? (
-            <p className="text-xs text-muted">No interfaces discovered</p>
+            <p className="text-xs text-muted">{t("No interfaces discovered")}</p>
           ) : (
             interfaces.map((iface) => {
               const isDisabled =
@@ -109,8 +112,7 @@ export function NetworkPanel({
                     <span className="truncate text-xs text-text">{iface.name}</span>
                     {primary === iface.name && (
                       <span className="shrink-0 rounded bg-accent-soft px-1 text-[9px] font-medium uppercase tracking-wide text-accent">
-                        primary
-                      </span>
+                        {t("primary")}</span>
                     )}
                   </div>
                   <Toggle checked={!isDisabled} onChange={(on) => handleToggle(iface.name, !on)} />
@@ -123,7 +125,7 @@ export function NetworkPanel({
         <>
           {primaryVisible && (
             <div className="mb-3 flex items-center gap-2 text-xs">
-              <span className="text-muted">Primary</span>
+              <span className="text-muted">{t("Primary")}</span>
               <span className="font-tabular text-text-strong">{primaryVisible}</span>
               {linkSpeed != null && (
                 <span className="ml-auto chip py-0.5">{linkSpeed} Mbps</span>
@@ -133,7 +135,7 @@ export function NetworkPanel({
           <div className="space-y-2">
             {visible.length === 0 ? (
               <p className="text-xs text-muted">
-                {interfaces.length === 0 ? "No interfaces" : "All adapters hidden — open settings"}
+                {interfaces.length === 0 ? t("No interfaces") : t("All adapters hidden — open settings")}
               </p>
             ) : (
               visible.map((iface) => {

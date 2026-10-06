@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import type { TailscaleMetrics } from "../../api/types";
 import { Panel } from "../ui/Panel";
 import { NetworkIcon } from "../ui/icons";
@@ -12,6 +13,7 @@ interface TailscalePanelProps {
  * invisible off it" — every other panel is LAN-fed and looks fine.
  */
 export function TailscalePanel({ tailscale, className }: TailscalePanelProps) {
+  useI18n();
   const online = tailscale?.online ?? null;
   const health = tailscale?.health ?? [];
   const available = Boolean(tailscale?.available);
@@ -28,8 +30,8 @@ export function TailscalePanel({ tailscale, className }: TailscalePanelProps) {
   return (
     <Panel title="Tailnet" accent={offTailnet} icon={<NetworkIcon />} className={className}>
       <div className="mb-3 flex items-center gap-2 text-xs">
-        <span className="text-muted">Status</span>
-        <span className={`font-tabular font-medium ${status.cls}`}>{status.label}</span>
+        <span className="text-muted">{t("Status")}</span>
+        <span className={`font-tabular font-medium ${status.cls}`}>{t(status.label)}</span>
         {tailscale?.backendState && (
           <span className="ml-auto chip py-0.5">{tailscale.backendState}</span>
         )}
@@ -56,12 +58,12 @@ export function TailscalePanel({ tailscale, className }: TailscalePanelProps) {
 
       <div className="space-y-2">
         {tailscale?.tailscaleIp && <Row label="IP" value={tailscale.tailscaleIp} tabular />}
-        {tailscale?.hostName && <Row label="Host" value={tailscale.hostName} />}
-        {tailscale?.relay && <Row label="Relay" value={tailscale.relay} />}
-        {tailscale?.keyExpired && <Row label="Key" value="EXPIRED — needs re-auth" danger />}
-        {tailscale?.version && <Row label="Version" value={tailscale.version} tabular />}
+        {tailscale?.hostName && <Row label={t("Host")} value={tailscale.hostName} />}
+        {tailscale?.relay && <Row label={t("Relay")} value={tailscale.relay} />}
+        {tailscale?.keyExpired && <Row label={t("Key")} value={t("EXPIRED — needs re-auth")} danger />}
+        {tailscale?.version && <Row label={t("Version")} value={tailscale.version} tabular />}
         {!available && !tailscale?.error && (
-          <p className="text-xs text-muted">Waiting for first poll…</p>
+          <p className="text-xs text-muted">{t("Waiting for first poll…")}</p>
         )}
       </div>
     </Panel>
@@ -79,6 +81,7 @@ function Row({
   tabular?: boolean;
   danger?: boolean;
 }) {
+  useI18n();
   return (
     <div className="flex items-center justify-between rounded-md border border-border bg-surface-elevated px-3 py-2">
       <span className="text-xs text-muted">{label}</span>

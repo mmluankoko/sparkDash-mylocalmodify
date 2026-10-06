@@ -1,3 +1,4 @@
+import { t, useI18n } from "../i18n";
 import { useState, useEffect } from "react";
 import { SunIcon, SunDimIcon, MoonIcon, MoonStarIcon } from "./ui/icons";
 
@@ -15,6 +16,7 @@ function getInitialTheme(): Theme {
 }
 
 export function ThemeSwitch() {
+  useI18n();
   const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
 
   useEffect(() => {
@@ -42,8 +44,8 @@ export function ThemeSwitch() {
       type="button"
       onClick={toggle}
       className="icon-circle"
-      title={`Theme: ${theme}`}
-      aria-label={`Switch theme (currently ${theme})`}
+      title={t("Theme: {0}", t(theme))}
+      aria-label={t("Switch theme (currently {0})", t(theme))}
     >
       <Icon className="h-3.5 w-3.5" />
     </button>

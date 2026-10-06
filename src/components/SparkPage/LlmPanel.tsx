@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { LlmMetrics, LlmBenchTarget } from "../../api/types";
 import { setLlmApiKey, updateLlmPort, updateLlmPorts } from "../../api/client";
@@ -88,6 +89,7 @@ function LlmLaunchers({
   onRemoteDecode: (target: LlmBenchTarget) => void;
   onRemotePrefill: (target: LlmBenchTarget) => void;
 }) {
+  useI18n();
   const [remoteOpen, setRemoteOpen] = useState(false);
   const [hostDraft, setHostDraft] = useState(() => readStoredRemote().host);
   const [portDraft, setPortDraft] = useState(() => readStoredRemote().port);
@@ -137,10 +139,9 @@ function LlmLaunchers({
           type="button"
           onClick={onDecode}
           className={`${LAUNCHER_BTN} min-w-0 flex-1`}
-          title="Runs against this Spark’s LLM. Remote units use LAN HTTP, or an SSH tunnel to loopback if the server only listens on 127.0.0.1."
+          title={t("Runs against this Spark’s LLM. Remote units use LAN HTTP, or an SSH tunnel to loopback if the server only listens on 127.0.0.1.")}
         >
-          Run decode benchmark
-        </button>
+          {t("Run decode benchmark")}</button>
         <button
           type="button"
           onClick={() => {
@@ -153,20 +154,18 @@ function LlmLaunchers({
               : "border-border bg-surface-elevated text-muted hover:border-accent hover:text-accent"
           }`}
           aria-expanded={remoteOpen}
-          title="On-demand bench against a typed host (HTTPS Tailscale, LAN IP, …). Not probed until you run."
+          title={t("On-demand bench against a typed host (HTTPS Tailscale, LAN IP, …). Not probed until you run.")}
         >
-          Remote
-        </button>
+          {t("Remote")}</button>
       </div>
       <div className="flex gap-2">
         <button
           type="button"
           onClick={onPrefill}
           className={`${LAUNCHER_BTN} min-w-0 flex-1`}
-          title="Runs against this Spark’s LLM. Remote units use LAN HTTP, or an SSH tunnel to loopback if the server only listens on 127.0.0.1."
+          title={t("Runs against this Spark’s LLM. Remote units use LAN HTTP, or an SSH tunnel to loopback if the server only listens on 127.0.0.1.")}
         >
-          Run prefill benchmark
-        </button>
+          {t("Run prefill benchmark")}</button>
         <button
           type="button"
           onClick={() => {
@@ -179,18 +178,16 @@ function LlmLaunchers({
               : "border-border bg-surface-elevated text-muted hover:border-accent hover:text-accent"
           }`}
           aria-expanded={remoteOpen}
-          title="On-demand bench against a typed host (HTTPS Tailscale, LAN IP, …). Not probed until you run."
+          title={t("On-demand bench against a typed host (HTTPS Tailscale, LAN IP, …). Not probed until you run.")}
         >
-          Remote
-        </button>
+          {t("Remote")}</button>
       </div>
       {remoteOpen && (
         <div className="space-y-2 rounded border border-border bg-surface-elevated p-2">
           <p className="text-[10px] leading-snug text-muted">
-            On-demand endpoint. Paste a URL or type host + port — nothing is probed until you run.
-          </p>
+            {t("On-demand endpoint. Paste a URL or type host + port — nothing is probed until you run.")}</p>
           <label className="block space-y-1">
-            <span className="text-[10px] uppercase tracking-wide text-muted">Host</span>
+            <span className="text-[10px] uppercase tracking-wide text-muted">{t("Host")}</span>
             <input
               type="text"
               value={hostDraft}
@@ -205,7 +202,7 @@ function LlmLaunchers({
           </label>
           <div className="flex items-end gap-2">
             <label className="min-w-0 flex-1 space-y-1">
-              <span className="text-[10px] uppercase tracking-wide text-muted">Port</span>
+              <span className="text-[10px] uppercase tracking-wide text-muted">{t("Port")}</span>
               <input
                 type="number"
                 min={1}
@@ -238,15 +235,13 @@ function LlmLaunchers({
               onClick={() => launchRemote("decode")}
               className={`${LAUNCHER_BTN} flex-1`}
             >
-              Decode
-            </button>
+              {t("Decode")}</button>
             <button
               type="button"
               onClick={() => launchRemote("prefill")}
               className={`${LAUNCHER_BTN} flex-1`}
             >
-              Prefill
-            </button>
+              {t("Prefill")}</button>
           </div>
         </div>
       )}
@@ -265,16 +260,16 @@ function LlmLaunchers({
         }}
         className={`${LAUNCHER_BTN} w-full`}
       >
-        Showcase
-      </button>
+        {t("Showcase")}</button>
     </div>
   );
 }
 
 /** Backend badge — neutral surfaces with a single accent dot. No blue/purple. */
 function BackendBadge({ backend }: { backend: string | null }) {
+  useI18n();
   const label = backendLabel(backend);
-  if (!label) return <span className="text-xs text-muted">No backend</span>;
+  if (!label) return <span className="text-xs text-muted">{t("No backend")}</span>;
 
   return (
     <span className="llm-badge">
@@ -290,13 +285,14 @@ function PostureBadge({
 }: {
   posture: NonNullable<LlmMetrics["posture"]>;
 }) {
+  useI18n();
   return (
     <span
       className={`llm-posture llm-posture--${posture.level}`}
-      title={posture.detail}
+      title={t(posture.detail)}
     >
       <span className="llm-posture__dot" />
-      {posture.label}
+      {t(posture.label)}
     </span>
   );
 }
@@ -318,6 +314,7 @@ function MetricInfoTip({
   setOpenId: (id: string | null) => void;
   align?: "left" | "right";
 }) {
+  useI18n();
   const open = openId === id;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -355,7 +352,7 @@ function MetricInfoTip({
         }}
         onMouseLeave={scheduleClose}
         className="relative cursor-pointer opacity-60 hover:opacity-100"
-        aria-label={`${label} info`}
+        aria-label={t("{0} info", label)}
       >
         <InfoIcon className="h-2.5 w-2.5" />
         {open && (
@@ -385,6 +382,7 @@ export function LlmPanel({
   onRemovePort,
   className,
 }: LlmPanelProps) {
+  useI18n();
   // Tail keyed by port so multi-port LLM sparklines stay distinct (8b).
   const genHistory = useMetricsHistoryTail(sparkId, `llm:${llmPort}.tps`);
   const prefillHistory = useMetricsHistoryTail(sparkId, `llm:${llmPort}.prefill`);
@@ -524,17 +522,17 @@ export function LlmPanel({
           {onRemovePort && (
             <button
               type="button"
-              title={`Remove port ${llmPort}`}
+              title={t("Remove port {0}", llmPort)}
               onClick={() => onRemovePort(llmPort)}
               className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-danger transition-colors hover:bg-danger/10"
             >
               <span aria-hidden>×</span>
-              <span>Remove</span>
+              <span>{t("Remove")}</span>
             </button>
           )}
           <button
             type="button"
-            title={showSettings ? "Done" : "LLM settings"}
+            title={showSettings ? t("Done") : t("LLM settings")}
             onClick={() => {
               if (showSettings) {
                 setPortDraft(String(llmPort));
@@ -550,7 +548,7 @@ export function LlmPanel({
             }`}
           >
             <GearIcon />
-            <span>{showSettings ? "Done" : "Settings"}</span>
+            <span>{showSettings ? t("Done") : t("Settings")}</span>
           </button>
         </div>
       }
@@ -558,10 +556,9 @@ export function LlmPanel({
       {showSettings ? (
         <div className="space-y-3">
           <p className="text-[10px] text-muted">
-            HTTP port of the LLM server on this Spark (vLLM / llama.cpp / sglang / ds4 / EXL3 / OpenAI-compatible gateway).
-          </p>
+            {t("HTTP port of the LLM server on this Spark (vLLM / llama.cpp / sglang / ds4 / EXL3 / OpenAI-compatible gateway).")}</p>
           <label className="block space-y-1">
-            <span className="text-xs text-muted">Port</span>
+            <span className="text-xs text-muted">{t("Port")}</span>
             <input
               type="number"
               min={1}
@@ -582,14 +579,14 @@ export function LlmPanel({
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-xs text-muted">API key (optional)</span>
+            <span className="text-xs text-muted">{t("API key (optional)")}</span>
             <input
               type="password"
               autoComplete="new-password"
               spellCheck={false}
               value={apiKeyDraft}
               disabled={clearApiKey}
-              placeholder={hasApiKey && !clearApiKey ? "•••••••• (saved — leave blank to keep)" : "Bearer token if required"}
+              placeholder={hasApiKey && !clearApiKey ? t("•••••••• (saved — leave blank to keep)") : t("Bearer token if required")}
               onChange={(e) => {
                 setApiKeyDraft(e.target.value);
                 setClearApiKey(false);
@@ -616,11 +613,10 @@ export function LlmPanel({
                 }}
                 className="h-3.5 w-3.5 accent-[var(--color-accent)]"
               />
-              Clear saved API key
-            </label>
+              {t("Clear saved API key")}</label>
           )}
           {portInvalid && (
-            <p className="text-[10px] text-danger">Enter an integer between 1 and 65535</p>
+            <p className="text-[10px] text-danger">{t("Enter an integer between 1 and 65535")}</p>
           )}
           {saveError && <p className="text-[10px] text-danger">{saveError}</p>}
           <div className="flex items-center justify-end gap-2">
@@ -636,15 +632,14 @@ export function LlmPanel({
               disabled={saving}
               className="rounded border border-border px-2 py-1 text-[10px] text-muted hover:bg-surface-hover disabled:opacity-50"
             >
-              Cancel
-            </button>
+              {t("Cancel")}</button>
             <button
               type="button"
               onClick={() => void handleSaveSettings()}
               disabled={saving || portInvalid || !settingsDirty}
               className="rounded bg-accent px-2 py-1 text-[10px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
             >
-              {saving ? "Saving…" : "Save"}
+              {saving ? t("Saving…") : t("Save")}
             </button>
           </div>
         </div>
@@ -658,8 +653,8 @@ export function LlmPanel({
             )}
             <p className="text-xs text-muted">
               {llm?.posture?.auth === "protected"
-                ? `${llm.posture.label} on :${llmPort}`
-                : `No model loaded on :${llmPort}`}
+                ? t("{0} on :{1}", llm.posture.label, llmPort)
+                : t("No model loaded on :{0}", llmPort)}
             </p>
           </div>
           <LlmLaunchers
@@ -698,7 +693,7 @@ export function LlmPanel({
           )}
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted">Generation tok/s</span>
+            <span className="text-xs text-muted">{t("Generation tok/s")}</span>
             <div className="flex items-center gap-2">
               <Sparkline data={genHistory} color="var(--color-accent)" height={24} />
               <div className="text-right">
@@ -707,7 +702,7 @@ export function LlmPanel({
                 </div>
                 {genAvg != null && (
                   <div className="font-tabular text-[9px] text-muted">
-                    avg {genAvg >= 100 ? genAvg.toFixed(0) : genAvg.toFixed(1)}
+                    {t("avg ")}{genAvg >= 100 ? genAvg.toFixed(0) : genAvg.toFixed(1)}
                   </div>
                 )}
               </div>
@@ -715,9 +710,9 @@ export function LlmPanel({
           </div>
           <div
             className="flex items-center justify-between"
-            title="Prompt tokens/sec taken in during the last poll window — cache-served + computed; the rows below split that total into the two parts. Opening a saved chat in the UI does not hit the GPU; send (or regenerate) so the history is sent as the prompt. Cached prefill does little GPU work; uncached prefill is what builds KV cache."
+            title={t("Prompt tokens/sec taken in during the last poll window — cache-served + computed; the rows below split that total into the two parts. Opening a saved chat in the UI does not hit the GPU; send (or regenerate) so the history is sent as the prompt. Cached prefill does little GPU work; uncached prefill is what builds KV cache.")}
           >
-            <span className="text-xs text-muted">Prefill tok/s</span>
+            <span className="text-xs text-muted">{t("Prefill tok/s")}</span>
             <div className="flex items-center gap-2">
               <Sparkline data={prefillHistory} color="var(--color-text)" height={24} />
               <div className="text-right">
@@ -726,7 +721,7 @@ export function LlmPanel({
                 </div>
                 {prefillAvg != null && (
                   <div className="font-tabular text-[9px] text-muted">
-                    avg {prefillAvg >= 100 ? prefillAvg.toFixed(0) : prefillAvg.toFixed(1)}
+                    {t("avg ")}{prefillAvg >= 100 ? prefillAvg.toFixed(0) : prefillAvg.toFixed(1)}
                   </div>
                 )}
               </div>
@@ -736,9 +731,9 @@ export function LlmPanel({
             <>
               <div
                 className="flex items-center justify-between"
-                title="Prefill tokens served from prefix cache (little GPU work). High values mean prompt reuse, not a faster cold prefill."
+                title={t("Prefill tokens served from prefix cache (little GPU work). High values mean prompt reuse, not a faster cold prefill.")}
               >
-                <span className="text-xs text-muted">Cached prefill tok/s</span>
+                <span className="text-xs text-muted">{t("Cached prefill tok/s")}</span>
                 <div className="flex items-center gap-2">
                   <Sparkline data={cachedPrefillHistory} color="var(--color-muted)" height={24} />
                   <div className="text-right">
@@ -747,7 +742,7 @@ export function LlmPanel({
                     </div>
                     {cachedPrefillAvg != null && (
                       <div className="font-tabular text-[9px] text-muted">
-                        avg {cachedPrefillAvg >= 100 ? cachedPrefillAvg.toFixed(0) : cachedPrefillAvg.toFixed(1)}
+                        {t("avg ")}{cachedPrefillAvg >= 100 ? cachedPrefillAvg.toFixed(0) : cachedPrefillAvg.toFixed(1)}
                       </div>
                     )}
                   </div>
@@ -755,9 +750,9 @@ export function LlmPanel({
               </div>
               <div
                 className="flex items-center justify-between"
-                title="Uncached (computed) prefill — tokens that actually build KV cache on the GPU."
+                title={t("Uncached (computed) prefill — tokens that actually build KV cache on the GPU.")}
               >
-                <span className="text-xs text-muted">Uncached prefill tok/s</span>
+                <span className="text-xs text-muted">{t("Uncached prefill tok/s")}</span>
                 <div className="flex items-center gap-2">
                   <Sparkline data={uncachedPrefillHistory} color="var(--color-text)" height={24} />
                   <div className="text-right">
@@ -766,7 +761,7 @@ export function LlmPanel({
                     </div>
                     {uncachedPrefillAvg != null && (
                       <div className="font-tabular text-[9px] text-muted">
-                        avg {uncachedPrefillAvg >= 100 ? uncachedPrefillAvg.toFixed(0) : uncachedPrefillAvg.toFixed(1)}
+                        {t("avg ")}{uncachedPrefillAvg >= 100 ? uncachedPrefillAvg.toFixed(0) : uncachedPrefillAvg.toFixed(1)}
                       </div>
                     )}
                   </div>
@@ -780,24 +775,24 @@ export function LlmPanel({
 
           <div className="grid grid-cols-4 gap-2 border-t border-border pt-3">
             <div className="space-y-0.5">
-              <div className="text-[10px] uppercase tracking-wide text-muted">Slots</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted">{t("Slots")}</div>
               <div className="font-tabular text-sm text-text">
                 {(llm?.slotsTotal ?? 0) > 0
                   ? `${llm?.slotsActive ?? 0} / ${llm?.slotsTotal ?? 0}`
                   : (llm?.slotsActive ?? 0) > 0
-                    ? `${llm?.slotsActive} running`
+                    ? t("{0} running", llm?.slotsActive)
                     : "—"}
               </div>
             </div>
             <div className="space-y-0.5">
-              <div className="text-[10px] uppercase tracking-wide text-muted">Context</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted">{t("Context")}</div>
               <div className="font-tabular text-sm text-text">
                 {llm?.contextLength ? llm.contextLength.toLocaleString() : "—"}
               </div>
             </div>
             <div className="space-y-0.5">
               <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted">
-                <span>Engine</span>
+                <span>{t("Engine")}</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -809,7 +804,7 @@ export function LlmPanel({
                   onMouseEnter={clearEngineInfoTimer}
                   onMouseLeave={startEngineInfoTimer}
                   className="relative cursor-pointer opacity-60 hover:opacity-100"
-                  aria-label="Engine state info"
+                  aria-label={t("Engine state info")}
                 >
                   <svg
                     width="10"
@@ -831,21 +826,20 @@ export function LlmPanel({
                       onMouseLeave={startEngineInfoTimer}
                       className="absolute left-0 top-full z-10 mt-1 w-56 rounded-md border border-border bg-surface-elevated px-3 py-2 text-left text-[11px] font-normal normal-case text-text shadow-lg"
                     >
-                      Active = processing or ready for requests. Sleeping = idle, GPU memory freed until next request.
-                    </div>
+                      {t("Active = processing or ready for requests. Sleeping = idle, GPU memory freed until next request.")}</div>
                   )}
                 </button>
               </div>
               <div className="font-tabular text-sm text-text">
                 {llm?.gpuMemoryUtilization != null
                   ? llm.gpuMemoryUtilization === 0
-                    ? "Sleeping"
-                    : "Active"
+                    ? t("Sleeping")
+                    : t("Active")
                   : "—"}
               </div>
             </div>
             <div className="space-y-0.5">
-              <div className="text-[10px] uppercase tracking-wide text-muted">Total Generated</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted">{t("Total Generated")}</div>
               <div className="font-tabular text-sm text-text">
                 {llm && llm.totalOutputTokens > 0
                   ? llm.totalOutputTokens.toLocaleString()
@@ -859,7 +853,7 @@ export function LlmPanel({
               <div className="space-y-0.5">
                 <MetricInfoTip
                   id="kvCache"
-                  label="KV Cache"
+                  label={t("KV Cache")}
                   text={VLLM_METRIC_INFO.kvCache}
                   openId={metricInfoId}
                   setOpenId={setMetricInfoId}
@@ -883,7 +877,7 @@ export function LlmPanel({
               <div className="space-y-0.5">
                 <MetricInfoTip
                   id="requests"
-                  label="Requests"
+                  label={t("Requests")}
                   text={VLLM_METRIC_INFO.requests}
                   openId={metricInfoId}
                   setOpenId={setMetricInfoId}
@@ -891,18 +885,16 @@ export function LlmPanel({
                 />
                 <div className="font-tabular text-sm text-text">
                   {llm.requestsRunning != null
-                    ? `${Math.round(llm.requestsRunning)} run${
-                        llm.requestsWaiting != null
+                    ? t("{0} run{1}", Math.round(llm.requestsRunning), llm.requestsWaiting != null
                           ? ` / ${Math.round(llm.requestsWaiting)} wait`
-                          : ""
-                      }`
+                          : "")
                     : "—"}
                 </div>
               </div>
               <div className="space-y-0.5">
                 <MetricInfoTip
                   id="ttftP95"
-                  label="TTFT p95"
+                  label={t("TTFT p95")}
                   text={VLLM_METRIC_INFO.ttftP95}
                   openId={metricInfoId}
                   setOpenId={setMetricInfoId}
@@ -914,7 +906,7 @@ export function LlmPanel({
               <div className="space-y-0.5">
                 <MetricInfoTip
                   id="preempts"
-                  label="Preempts"
+                  label={t("Preempts")}
                   text={VLLM_METRIC_INFO.preempts}
                   openId={metricInfoId}
                   setOpenId={setMetricInfoId}
@@ -934,7 +926,7 @@ export function LlmPanel({
               <div className="space-y-0.5">
                 <MetricInfoTip
                   id="prefixCache"
-                  label="Prefix Cache"
+                  label={t("Prefix Cache")}
                   text={VLLM_METRIC_INFO.prefixCache}
                   openId={metricInfoId}
                   setOpenId={setMetricInfoId}
@@ -948,7 +940,7 @@ export function LlmPanel({
               <div className="space-y-0.5">
                 <MetricInfoTip
                   id="e2eP95"
-                  label="E2E p95"
+                  label={t("E2E p95")}
                   text={VLLM_METRIC_INFO.e2eP95}
                   openId={metricInfoId}
                   setOpenId={setMetricInfoId}
@@ -961,7 +953,7 @@ export function LlmPanel({
               <div className="space-y-0.5">
                 <MetricInfoTip
                   id="itlP95"
-                  label="ITL p95"
+                  label={t("ITL p95")}
                   text={VLLM_METRIC_INFO.itlP95}
                   openId={metricInfoId}
                   setOpenId={setMetricInfoId}
@@ -973,7 +965,7 @@ export function LlmPanel({
               <div className="space-y-0.5">
                 <MetricInfoTip
                   id="mtpAccept"
-                  label="MTP Accept"
+                  label={t("MTP Accept")}
                   text={VLLM_METRIC_INFO.mtpAccept}
                   openId={metricInfoId}
                   setOpenId={setMetricInfoId}

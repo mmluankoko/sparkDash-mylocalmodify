@@ -1,3 +1,4 @@
+import { t, useI18n } from "../i18n";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { addSpark, testSparkConfig } from "../api/client";
@@ -34,6 +35,7 @@ const defaultConfig: Omit<SparkConfig, "id"> = {
 };
 
 export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }: AddSparkDialogProps) {
+  useI18n();
   const [config, setConfig] = useState(defaultConfig);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<SparkTestResponse | null>(null);
@@ -134,37 +136,36 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
         aria-labelledby="add-spark-title"
       >
         <div className="modal-sheet__header" id="add-spark-title">
-          Add Spark/GPU Host
-        </div>
+          {t("Add Spark/GPU Host")}</div>
 
         <div className="modal-sheet__body">
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-muted">Unit type</label>
+            <label className="mb-1 block text-xs text-muted">{t("Unit type")}</label>
             <select
               value={config.kind ?? "spark"}
               onChange={(e) => update({ kind: e.target.value as "spark" | "host" })}
               className="w-full rounded border border-border bg-surface-elevated px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
             >
               <option value="spark">NVIDIA DGX Spark</option>
-              <option value="host">Dedicated GPU host (Linux, nvidia-smi, not a Spark)</option>
+              <option value="host">{t("Dedicated GPU host (Linux, nvidia-smi, not a Spark)")}</option>
             </select>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-muted">Name</label>
+            <label className="mb-1 block text-xs text-muted">{t("Name")}</label>
             <input
               type="text"
               value={config.name}
               onChange={(e) => update({ name: e.target.value })}
               className="w-full rounded border border-border bg-surface-elevated px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
-              placeholder="My Spark"
+              placeholder={t("My Spark")}
             />
           </div>
 
           <div>
             <label className="mb-1 block text-xs text-muted">
-              LAN IP {config.isLocal ? "(optional — browser links and Wake-on-LAN)" : "(required)"}
+              {t("LAN IP ")}{config.isLocal ? t("(optional — browser links and Wake-on-LAN)") : t("(required)")}
             </label>
             <input
               type="text"
@@ -175,14 +176,13 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
             />
             {config.isLocal && !config.lanIp && (
               <p className="mt-1 text-[10px] text-muted">
-                Local metrics still work. Open links and directed Wake-on-LAN need a LAN IP.
-              </p>
+                {t("Local metrics still work. Open links and directed Wake-on-LAN need a LAN IP.")}</p>
             )}
           </div>
 
           {config.kind !== "host" && (
             <div>
-              <label className="mb-1 block text-xs text-muted">CX7 IP (optional)</label>
+              <label className="mb-1 block text-xs text-muted">{t("CX7 IP (optional)")}</label>
               <input
                 type="text"
                 value={config.cx7Ip || ""}
@@ -194,7 +194,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
           )}
 
           <div>
-            <label className="mb-1 block text-xs text-muted">LLM Ports (optional, comma-separated)</label>
+            <label className="mb-1 block text-xs text-muted">{t("LLM Ports (optional, comma-separated)")}</label>
             <input
               type="text"
               value={(config.llmPorts ?? [defaultLlmPort]).join(", ")}
@@ -209,7 +209,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
               placeholder={String(defaultLlmPort)}
             />
             <p className="mt-1 text-[10px] text-muted">
-              Default: {defaultLlmPort}
+              {t("Default: ")}{defaultLlmPort}
             </p>
           </div>
 
@@ -220,13 +220,12 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
               onChange={(e) => update({ isLocal: e.target.checked })}
               className="rounded border-border"
             />
-            This host (local collectors — no SSH for metrics)
-          </label>
+            {t("This host (local collectors — no SSH for metrics)")}</label>
 
           {!config.isLocal && (
             <>
               <div>
-                <label className="mb-1 block text-xs text-muted">SSH User</label>
+                <label className="mb-1 block text-xs text-muted">{t("SSH User")}</label>
                 <input
                   type="text"
                   value={config.ssh.user}
@@ -236,28 +235,24 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
               </div>
 
               <div>
-                <label className="mb-1 block text-xs text-muted">SSH Auth</label>
+                <label className="mb-1 block text-xs text-muted">{t("SSH Auth")}</label>
                 <select
                   value={config.ssh.auth}
                   onChange={(e) => updateSsh({ auth: e.target.value as "key" | "pass" })}
                   className="w-full rounded border border-border bg-surface-elevated px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
                 >
-                  <option value="key">Key</option>
-                  <option value="pass">Password</option>
+                  <option value="key">{t("Key")}</option>
+                  <option value="pass">{t("Password")}</option>
                 </select>
                 {config.ssh.auth === "key" && (
                   <p className="mt-1 text-[10px] text-muted">
-                    SSH runs on the sparkDash host (not your browser). In Docker, mount a private
-                    key at /root/.ssh/id_ed25519 (see docker-compose.yml) or set SSH_IDENTITY_FILE.
-                    IPs are from that host&apos;s network. Mark this machine as “This host” so it
-                    skips SSH.
-                  </p>
+                    {t("SSH runs on the sparkDash host (not your browser). In Docker, mount a private key at /root/.ssh/id_ed25519 (see docker-compose.yml) or set SSH_IDENTITY_FILE. IPs are from that host's network. Mark this machine as “This host” so it skips SSH.")}</p>
                 )}
               </div>
 
               {config.ssh.auth === "pass" && (
                 <div>
-                  <label className="mb-1 block text-xs text-muted">SSH Password</label>
+                  <label className="mb-1 block text-xs text-muted">{t("SSH Password")}</label>
                   <input
                     type="password"
                     value={config.ssh.password || ""}
@@ -266,9 +261,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
                     autoComplete="new-password"
                   />
                   <p className="mt-1 text-[10px] text-muted">
-                    Stored encrypted on the server (not in sparks.json, not returned by the API).
-                    Survives Docker restarts.
-                  </p>
+                    {t("Stored encrypted on the server (not in sparks.json, not returned by the API). Survives Docker restarts.")}</p>
                 </div>
               )}
             </>
@@ -290,22 +283,21 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
               disabled={testing || (!config.isLocal && !config.lanIp)}
               className="rounded border border-border bg-surface-elevated px-3 py-1.5 text-xs text-muted hover:bg-surface-hover disabled:opacity-50"
             >
-              {testing ? "Testing..." : "Test"}
+              {testing ? t("Testing...") : t("Test")}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="rounded border border-border bg-surface-elevated px-3 py-1.5 text-xs text-muted hover:bg-surface-hover"
             >
-              Cancel
-            </button>
+              {t("Cancel")}</button>
             <button
               type="button"
               onClick={handleSave}
               disabled={saving || !config.name || (!config.isLocal && !config.lanIp)}
               className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save"}
+              {saving ? t("Saving...") : t("Save")}
             </button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 type ConnectionBannerProps = {
   connected: boolean;
   lastValidSnapshotAt: number | null;
@@ -20,17 +21,18 @@ export function ConnectionBanner({
   now,
   stale,
 }: ConnectionBannerProps) {
+  useI18n();
   if (connected && !snapshotError && !stale) return null;
 
-  let message = "Connecting to live telemetry…";
+  let message = t("Connecting to live telemetry…");
   if (snapshotError) message = snapshotError;
   else if (lastValidSnapshotAt != null) {
     const age = formatAge(now - lastValidSnapshotAt);
     message = connected
-      ? `Telemetry is stale. Last valid update was ${age} ago.`
-      : `Live telemetry disconnected. Showing data from ${age} ago.`;
+      ? t("Telemetry is stale. Last valid update was {0} ago.", age)
+      : t("Live telemetry disconnected. Showing data from {0} ago.", age);
   } else if (!connected) {
-    message = "Live telemetry is disconnected. Waiting for the first valid update…";
+    message = t("Live telemetry is disconnected. Waiting for the first valid update…");
   }
 
   const announced = snapshotError
@@ -43,7 +45,7 @@ export function ConnectionBanner({
     <div className="connection-banner">
       <span className="connection-banner-dot" aria-hidden="true" />
       <span className="sr-only" role="status" aria-live="polite">
-        {announced}
+        {t(announced)}
       </span>
       <span aria-hidden="true">{message}</span>
     </div>

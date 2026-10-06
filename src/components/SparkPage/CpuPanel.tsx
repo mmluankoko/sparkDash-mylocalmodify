@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import type { CpuMetrics, HardwareInfo } from "../../api/types";
 import { Sparkline } from "../ui/Sparkline";
 import { Panel } from "../ui/Panel";
@@ -27,6 +28,7 @@ function MetricRow({
   value: React.ReactNode;
   color?: string;
 }) {
+  useI18n();
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-muted">{label}</span>
@@ -47,6 +49,7 @@ function MetricRow({
  * hosts it covers the discrete CPU.
  */
 export function CpuPanel({ cpu, hardware, sparkId, temperatureUnit, className }: CpuPanelProps) {
+  useI18n();
   const usageHistory = useMetricsHistoryTail(sparkId, "cpu.usage");
   const tempHistory = useMetricsHistoryTail(sparkId, "cpu.temp");
 
@@ -79,7 +82,7 @@ export function CpuPanel({ cpu, hardware, sparkId, temperatureUnit, className }:
       bodyClassName="space-y-3"
     >
       <MetricRow
-        label="Usage"
+        label={t("Usage")}
         color="var(--color-accent)"
         spark={<Sparkline data={usageHistory} color="var(--color-accent)" width={180} />}
         value={<span className="text-text-strong">{usage}%</span>}
@@ -100,8 +103,8 @@ export function CpuPanel({ cpu, hardware, sparkId, temperatureUnit, className }:
             }
           >
             {cpu?.temperatureLabel && cpu.temperatureLabel !== "CPU"
-              ? `Temperature (${cpu.temperatureLabel})`
-              : "Temperature"}
+              ? `${t("Temperature")} (${cpu.temperatureLabel})`
+              : t("Temperature")}
           </span>
         }
         color={tempColor}
@@ -109,17 +112,17 @@ export function CpuPanel({ cpu, hardware, sparkId, temperatureUnit, className }:
         value={<span className="text-text-strong">{tempLabel}</span>}
       />
       <div className="flex justify-between text-sm">
-        <span className="text-muted">CPU Power</span>
+        <span className="text-muted">{t("CPU Power")}</span>
         <span className="font-tabular text-sm text-text">
           {draw}W{tdp > 0 ? ` / ${tdp}W` : ""}
         </span>
       </div>
       {model && (
         <div className="flex justify-between border-t border-border pt-3 text-xs">
-          <span className="text-muted">Model</span>
+          <span className="text-muted">{t("Model")}</span>
           <span className="font-tabular text-text" title={model}>
             {model}
-            {cores != null ? ` · ${cores} cores` : ""}
+            {cores != null ? t(" · {0} cores", cores) : ""}
           </span>
         </div>
       )}

@@ -1,4 +1,5 @@
 {
+  "defaultLanguage": "zh-CN",
   "pollIntervalMs": 1000,
   "defaultLlmPort": 8888,
   "autoHideOffline": false,

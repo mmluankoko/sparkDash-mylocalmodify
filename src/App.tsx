@@ -1,3 +1,4 @@
+import { t, useI18n } from "./i18n";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useSnapshot } from "./hooks/useSnapshot";
 import { useAppRoute, useRoute } from "./hooks/useRoute";
@@ -10,6 +11,8 @@ import { HermesUpdateDialog } from "./components/SparkPage/HermesUpdateDialog";
 import { OverviewPage } from "./components/OverviewPage/OverviewPage";
 import { ShowcasePage } from "./components/ShowcasePage/ShowcasePage";
 import { ThemeSwitch } from "./components/ThemeSwitch";
+import { LanguageSwitch } from "./components/LanguageSwitch";
+import { initializeLanguage, setLanguage } from "./i18n";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { GearIcon, BoltIcon } from "./components/ui/icons";
 import { ConnectionBanner } from "./components/ui/ConnectionBanner";
@@ -124,6 +127,7 @@ function placeholderSnapshot(
 }
 
 function DashboardApp() {
+  useI18n();
   const {
     sparks,
     activeId,
@@ -217,7 +221,8 @@ function DashboardApp() {
 
   const handleSettingsSaved = useCallback((s: Settings) => {
     setSettings(s);
-  }, []);
+    if (s.defaultLanguage !== settings?.defaultLanguage) setLanguage(s.defaultLanguage);
+  }, [settings?.defaultLanguage]);
 
   // Apply layout density (comfortable/compact) from persisted settings.
   useEffect(() => {
@@ -325,12 +330,13 @@ function DashboardApp() {
             onReorder={handleReorder}
           />
           <div className="ml-auto flex items-center gap-2.5">
+            <LanguageSwitch />
             <button
               type="button"
               onClick={() => setShowSettings(true)}
               className="icon-circle"
-              title="Settings"
-              aria-label="Settings"
+              title={t("Settings")}
+              aria-label={t("Settings")}
             >
               <GearIcon className="h-4 w-4" />
             </button>
@@ -370,12 +376,10 @@ function DashboardApp() {
               <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-accent">
                 <span className="text-lg leading-none">+</span>
               </div>
-              <h2 className="text-sm font-semibold text-text-strong">No Spark registered</h2>
+              <h2 className="text-sm font-semibold text-text-strong">{t("No Spark registered")}</h2>
               <p className="mt-1 text-xs text-muted">
-                Click the&nbsp;
-                <span className="rounded border border-border bg-surface-elevated px-1 py-0.5 text-text">+</span>
-                &nbsp;tab to add a DGX Spark unit.
-              </p>
+                {t("Click the ")}<span className="rounded border border-border bg-surface-elevated px-1 py-0.5 text-text">+</span>
+                {t(" tab to add a DGX Spark unit.")}</p>
             </div>
           )}
         </main>
@@ -414,7 +418,22 @@ function DashboardApp() {
 }
 
 function App() {
+  useI18n();
   const route = useAppRoute();
+  const [languageReady, setLanguageReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSettings()
+      .then((settings) => {
+        if (!cancelled) initializeLanguage(settings.defaultLanguage);
+      })
+      .catch(() => {
+        if (!cancelled) initializeLanguage("zh-CN");
+      })
+      .finally(() => { if (!cancelled) setLanguageReady(true); });
+    return () => { cancelled = true; };
+  }, []);
+  if (!languageReady) return <div className="p-8 text-muted">加载中 / Loading…</div>;
   if (route.mode === "showcase" && route.showcaseSparkId) {
     return <ShowcasePage sparkId={route.showcaseSparkId} />;
   }

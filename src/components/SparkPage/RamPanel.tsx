@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import type { RamMetrics } from "../../api/types";
 import { Sparkline } from "../ui/Sparkline";
 import { Panel } from "../ui/Panel";
@@ -18,6 +19,7 @@ interface RamPanelProps {
  * dedicated CPU panel.
  */
 export function RamPanel({ ram, sparkId, className }: RamPanelProps) {
+  useI18n();
   const history = useMetricsHistoryTail(sparkId, "ram.percentage");
   const used = ram?.used ?? 0;
   const total = ram?.total ?? 0;
@@ -25,7 +27,7 @@ export function RamPanel({ ram, sparkId, className }: RamPanelProps) {
 
   return (
     <Panel
-      title="RAM"
+      title={t("RAM")}
       icon={<MemoryIcon />}
       className={`panel-ram ${className ?? ""}`}
       bodyClassName="space-y-3"
@@ -33,7 +35,7 @@ export function RamPanel({ ram, sparkId, className }: RamPanelProps) {
       {total > 0 ? (
         <>
           <MetricBar
-            label="RAM"
+            label={t("RAM")}
             value={used}
             max={total}
             caption={
@@ -44,7 +46,7 @@ export function RamPanel({ ram, sparkId, className }: RamPanelProps) {
           />
           {history.length > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted">Usage</span>
+              <span className="text-muted">{t("Usage")}</span>
               <div className="flex items-center gap-3">
                 <Sparkline data={history} color="var(--color-accent)" width={180} />
                 <span className="font-tabular text-sm font-semibold text-text">{percentage}%</span>
@@ -54,7 +56,7 @@ export function RamPanel({ ram, sparkId, className }: RamPanelProps) {
         </>
       ) : (
         <div className="flex justify-between text-xs">
-          <span className="text-muted">RAM</span>
+          <span className="text-muted">{t("RAM")}</span>
           <span className="font-tabular text-text">—</span>
         </div>
       )}

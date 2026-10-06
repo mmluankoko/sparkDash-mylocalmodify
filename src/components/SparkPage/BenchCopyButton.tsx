@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 /**
  * The benchmark dialogs' copy control.
  *
@@ -58,6 +59,7 @@ export function BenchCopyButton({
   shareImage,
   onError,
 }: BenchCopyButtonProps) {
+  useI18n();
   const [state, setState] = useState<CopyState>("idle");
   /** Secure context? Without it the card can only be downloaded. */
   const imageClipboard = shareImage && canCopyImages();
@@ -242,7 +244,7 @@ export function BenchCopyButton({
         className="bench-btn bench-btn--ghost"
         onClick={() => void copyText()}
         disabled={state === "working"}
-        title="Copy a plain-text summary to the clipboard"
+        title={t("Copy a plain-text summary to the clipboard")}
       >
         {stateLabel(state, shareImage)}
       </button>
@@ -262,7 +264,7 @@ export function BenchCopyButton({
         className="bench-btn bench-btn--ghost"
         onClick={() => void copyText()}
         disabled={state === "working"}
-        title="Copy the results as plain text — the caret on the right copies the share-card image instead"
+        title={t("Copy the results as plain text — the caret on the right copies the share-card image instead")}
       >
         {stateLabel(state, shareImage)}
       </button>
@@ -271,11 +273,11 @@ export function BenchCopyButton({
         className="bench-btn bench-btn--ghost bench-copy-caret -ml-px px-1.5"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
-        aria-label="Copy format"
+        aria-label={t("Copy format")}
         title={
           imageClipboard
-            ? "Copy as text or as an image"
-            : "Copy as text, or show or download the image"
+            ? t("Copy as text or as an image")
+            : t("Copy as text, or show or download the image")
         }
         disabled={state === "working"}
         onMouseEnter={openMenu}
@@ -290,7 +292,7 @@ export function BenchCopyButton({
           <span
             ref={menuRef}
             role="menu"
-            aria-label="Copy format"
+            aria-label={t("Copy format")}
             onMouseEnter={cancelClose}
             onMouseLeave={scheduleClose}
             style={{
@@ -310,8 +312,7 @@ export function BenchCopyButton({
               className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-muted transition-colors hover:bg-surface-hover hover:text-text"
               onClick={() => void copyText()}
             >
-              Copy as text
-            </button>
+              {t("Copy as text")}</button>
             {imageClipboard ? (
               <button
                 type="button"
@@ -319,8 +320,7 @@ export function BenchCopyButton({
                 className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-muted transition-colors hover:bg-surface-hover hover:text-text"
                 onClick={() => void copyImage()}
               >
-                Copy as image
-              </button>
+                {t("Copy as image")}</button>
             ) : (
               <>
                 <button
@@ -328,18 +328,16 @@ export function BenchCopyButton({
                   role="menuitem"
                   className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-muted transition-colors hover:bg-surface-hover hover:text-text"
                   onClick={() => void showImage()}
-                  title="This page is served over http on a LAN address, where a page cannot write images to the clipboard. The card is shown as an image instead — right-click → Copy Image, or drag it into your post."
+                  title={t("This page is served over http on a LAN address, where a page cannot write images to the clipboard. The card is shown as an image instead — right-click → Copy Image, or drag it into your post.")}
                 >
-                  Show card
-                </button>
+                  {t("Show card")}</button>
                 <button
                   type="button"
                   role="menuitem"
                   className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-muted transition-colors hover:bg-surface-hover hover:text-text"
                   onClick={() => void copyImage()}
                 >
-                  Download PNG
-                </button>
+                  {t("Download PNG")}</button>
               </>
             )}
           </span>,
@@ -349,7 +347,7 @@ export function BenchCopyButton({
         createPortal(
           <span
             role="dialog"
-            aria-label="Benchmark share card"
+            aria-label={t("Benchmark share card")}
             className="fixed inset-0 z-[10000] flex flex-col items-center justify-center gap-3 bg-black/75 p-5"
             onMouseDown={(e) => {
               if (e.target === e.currentTarget) closePreview();
@@ -358,26 +356,21 @@ export function BenchCopyButton({
             {/* eslint-disable-next-line jsx-a11y/alt-text -- alt text is on the img below */}
             <img
               src={preview}
-              alt="Benchmark result card — right-click to copy it"
+              alt={t("Benchmark result card — right-click to copy it")}
               className="max-h-[68vh] max-w-full rounded-lg border border-border shadow-card"
             />
             <span className="flex max-w-lg flex-col items-center gap-2">
               <span className="text-center text-[11px] leading-snug text-white/85">
-                Right-click → <strong>Copy Image</strong>, or drag the card straight into your post.
-                Browsers only let a page write images to the clipboard over HTTPS or localhost, which
-                this page is not — so the image is here for your browser to copy.
-              </span>
+                {t("Right-click → ")}<strong>{t("Copy Image")}</strong>{t(", or drag the card straight into your post. Browsers only let a page write images to the clipboard over HTTPS or localhost, which this page is not — so the image is here for your browser to copy.")}</span>
               <span className="flex gap-2">
                 <button
                   type="button"
                   className="bench-btn bench-btn--ghost"
                   onClick={downloadPreview}
                 >
-                  Download PNG
-                </button>
+                  {t("Download PNG")}</button>
                 <button type="button" className="bench-btn bench-btn--primary" onClick={closePreview}>
-                  Close
-                </button>
+                  {t("Close")}</button>
               </span>
             </span>
           </span>,

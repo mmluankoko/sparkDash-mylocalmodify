@@ -11,6 +11,8 @@ const SETTINGS_PATH =
   process.env.SETTINGS_JSON_PATH || path.join(ROOT, "config", "settings.json");
 
 const DEFAULTS = Object.freeze({
+  /** Default interface language; the header switch is local to the open page. */
+  defaultLanguage: "zh-CN",
   pollIntervalMs: 2000,
   defaultLlmPort: 8888,
   autoHideOffline: false,
@@ -42,6 +44,9 @@ let _settings = { ...DEFAULTS };
 
 function _clampSettings(settings) {
   const s = { ...settings };
+  if (s.defaultLanguage !== "zh-CN" && s.defaultLanguage !== "en") {
+    s.defaultLanguage = DEFAULTS.defaultLanguage;
+  }
   // Clamp poll interval to 1000ms minimum
   if (typeof s.pollIntervalMs !== "number" || s.pollIntervalMs < 1000) {
     s.pollIntervalMs = 1000;

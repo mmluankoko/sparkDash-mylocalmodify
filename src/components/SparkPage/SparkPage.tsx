@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useState, useEffect, useCallback, type CSSProperties } from "react";
 import type { SparkSnapshot } from "../../api/types";
 import { isLlmMonitoringEnabled } from "../../api/sparkRole";
@@ -58,6 +59,7 @@ function SectionHeading({
   onToggle: () => void;
   style?: CSSProperties;
 }) {
+  useI18n();
   return (
     <button
       type="button"
@@ -85,6 +87,7 @@ export function SparkPage({
   benchShareImage = false,
   onEdit,
 }: SparkPageProps) {
+  useI18n();
   const { metrics } = spark;
   const [disabledDevices, setDisabledDevices] = useState<string[]>(spark.disabledDevices || []);
   const [disabledInterfaces, setDisabledInterfaces] = useState<string[]>(
@@ -232,7 +235,7 @@ export function SparkPage({
       />
       <div className="spark-page grid grid-cols-1 md:grid-cols-2" style={{ gap: "var(--density-page-gap)" }}>
         <SectionHeading
-          title="Resources"
+          title={t("Resources")}
           open={resourcesOpen}
           onToggle={toggleResources}
           style={{ marginTop: "var(--density-page-gap)" }}
@@ -294,7 +297,7 @@ export function SparkPage({
         */}
         {showServices && (
           <SectionHeading
-            title="Services"
+            title={t("Services")}
             open={servicesOpen}
             onToggle={toggleServices}
             style={{ marginTop: "var(--density-page-gap)" }}
@@ -335,7 +338,7 @@ export function SparkPage({
                       min={1}
                       max={65535}
                       inputMode="numeric"
-                      placeholder="Port number"
+                      placeholder={t("Port number")}
                       value={newPortDraft}
                       onChange={(e) => setNewPortDraft(e.target.value)}
                       onKeyDown={(e) => {
@@ -353,8 +356,7 @@ export function SparkPage({
                       disabled={!newPortDraft.trim()}
                       className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
                     >
-                      Add
-                    </button>
+                      {t("Add")}</button>
                     <button
                       type="button"
                       onClick={() => {
@@ -363,8 +365,7 @@ export function SparkPage({
                       }}
                       className="rounded border border-border px-3 py-1.5 text-xs text-muted hover:bg-surface-hover"
                     >
-                      Cancel
-                    </button>
+                      {t("Cancel")}</button>
                   </div>
                 </div>
               ) : (
@@ -373,8 +374,7 @@ export function SparkPage({
                   onClick={() => setShowAddPort(true)}
                   className="md:col-span-2 rounded-lg border border-dashed border-border bg-transparent p-3 text-xs text-muted hover:border-accent hover:text-accent transition-colors"
                 >
-                  + Add LLM port
-                </button>
+                  {t("+ Add LLM port")}</button>
               ))}
           </>
         )}

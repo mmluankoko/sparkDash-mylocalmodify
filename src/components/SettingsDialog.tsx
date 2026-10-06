@@ -1,8 +1,10 @@
+import { t, useI18n } from "../i18n";
 import { useEffect, useState } from "react";
 import { fetchSettings, updateSettings } from "../api/client";
 import type { Settings } from "../api/types";
 import { useModalPresence } from "../hooks/useModalPresence";
 import packageJson from "../../package.json";
+import type { Language } from "../i18n";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -28,6 +30,7 @@ const POLL_PRESETS = [
 ];
 
 export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) {
+  useI18n();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -96,16 +99,29 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
       }}
     >
       <div className="settings-panel w-full max-w-sm">
-        <h2 className="shrink-0 px-6 pt-6 text-sm font-semibold text-text-strong">Settings</h2>
+        <h2 className="shrink-0 px-6 pt-6 text-sm font-semibold text-text-strong">{t("Settings")}</h2>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
-        {loading && <p className="text-xs text-muted">Loading…</p>}
+        {loading && <p className="text-xs text-muted">{t("Loading…")}</p>}
 
         {settings && !loading && (
           <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs text-muted" htmlFor="default-language">{t("Default language")}</label>
+              <select
+                id="default-language"
+                value={settings.defaultLanguage}
+                onChange={(event) => update({ defaultLanguage: event.target.value as Language })}
+                className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-xs text-text outline-none focus:border-accent"
+              >
+                <option value="zh-CN">简体中文</option>
+                <option value="en">{t("English")}</option>
+              </select>
+              <p className="mt-1 text-[10px] text-muted">{t("Used when opening or reloading the page. The header switch changes this page immediately without changing the default.")}</p>
+            </div>
             {/* Poll interval */}
             <div>
-              <label className="mb-2 block text-xs text-muted">Poll interval</label>
+              <label className="mb-2 block text-xs text-muted">{t("Poll interval")}</label>
               <div className="flex gap-2">
                 {POLL_PRESETS.map((preset) => (
                   <button
@@ -126,7 +142,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
 
             {/* Default LLM port */}
             <div>
-              <label className="mb-1 block text-xs text-muted">Default LLM port</label>
+              <label className="mb-1 block text-xs text-muted">{t("Default LLM port")}</label>
               <input
                 type="number"
                 min={1}
@@ -139,8 +155,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                 className="w-full rounded border border-border bg-surface-elevated px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
               />
               <p className="mt-1 text-[10px] text-muted">
-                Pre-filled when adding a new Spark (1–65535)
-              </p>
+                {t("Pre-filled when adding a new Spark (1–65535)")}</p>
             </div>
 
             {/* Auto-hide offline */}
@@ -161,8 +176,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                     }`}
                   />
                 </button>
-                Auto-hide offline Sparks on Overview
-              </label>
+                {t("Auto-hide offline Sparks on Overview")}</label>
             </div>
 
             {/* Hide worker nodes */}
@@ -184,11 +198,9 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   />
                 </button>
                 <span>
-                  <span className="block text-text">Hide worker nodes</span>
+                  <span className="block text-text">{t("Hide worker nodes")}</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                    Removes Worker-role Sparks from Overview and the tab bar. Direct
-                    URLs and batch power / Hermes actions still include them.
-                  </span>
+                    {t("Removes Worker-role Sparks from Overview and the tab bar. Direct URLs and batch power / Hermes actions still include them.")}</span>
                 </span>
               </label>
             </div>
@@ -214,11 +226,9 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   />
                 </button>
                 <span>
-                  <span className="block text-text">Show search and status filters</span>
+                  <span className="block text-text">{t("Show search and status filters")}</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                    Overview “Search up to 12 units” field and status dropdown
-                    (All / Online / Offline / Issues). One switch for both. Off by default.
-                  </span>
+                    {t("Overview “Search up to 12 units” field and status dropdown (All / Online / Offline / Issues). One switch for both. Off by default.")}</span>
                 </span>
               </label>
             </div>
@@ -242,12 +252,9 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   />
                 </button>
                 <span>
-                  <span className="block text-text">Benchmark share image</span>
+                  <span className="block text-text">{t("Benchmark share image")}</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                    On by default. The decode/prefill <em>Copy results</em> button gains a caret with
-                    <em> Copy as text</em> / <em>Copy as image</em> (a share card). Turn it off to keep
-                    the plain text button.
-                  </span>
+                    {t("On by default. The decode/prefill ")}<em>{t("Copy results")}</em> {t(" button gains a caret with")}<em> {t(" Copy as text")}</em> / <em>{t("Copy as image")}</em> {t(" (a share card). Turn it off to keep the plain text button.")}</span>
                 </span>
               </label>
             </div>
@@ -271,10 +278,9 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   />
                 </button>
                 <span>
-                  <span className="block text-text">Show Fleet Energy</span>
+                  <span className="block text-text">{t("Show Fleet Energy")}</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                    Overview card with rolling fleet power estimates. Off by default.
-                  </span>
+                    {t("Overview card with rolling fleet power estimates. Off by default.")}</span>
                 </span>
               </label>
             </div>
@@ -298,10 +304,9 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   />
                 </button>
                 <span>
-                  <span className="block text-text">Show LLM Token Totals</span>
+                  <span className="block text-text">{t("Show LLM Token Totals")}</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                    Overview card with cumulative prompt/generated tokens per model. Off by default.
-                  </span>
+                    {t("Overview card with cumulative prompt/generated tokens per model. Off by default.")}</span>
                 </span>
               </label>
             </div>
@@ -327,11 +332,9 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   />
                 </button>
                 <span>
-                  <span className="block text-text">Show active fleet exceptions</span>
+                  <span className="block text-text">{t("Show active fleet exceptions")}</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                    Overview strip for offline hosts, GPU throttle, disk, LLM, and
-                    Tailnet alerts. Off by default.
-                  </span>
+                    {t("Overview strip for offline hosts, GPU throttle, disk, LLM, and Tailnet alerts. Off by default.")}</span>
                 </span>
               </label>
             </div>
@@ -357,18 +360,16 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   />
                 </button>
                 <span>
-                  <span className="block text-text">Enable debug traces for Benchmark runs</span>
+                  <span className="block text-text">{t("Enable debug traces for Benchmark runs")}</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                    Stores prompts, HTTP/completion IDs, content previews, and GPU
-                    samples in bench history. Off by default — larger history files.
-                  </span>
+                    {t("Stores prompts, HTTP/completion IDs, content previews, and GPU samples in bench history. Off by default — larger history files.")}</span>
                 </span>
               </label>
             </div>
 
             {/* Temperature unit */}
             <div>
-              <label className="text-xs text-muted">Temperature unit</label>
+              <label className="text-xs text-muted">{t("Temperature unit")}</label>
               <div className="mt-1.5 flex gap-2">
                 <button
                   type="button"
@@ -418,10 +419,9 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   />
                 </button>
                 <span>
-                  <span className="block text-text">Compact UI</span>
+                  <span className="block text-text">{t("Compact UI")}</span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                    Tighter spacing, smaller radius, and reduced font size — fits more Sparks on a single screen.
-                  </span>
+                    {t("Tighter spacing, smaller radius, and reduced font size — fits more Sparks on a single screen.")}</span>
                 </span>
               </label>
             </div>
@@ -464,15 +464,14 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
             onClick={onClose}
             className="min-h-11 rounded border border-border bg-surface-elevated px-3 py-1.5 text-xs text-muted hover:bg-surface-hover"
           >
-            Cancel
-          </button>
+            {t("Cancel")}</button>
           <button
             type="button"
             onClick={handleSave}
             disabled={saving || !settings || !dirty}
             className="min-h-11 rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("Saving...") : t("Save")}
           </button>
         </div>
       </div>

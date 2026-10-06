@@ -1,3 +1,4 @@
+import { t, useI18n } from "../i18n";
 import { memo, useEffect, useMemo, useState, useRef, useCallback } from "react";
 import {
   DndContext,
@@ -32,6 +33,7 @@ interface SparkTabsProps {
 }
 
 function GripIcon() {
+  useI18n();
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden className="opacity-50">
       <circle cx="4" cy="3" r="1" />
@@ -70,6 +72,7 @@ function useIsMobile(): boolean {
 }
 
 function HamburgerIcon({ className = "" }: { className?: string }) {
+  useI18n();
   return (
     <svg
       width="18"
@@ -161,6 +164,7 @@ function TabChrome({
   isDragging?: boolean;
   isOverlay?: boolean;
 }) {
+  useI18n();
   return (
     <div
       className={[
@@ -175,8 +179,8 @@ function TabChrome({
       <button
         type="button"
         className="pill-handle"
-        title="Drag to reorder"
-        aria-label={`Reorder ${spark.name}`}
+        title={t("Drag to reorder")}
+        aria-label={t("Reorder {0}", spark.name)}
         {...dragHandleProps}
       >
         <GripIcon />
@@ -204,6 +208,7 @@ function SortableTab({
   onSelect: (id: string) => void;
   onEdit?: (id: string) => void;
 }) {
+  useI18n();
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: spark.id });
 
@@ -239,6 +244,7 @@ export function SparkTabs({
   onEdit,
   onReorder,
 }: SparkTabsProps) {
+  useI18n();
   const [items, setItems] = useState<string[]>(() => sparks.map((s) => s.id));
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const isMobile = useIsMobile();
@@ -285,10 +291,10 @@ export function SparkTabs({
           type="button"
           className="icon-circle"
           onClick={() => setMobileMenuOpen((v) => !v)}
-          aria-label="Select Spark"
+          aria-label={t("Select Spark")}
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-spark-menu"
-          title="Select Spark"
+          title={t("Select Spark")}
         >
           <HamburgerIcon className="h-4 w-4" />
         </button>
@@ -331,7 +337,7 @@ export function SparkTabs({
 
   if (!canReorder) {
     return (
-      <nav className="pill-nav" aria-label="Sparks">
+      <nav className="pill-nav" aria-label={t("Sparks")}>
         <OverviewTab isActive={activeId === OVERVIEW_ID} onSelect={onSelect} />
         {sparks.map((spark) => (
           <div key={spark.id} className="shrink-0">
@@ -356,7 +362,7 @@ export function SparkTabs({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <nav className="pill-nav" aria-label="Sparks">
+      <nav className="pill-nav" aria-label={t("Sparks")}>
         <OverviewTab isActive={activeId === OVERVIEW_ID} onSelect={onSelect} />
         {/* rect (not horizontal-list) strategy: .pill-nav wraps onto several
             rows once there are more Sparks than fit one line, and the
@@ -390,12 +396,13 @@ export function SparkTabs({
 }
 
 function AddButton({ onAdd }: { onAdd: () => void }) {
+  useI18n();
   return (
     <button
       type="button"
       onClick={onAdd}
-      title="Add Spark/GPU Host"
-      aria-label="Add Spark/GPU Host"
+      title={t("Add Spark/GPU Host")}
+      aria-label={t("Add Spark/GPU Host")}
       className="pill-add shrink-0"
     >
       <PlusIcon className="h-3.5 w-3.5" />
@@ -410,6 +417,7 @@ function OverviewTab({
   isActive: boolean;
   onSelect: (id: string) => void;
 }) {
+  useI18n();
   return (
     <div className="shrink-0">
       <button
@@ -419,8 +427,7 @@ function OverviewTab({
         aria-current={isActive ? "page" : undefined}
       >
         <GridIcon className="h-3.5 w-3.5" />
-        Overview
-      </button>
+        {t("Overview")}</button>
     </div>
   );
 }
@@ -442,6 +449,7 @@ function MobileSparkMenu({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  useI18n();
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleItemClick = useCallback(
@@ -495,8 +503,7 @@ function MobileSparkMenu({
         onClick={() => handleItemClick(OVERVIEW_ID)}
       >
         <GridIcon className="h-3.5 w-3.5" />
-        Overview
-      </button>
+        {t("Overview")}</button>
       {sparks.map((spark) => (
         <button
           key={spark.id}
@@ -521,8 +528,7 @@ function MobileSparkMenu({
         onClick={handleAddClick}
       >
         <PlusIcon className="h-3.5 w-3.5" />
-        Add Spark/GPU Host
-      </button>
+        {t("Add Spark/GPU Host")}</button>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useEffect, useState } from "react";
 import type { SparkSnapshot } from "../../api/types";
 import { isWorkerSpark, resolveSparkRole } from "../../api/sparkRole";
@@ -53,6 +54,7 @@ function MiniStat({
   /** Allow value to wrap (no ellipsis trim) — used for long model ids. */
   wrap?: boolean;
 }) {
+  useI18n();
   const toneClass =
     tone === "danger"
       ? "text-danger"
@@ -91,6 +93,7 @@ function SparkCard({
   temperatureUnit: "celsius" | "fahrenheit";
   onSelect?: (id: string) => void;
 }) {
+  useI18n();
   const gpu = spark.metrics.gpu;
   const um = spark.metrics.unifiedMemory;
   const online = spark.online;
@@ -142,17 +145,17 @@ function SparkCard({
         {(() => {
           const role = resolveSparkRole(spark);
           const text =
-            role === "head" ? "Head" : role === "worker" ? "Worker" : "Standalone";
+            role === "head" ? t("Head") : role === "worker" ? t("Worker") : t("Standalone");
           const title =
             role === "head"
-              ? "Cluster head Spark"
+              ? t("Cluster head Spark")
               : role === "worker"
                 ? spark.workerLabel?.trim()
-                  ? `${spark.workerLabel.trim()} · distributed LLM worker`
-                  : "Distributed LLM worker"
+                  ? t("{0} · distributed LLM worker", spark.workerLabel.trim())
+                  : t("Distributed LLM worker")
                 : spark.llmMonitoring === false
-                  ? "Standalone — LLM monitoring off"
-                  : "Standalone Spark";
+                  ? t("Standalone — LLM monitoring off")
+                  : t("Standalone Spark");
           return (
             <span
               className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent"
@@ -175,34 +178,34 @@ function SparkCard({
             }`}
             title={
               !spark.metrics?.comfy?.available
-                ? "ComfyUI monitoring on — not reachable"
+                ? t("ComfyUI monitoring on — not reachable")
                 : (spark.metrics.comfy.queueRunning ?? 0) > 0
                   ? spark.metrics.comfy.activeJob?.title
-                    ? `ComfyUI running: ${spark.metrics.comfy.activeJob.title}`
-                    : "ComfyUI job running"
+                    ? t("ComfyUI running: {0}", spark.metrics.comfy.activeJob.title)
+                    : t("ComfyUI job running")
                   : (spark.metrics.comfy.queuePending ?? 0) > 0
-                    ? `ComfyUI queue: ${spark.metrics.comfy.queuePending} pending`
-                    : "ComfyUI idle"
+                    ? t("ComfyUI queue: {0} pending", spark.metrics.comfy.queuePending)
+                    : t("ComfyUI idle")
             }
           >
             {!spark.metrics?.comfy?.available
               ? "Comfy"
               : (spark.metrics.comfy.queueRunning ?? 0) > 0
-                ? "Comfy · run"
+                ? t("Comfy · run")
                 : (spark.metrics.comfy.queuePending ?? 0) > 0
-                  ? `Comfy · ${spark.metrics.comfy.queuePending}q`
-                  : "Comfy · idle"}
+                  ? t("Comfy · {0}q", spark.metrics.comfy.queuePending)
+                  : t("Comfy · idle")}
           </span>
         ) : null}
         <span className="text-[10px] uppercase tracking-wide text-muted">
-          {online ? "online" : "offline"}
+          {online ? t("online") : t("offline")}
         </span>
       </div>
 
       {!online || !gpu ? (
         <div className="flex h-[120px] items-center justify-center">
           <span className="text-[13px] text-muted">
-            {online ? "Waiting for metrics…" : "Host unreachable"}
+            {online ? t("Waiting for metrics…") : t("Host unreachable")}
           </span>
         </div>
       ) : (
@@ -210,7 +213,7 @@ function SparkCard({
           {/* Three headline bars: GPU alloc, Temp, Usage */}
           <div className="flex flex-col gap-3.5">
             <MetricBar
-              label="VRAM"
+              label={t("VRAM")}
               value={vramUsed}
               max={vramTotal}
               color={vramBarColor}
@@ -225,7 +228,7 @@ function SparkCard({
               const ramBarColor = rPct > 85 ? "bg-danger" : rPct > 60 ? "bg-warning" : "bg-accent";
               return (
                 <MetricBar
-                  label="RAM"
+                  label={t("RAM")}
                   value={rUsed}
                   max={rTotal}
                   color={ramBarColor}
@@ -237,7 +240,7 @@ function SparkCard({
               label={
                 spark.kind === "host" || (spark.metrics.cpu?.temperature ?? 0) > 0
                   ? "GPU"
-                  : "Temperature"
+                  : t("Temperature")
               }
               value={displayTemp}
               max={temperatureUnit === "fahrenheit" ? 212 : 100}
@@ -265,13 +268,12 @@ function SparkCard({
             {gpu?.throttle?.thermal && (
               <div
                 className="rounded border border-danger/40 bg-danger/10 px-2 py-1 text-[11px] font-medium text-danger"
-                title={gpu.throttle.detail || "GPU thermal slowdown engaged"}
+                title={gpu.throttle.detail || t("GPU thermal slowdown engaged")}
               >
-                Thermal throttle
-              </div>
+                {t("Thermal throttle")}</div>
             )}
             <MetricBar
-              label="Usage"
+              label={t("Usage")}
               value={usage}
               max={100}
               color={usageBarColor}
@@ -282,12 +284,12 @@ function SparkCard({
           {/* Secondary stats */}
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-border pt-3.5">
             <MiniStat
-              label="GPU Power"
+              label={t("GPU Power")}
               value={`${gpu?.power?.draw ?? 0}W / ${gpu?.power?.limit ?? 0}W`}
             />
             {vramAvail > 0 && (
               <MiniStat
-                label="Available"
+                label={t("Available")}
                 value={formatMb(vramAvail)}
                 tone={vramAvail < 4096 ? "danger" : vramAvail < 16384 ? "warning" : "accent"}
               />
@@ -302,7 +304,7 @@ function SparkCard({
               if (rootDisk) {
                 return (
                   <MiniStat
-                    label="Storage"
+                    label={t("Storage")}
                     value={`${fmtStorage(rootDisk.used, false)} / ${fmtStorage(rootDisk.total, true)}`}
                     tone={rootDisk.percentage > 85 ? "danger" : rootDisk.percentage > 60 ? "warning" : "default"}
                     bold={false}
@@ -320,13 +322,13 @@ function SparkCard({
               // the backend nulls it when the head is unresolvable/offline.
               if (role === "worker") {
                 const label =
-                  spark.workerLabel?.trim() || spark.workerDerivedLabel?.trim() || "distributed";
+                  spark.workerLabel?.trim() || spark.workerDerivedLabel?.trim() || t("distributed");
                 const title = headSparkName
-                  ? `${label} · worker of ${headSparkName}`
-                  : `${label} · distributed LLM worker`;
+                  ? t("{0} · worker of {1}", label, headSparkName)
+                  : t("{0} · distributed LLM worker", label);
                 return (
                   <MiniStat
-                    label="Worker"
+                    label={t("Worker")}
                     value={label}
                     tone="accent"
                     title={title}
@@ -383,7 +385,7 @@ function SparkCard({
                   <span className="font-tabular text-[28px] font-bold leading-none text-text-strong">
                     {llm.prefillTps.toFixed(0)}
                   </span>
-                  <span className="text-sm font-normal text-muted"> prefill</span>
+                  <span className="text-sm font-normal text-muted"> {t(" prefill")}</span>
                 </div>
               </div>
             );
@@ -405,6 +407,7 @@ export function OverviewPage({
   temperatureUnit = "celsius",
   onSelectSpark,
 }: OverviewPageProps) {
+  useI18n();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline" | "issues">("all");
   const withoutWorkers = hideWorkers ? sparks.filter((s) => !isWorkerSpark(s)) : sparks;
@@ -577,8 +580,7 @@ export function OverviewPage({
           className="font-normal leading-tight tracking-tight text-text-strong"
           style={{ fontSize: "var(--density-overview-title)" }}
         >
-          Overview
-        </h1>
+          {t("Overview")}</h1>
         <div className="flex flex-wrap items-end justify-end gap-3">
           {batchMsg && (
             <span className={`text-[11px] ${batchMsg.tone === "ok" ? "text-success" : "text-danger"}`}>
@@ -589,15 +591,15 @@ export function OverviewPage({
             <div className="flex flex-col items-end gap-1">
               <span className="flex items-center gap-1.5 text-[11px] text-muted">
                 <RotateIcon className="h-3 w-3" />
-                Updating Hermes — {batchProg.done}/{batchProg.total}
+                {t("Updating Hermes — ")}{batchProg.done}/{batchProg.total}
                 {batchProg.failed > 0 && (
-                  <span className="text-danger">({batchProg.failed} failed)</span>
+                  <span className="text-danger">({batchProg.failed} {t(" failed)")}</span>
                 )}
                 <button
                   type="button"
                   onClick={() => setBatchRun(null)}
-                  aria-label="Dismiss update progress"
-                  title="Dismiss"
+                  aria-label={t("Dismiss update progress")}
+                  title={t("Dismiss")}
                   className="rounded p-0.5 text-muted transition-colors hover:bg-surface-hover hover:text-text"
                 >
                   <span className="text-xs leading-none">✕</span>
@@ -622,7 +624,7 @@ export function OverviewPage({
                   type="button"
                   onClick={() => void handleUpdateAllHermes()}
                   disabled={batchLoading}
-                  title="Run `hermes update` on every Spark with Hermes Agent enabled"
+                  title={t("Run `hermes update` on every Spark with Hermes Agent enabled")}
                   className={`flex items-center gap-1 rounded-md border bg-surface-elevated px-2.5 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
                     hermesPendingUpdateCount > 0
                       ? "border-warning/40 text-warning hover:bg-warning/15"
@@ -630,11 +632,10 @@ export function OverviewPage({
                   }`}
                 >
                   <RotateIcon className="h-3 w-3" />
-                  Update Hermes
-                  {hermesPendingUpdateCount > 0 && (
+                  {t("Update Hermes")}{hermesPendingUpdateCount > 0 && (
                     <span
                       className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[9px] font-bold leading-none text-white"
-                      title={`${hermesPendingUpdateCount} Spark${hermesPendingUpdateCount === 1 ? "" : "s"} with a Hermes update available`}
+                      title={t("{0} Spark{1} with a Hermes update available", hermesPendingUpdateCount, hermesPendingUpdateCount === 1 ? "" : "s")}
                     >
                       {hermesPendingUpdateCount}
                     </span>
@@ -645,54 +646,50 @@ export function OverviewPage({
                 type="button"
                 onClick={() => void handleWakeAll()}
                 disabled={batchLoading}
-                title="Wake all Sparks that have a MAC configured (WoL)"
+                title={t("Wake all Sparks that have a MAC configured (WoL)")}
                 className="flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-[11px] text-muted hover:bg-success/20 hover:text-success transition-colors disabled:opacity-50"
               >
                 <PowerOnIcon className="h-3 w-3" />
-                Wake All
-              </button>
+                {t("Wake All")}</button>
               <button
                 type="button"
                 onClick={() => setShutdownOpen(true)}
                 disabled={batchLoading || onlineShutdownCount === 0}
-                title="Shut down all online Sparks"
+                title={t("Shut down all online Sparks")}
                 className="flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-[11px] text-muted transition-colors hover:bg-danger/20 hover:text-danger disabled:opacity-50"
               >
                 <PowerOffIcon className="h-3 w-3" />
-                Shutdown All
-              </button>
+                {t("Shutdown All")}</button>
             </div>
           )}
           <span className="online-chip">
             <span className="dot" />
-            {onlineCount}/{visibleSparks.length} online
-          </span>
+            {onlineCount}/{visibleSparks.length} {t(" online")}</span>
           {hiddenWorkerCount > 0 && (
             <span className="text-[11px] text-muted">
-              {hiddenWorkerCount} worker{hiddenWorkerCount === 1 ? "" : "s"} hidden
-            </span>
+              {hiddenWorkerCount} {t(" worker")}{hiddenWorkerCount === 1 ? "" : "s"} {t(" hidden")}</span>
           )}
         </div>
       </div>
       {showOverviewSearch ? (
-      <div className="flex flex-wrap gap-2" role="search" aria-label="Filter fleet units">
+      <div className="flex flex-wrap gap-2" role="search" aria-label={t("Filter fleet units")}>
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search up to 12 units"
-          aria-label="Search units by name"
+          placeholder={t("Search up to 12 units")}
+          aria-label={t("Search units by name")}
           className="min-h-11 min-w-52 flex-1 rounded border border-border bg-surface-elevated px-3 text-sm text-text"
         />
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-          aria-label="Filter units by status"
+          aria-label={t("Filter units by status")}
           className="min-h-11 rounded border border-border bg-surface-elevated px-3 text-sm text-text"
         >
-          <option value="all">All status</option>
-          <option value="online">Online</option>
-          <option value="offline">Offline</option>
-          <option value="issues">Issues</option>
+          <option value="all">{t("All status")}</option>
+          <option value="online">{t("Online")}</option>
+          <option value="offline">{t("Offline")}</option>
+          <option value="issues">{t("Issues")}</option>
         </select>
       </div>
       ) : null}
@@ -700,16 +697,15 @@ export function OverviewPage({
         open={shutdownOpen}
         onClose={() => setShutdownOpen(false)}
         onConfirm={handleShutdownAll}
-        title="Shutdown All"
-        description={`Gracefully shut down all ${onlineShutdownCount} online Spark${onlineShutdownCount === 1 ? "" : "s"}? Offline nodes will be skipped.`}
+        title={t("Shutdown All")}
+        description={t("Gracefully shut down all {0} online Spark{1}? Offline nodes will be skipped.", onlineShutdownCount, onlineShutdownCount === 1 ? "" : "s")}
         confirmLabel="Shut down all"
       />
       {showLlmTokenTotals ? <FleetTokenTotals /> : null}
       <div className="overview-page grid sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--density-page-gap)" }}>
         {visibleSparks.length === 0 && (
           <p className="panel p-6 text-sm text-muted sm:col-span-2 lg:col-span-3">
-            No units match the current search and status filters.
-          </p>
+            {t("No units match the current search and status filters.")}</p>
         )}
         {visibleSparks.map((spark) => (
           <SparkCard

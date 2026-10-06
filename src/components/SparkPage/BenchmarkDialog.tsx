@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -110,6 +111,7 @@ function buildShareText(job: DecodeBenchJob, modelId: string | null): string {
 }
 
 function ResultRow({ r }: { r: DecodeBenchJob["results"][number] }) {
+  useI18n();
   return (
     <article className="bench-result-row" title={r.error || undefined}>
       <div className="bench-result-row__load">
@@ -125,21 +127,20 @@ function ResultRow({ r }: { r: DecodeBenchJob["results"][number] }) {
             <strong>
               {r.streamsOk}/{r.streamsOk + r.streamsFailed}
             </strong>{" "}
-            streams
-          </span>
+            {t("streams")}</span>
         </div>
       </div>
 
       <div className="bench-result-row__speeds">
         <div className="bench-result-row__metric">
-          <span className="bench-result-row__label">Aggregate</span>
+          <span className="bench-result-row__label">{t("Aggregate")}</span>
           <span className="bench-result-row__value bench-result-row__value--accent">
             {(r.aggregateDecodeTps > 0 ? r.aggregateDecodeTps : r.meanDecodeTps).toFixed(1)}
             <span className="bench-result-row__unit">tok/s</span>
           </span>
         </div>
         <div className="bench-result-row__metric">
-          <span className="bench-result-row__label">Stream</span>
+          <span className="bench-result-row__label">{t("Stream")}</span>
           <span className="bench-result-row__value">
             {r.meanDecodeTps.toFixed(1)}
             <span className="bench-result-row__unit">tok/s</span>
@@ -162,6 +163,7 @@ export function BenchmarkDialog({
   engine = null,
   posture = null,
 }: BenchmarkDialogProps) {
+  useI18n();
   const [selected, setSelected] = useState<number[]>([...DEFAULT_SELECTED]);
   const [maxTokensDraft, setMaxTokensDraft] = useState(String(DEFAULT_MAX_TOKENS));
   const [promptType, setPromptType] = useState<DecodeBenchPromptType>(DEFAULT_PROMPT_TYPE);
@@ -402,7 +404,7 @@ export function BenchmarkDialog({
       <button
         type="button"
         className="bench-overlay__scrim"
-        aria-label="Close dialog"
+        aria-label={t("Close dialog")}
         onClick={() => {
           if (!isRunning) onClose();
         }}
@@ -417,12 +419,11 @@ export function BenchmarkDialog({
         <header className="bench-sheet__header">
           <div className="bench-sheet__header-text">
             <h2 id="bench-title" className="bench-sheet__title">
-              Decode benchmark
-            </h2>
+              {t("Decode benchmark")}</h2>
             <p className="bench-sheet__subtitle">
               {remoteTarget
                 ? formatLlmBaseUrl(remoteTarget)
-                : `Port ${llmPort}`}
+                : t("Port {0}", llmPort)}
               {modelId ? ` · ${modelId}` : ""}
             </p>
           </div>
@@ -430,7 +431,7 @@ export function BenchmarkDialog({
             type="button"
             className="bench-sheet__close"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
@@ -438,38 +439,38 @@ export function BenchmarkDialog({
 
         <div className="bench-sheet__body">
           {loadingLast && !job && (
-            <p className="bench-sheet__hint">Loading last results…</p>
+            <p className="bench-sheet__hint">{t("Loading last results…")}</p>
           )}
 
           {showConfig && (
             <section className="bench-sheet__section">
               <div className="bench-field">
                 <div className="bench-field__head">
-                  <h3 className="bench-sheet__section-title">Type</h3>
+                  <h3 className="bench-sheet__section-title">{t("Type")}</h3>
                   <p className="bench-sheet__hint">
-                    {DECODE_BENCH_TYPE_META.find((t) => t.id === promptType)?.hint}
-                    {" · temp 0, thinking off"}
+                    {t(DECODE_BENCH_TYPE_META.find((type) => type.id === promptType)?.hint ?? "")}
+                    {t(" · temp 0, thinking off")}
                   </p>
                 </div>
                 <div
                   className="bench-type-grid"
                   role="radiogroup"
-                  aria-label="Decode benchmark type"
+                  aria-label={t("Decode benchmark type")}
                 >
-                  {DECODE_BENCH_TYPE_META.map((t) => {
-                    const on = promptType === t.id;
+                  {DECODE_BENCH_TYPE_META.map((type) => {
+                    const on = promptType === type.id;
                     return (
                       <button
-                        key={t.id}
+                        key={type.id}
                         type="button"
                         role="radio"
                         aria-checked={on}
-                        title={t.hint}
+                        title={t(type.hint)}
                         disabled={isRunning || starting}
-                        onClick={() => setPromptType(t.id)}
+                        onClick={() => setPromptType(type.id)}
                         className={`bench-conc-btn${on ? " is-on" : ""}`}
                       >
-                        {t.label}
+                        {t(type.label)}
                       </button>
                     );
                   })}
@@ -478,10 +479,9 @@ export function BenchmarkDialog({
 
               <div className="bench-field">
                 <div className="bench-field__head">
-                  <h3 className="bench-sheet__section-title">Concurrency</h3>
+                  <h3 className="bench-sheet__section-title">{t("Concurrency")}</h3>
                   <p className="bench-sheet__hint">
-                    Levels run sequentially; each opens that many parallel streams.
-                  </p>
+                    {t("Levels run sequentially; each opens that many parallel streams.")}</p>
                 </div>
                 <div className="bench-conc-grid">
                   {CONCURRENCY_OPTIONS.map((n) => {
@@ -504,11 +504,9 @@ export function BenchmarkDialog({
               <div className="bench-field">
                 <div className="bench-field__head">
                   <label htmlFor="bench-max-tokens" className="bench-sheet__section-title">
-                    Max tokens / stream
-                  </label>
+                    {t("Max tokens / stream")}</label>
                   <p className="bench-sheet__hint">
-                    Default 400 · temp 0, thinking off
-                    {promptType === "structured" ? " · count 1→200" : ""}
+                    {t("Default 400 · temp 0, thinking off")}{promptType === "structured" ? t(" · count 1→200") : ""}
                   </p>
                 </div>
                 <input
@@ -536,8 +534,7 @@ export function BenchmarkDialog({
               <div className="bench-progress">
                 <div className="bench-progress__row">
                   <span className="bench-progress__status">
-                    Running
-                    {job.config?.promptType
+                    {t("Running")}{job.config?.promptType
                       ? ` · ${decodeBenchTypeLabel(job.config.promptType)}`
                       : ""}
                     {job.progress.currentConcurrency != null
@@ -561,7 +558,7 @@ export function BenchmarkDialog({
               </div>
               {job.results.length > 0 && (
                 <div className="bench-results">
-                  <div className="bench-results__caption">Completed levels</div>
+                  <div className="bench-results__caption">{t("Completed levels")}</div>
                   {job.results.map((r) => (
                     <ResultRow key={r.concurrency} r={r} />
                   ))}
@@ -576,12 +573,11 @@ export function BenchmarkDialog({
                 <span
                   className={`bench-status-pill bench-status-pill--${job.status}`}
                 >
-                  {statusLabel(job.status)}
+                  {t(statusLabel(job.status))}
                 </span>
                 <span className="bench-status-meta">
                   {decodeBenchTypeLabel(job.config.promptType)} · {job.config.maxTokens} tok ·{" "}
-                  {job.config.concurrencies.join(", ")} conc
-                  {job.durationMs != null ? ` · ${formatDuration(job.durationMs)}` : ""}
+                  {job.config.concurrencies.join(", ")} {t(" conc")}{job.durationMs != null ? ` · ${formatDuration(job.durationMs)}` : ""}
                 </span>
               </div>
 
@@ -590,10 +586,10 @@ export function BenchmarkDialog({
               {job.results.length > 0 && (
                 <div className="bench-results bench-results--table">
                   <div className="bench-results__head" aria-hidden="true">
-                    <span>Load</span>
+                    <span>{t("Load")}</span>
                     <span className="bench-results__head-speeds">
-                      <span>Aggregate</span>
-                      <span>Stream</span>
+                      <span>{t("Aggregate")}</span>
+                      <span>{t("Stream")}</span>
                     </span>
                   </div>
                   {job.results.map((r) => (
@@ -604,9 +600,8 @@ export function BenchmarkDialog({
 
               {job.results.length > 0 && (
                 <p className="bench-legend">
-                  <strong>Aggregate</strong> — total decode tok/s across all concurrent streams.{" "}
-                  <strong>Stream</strong> — per-stream average decode.
-                </p>
+                  <strong>{t("Aggregate")}</strong> {t(" — total decode tok/s across all concurrent streams.")}{" "}
+                  <strong>{t("Stream")}</strong> {t(" — per-stream average decode.")}</p>
               )}
             </section>
           )}
@@ -615,8 +610,7 @@ export function BenchmarkDialog({
         <footer className="bench-sheet__footer">
           {job?.status === "running" ? (
             <button type="button" className="bench-btn bench-btn--ghost" onClick={() => void handleCancel()}>
-              Cancel
-            </button>
+              {t("Cancel")}</button>
           ) : job ? (
             <>
               {job.results.length > 0 && (
@@ -624,10 +618,9 @@ export function BenchmarkDialog({
                   type="button"
                   className="bench-btn bench-btn--ghost"
                   onClick={() => void handleClear()}
-                  title="Clear saved results for this port"
+                  title={t("Clear saved results for this port")}
                 >
-                  Clear
-                </button>
+                  {t("Clear")}</button>
               )}
               {job.results.length > 0 && (
                 <BenchCopyButton
@@ -648,24 +641,21 @@ export function BenchmarkDialog({
                 />
               )}
               <button type="button" className="bench-btn bench-btn--ghost" onClick={handleNewRun}>
-                New run
-              </button>
+                {t("New run")}</button>
               <button type="button" className="bench-btn bench-btn--primary" onClick={onClose}>
-                Done
-              </button>
+                {t("Done")}</button>
             </>
           ) : (
             <>
               <button type="button" className="bench-btn bench-btn--ghost" onClick={onClose}>
-                Close
-              </button>
+                {t("Close")}</button>
               <button
                 type="button"
                 className="bench-btn bench-btn--primary"
                 onClick={() => void handleStart()}
                 disabled={starting || selected.length === 0}
               >
-                {starting ? "Starting…" : "Run benchmark"}
+                {starting ? t("Starting…") : t("Run benchmark")}
               </button>
             </>
           )}

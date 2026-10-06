@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useMemo } from "react";
 import { HISTORY_MAX, useMetricsHistory, useTimedMetricsHistory, avgPositive } from "../../hooks/metricsStore";
 import type { TimedSample } from "../../hooks/ringBuffer";
@@ -86,6 +87,7 @@ export function LlmTrendChart({
   sparkId: string;
   llmPort: number;
 }) {
+  useI18n();
   const gen = useMetricsHistory(sparkId, `llm:${llmPort}.tps`);
   const prefill = useMetricsHistory(sparkId, `llm:${llmPort}.prefill`);
   const ttft = useMetricsHistory(sparkId, `llm:${llmPort}.ttft`);
@@ -114,12 +116,11 @@ export function LlmTrendChart({
     <div className="border-t border-border pt-3 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] uppercase tracking-wide text-muted">
-          tok/s history
-        </span>
+          {t("tok/s history")}</span>
         <span className="text-[10px] text-muted">{historyLabel()}</span>
       </div>
       {!hasData ? (
-        <p className="text-[10px] text-muted">No samples yet.</p>
+        <p className="text-[10px] text-muted">{t("No samples yet.")}</p>
       ) : (
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
@@ -127,7 +128,7 @@ export function LlmTrendChart({
           className="block w-full"
           style={{ height: 64 }}
           role="img"
-          aria-label="Generation and prefill tokens per second over the last 30 minutes"
+          aria-label={t("Generation and prefill tokens per second over the last 30 minutes")}
         >
           {prefillPts.map((points, index) => (
             <g key={`prefill-${index}`}>
@@ -161,20 +162,20 @@ export function LlmTrendChart({
       )}
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[10px] text-muted">
         <span>
-          Gen avg{" "}
+          {t("Gen avg")}{" "}
           <span className="font-tabular text-xs text-accent">{fmt(genAvg)}</span>
         </span>
         <span>
-          Prefill avg{" "}
+          {t("Prefill avg")}{" "}
           <span className="font-tabular text-xs text-text">{fmt(prefillAvg)}</span>
         </span>
         <span>
-          TTFT avg{" "}
+          {t("TTFT avg")}{" "}
           <span className="font-tabular text-xs text-muted">
             {ttftAvg != null ? `${ttftAvg.toFixed(3)}s` : "—"}
           </span>
         </span>
-        <span className="text-[9px]">avg over busy samples only</span>
+        <span className="text-[9px]">{t("avg over busy samples only")}</span>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useEffect, useRef, useState } from "react";
 
 export interface TerminalCardProps {
@@ -38,6 +39,7 @@ export function TerminalCard({
   onCopy,
   copied,
 }: TerminalCardProps) {
+  useI18n();
   const bodyRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const [reasoningOpen, setReasoningOpen] = useState(true);
@@ -58,14 +60,14 @@ export function TerminalCard({
     <article className="showcase-term">
       <header className="showcase-term__header">
         <span className="showcase-term__label" title={label}>
-          {label || "Terminal"}
+          {label || t("Terminal")}
         </span>
-        <span className={`showcase-term__status ${statusClass(status)}`}>{status}</span>
+        <span className={`showcase-term__status ${statusClass(status)}`}>{t(status)}</span>
         <span
           className="showcase-term__tps font-tabular"
           title={
             peakTokPerSec > 0 || liveTokPerSec > 0
-              ? `Live ${liveTokPerSec.toFixed(1)} tok/s · peak ${Math.max(peakTokPerSec, liveTokPerSec).toFixed(1)} tok/s`
+              ? t("Live {0} tok/s · peak {1} tok/s", liveTokPerSec.toFixed(1), Math.max(peakTokPerSec, liveTokPerSec).toFixed(1))
               : undefined
           }
         >
@@ -75,7 +77,7 @@ export function TerminalCard({
               {peakTokPerSec > 0 && (
                 <span className="showcase-term__tps-peak">
                   {" "}
-                  peak {Math.max(peakTokPerSec, liveTokPerSec).toFixed(0)}
+                  {t("peak ")}{Math.max(peakTokPerSec, liveTokPerSec).toFixed(0)}
                 </span>
               )}
             </>
@@ -88,9 +90,9 @@ export function TerminalCard({
             type="button"
             className="showcase-term__copy"
             onClick={onCopy}
-            title="Copy this terminal"
+            title={t("Copy this terminal")}
           >
-            {copied ? "Copied" : "Copy"}
+            {copied ? t("Copied") : t("Copy")}
           </button>
         )}
       </header>
@@ -105,7 +107,7 @@ export function TerminalCard({
         }}
       >
         {empty && status === "pending" && (
-          <pre className="showcase-term__answer">Waiting…</pre>
+          <pre className="showcase-term__answer">{t("Waiting…")}</pre>
         )}
         {hasReasoning && (
           <div className="showcase-term__reasoning">
@@ -115,10 +117,8 @@ export function TerminalCard({
               aria-expanded={reasoningOpen}
               onClick={() => setReasoningOpen((o) => !o)}
             >
-              {reasoningOpen ? "▾" : "▸"} Thinking
-              <span className="showcase-term__reasoning-meta">
-                {reasoning.length.toLocaleString()} chars
-              </span>
+              {reasoningOpen ? "▾" : "▸"} {t(" Thinking")}<span className="showcase-term__reasoning-meta">
+                {reasoning.length.toLocaleString()} {t(" chars")}</span>
             </button>
             {reasoningOpen && (
               <pre className="showcase-term__reasoning-text">{reasoning}</pre>
@@ -132,7 +132,7 @@ export function TerminalCard({
             <pre className="showcase-term__answer">…</pre>
           )
         )}
-        {error ? <pre className="showcase-term__error">{`[error] ${error}`}</pre> : null}
+        {error ? <pre className="showcase-term__error">{t("[error] {0}", error)}</pre> : null}
       </div>
       <footer className="showcase-term__footer">
         <div className="showcase-gauge" aria-hidden="true">

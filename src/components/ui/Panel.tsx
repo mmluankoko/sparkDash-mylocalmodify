@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import type { ReactNode, CSSProperties } from "react";
 
 interface PanelProps {
@@ -26,6 +27,7 @@ export function Panel({
   style,
   children,
 }: PanelProps) {
+  useI18n();
   return (
     <section
       className={`panel ${accent ? "panel-accent" : ""} ${className}`}
@@ -37,7 +39,7 @@ export function Panel({
       >
         <h3 className="panel-title">
           {icon}
-          {title}
+          {t(title)}
         </h3>
         {actions ? <div className="flex items-center gap-1.5">{actions}</div> : null}
       </header>
