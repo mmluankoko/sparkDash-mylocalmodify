@@ -123,6 +123,8 @@
   "GPU Temperature": "GPU温度",
   "CPU Load": "CPU负载",
   "CPU Temperature": "CPU温度",
+  "No LLM monitored nodes": "没有启用 LLM 监控的节点",
+  "Enable LLM monitoring in Edit Spark to see LLM stats.": "请在编辑节点中开启 LLM 监控后才可查看 LLM 统计。",
   "RAM": "内存",
   "Temperature": "温度",
   "GPU thermal slowdown engaged": "GPU 温度过高，已触发降频",

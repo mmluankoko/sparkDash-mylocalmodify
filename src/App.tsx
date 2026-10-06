@@ -7,6 +7,7 @@ import { SparkTabs } from "./components/SparkTabs";
 import { AddSparkDialog } from "./components/AddSparkDialog";
 import { EditSparkDialog } from "./components/EditSparkDialog";
 import { SparkPage } from "./components/SparkPage/SparkPage";
+import { LlmFleetPage } from "./components/SparkPage/LlmViewPage";
 import { HermesUpdateDialog } from "./components/SparkPage/HermesUpdateDialog";
 import { OverviewPage } from "./components/OverviewPage/OverviewPage";
 import { ShowcasePage } from "./components/ShowcasePage/ShowcasePage";
@@ -17,7 +18,7 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { GearIcon, BoltIcon } from "./components/ui/icons";
 import { ConnectionBanner } from "./components/ui/ConnectionBanner";
 import { ErrorBanner } from "./components/ui/ErrorBanner";
-import { OVERVIEW_ID } from "./constants";
+import { OVERVIEW_ID, LLM_ID } from "./constants";
 import type { Settings, SparkSnapshot } from "./api/types";
 import { isWorkerSpark } from "./api/sparkRole";
 
@@ -143,6 +144,7 @@ function DashboardApp() {
   const displaySparks = liveSparks;
 
   const isOverview = activeId === OVERVIEW_ID;
+  const isLlmView = activeId === LLM_ID;
   const hideWorkers = settings?.hideWorkers ?? false;
   const hiddenWorkerIds = useMemo(() => {
     if (!hideWorkers) return new Set<string>();
@@ -156,9 +158,10 @@ function DashboardApp() {
     () => (hideWorkers ? displaySparks.filter((s) => !hiddenWorkerIds.has(s.id)) : displaySparks),
     [displaySparks, hideWorkers, hiddenWorkerIds]
   );
-  const displayActive = isOverview
-    ? null
-    : displaySparks.find((s) => s.id === activeId) || displaySparks[0] || activeSpark || null;
+  const displayActive =
+    isOverview || isLlmView
+      ? null
+      : displaySparks.find((s) => s.id === activeId) || displaySparks[0] || activeSpark || null;
 
   useEffect(() => {
     if (sparks.length > 0) setFallbackSparks([]);
@@ -234,10 +237,15 @@ function DashboardApp() {
           );
         })
       );
-      if (configs.length && activeId !== OVERVIEW_ID && !configs.some((c) => c.id === activeId)) {
+      if (
+        configs.length &&
+        activeId !== OVERVIEW_ID &&
+        activeId !== LLM_ID &&
+        !configs.some((c) => c.id === activeId)
+      ) {
         setActiveId(configs[0].id);
       }
-      if (configs.length === 0 && activeId !== OVERVIEW_ID) setActiveId(null);
+      if (configs.length === 0 && activeId !== OVERVIEW_ID && activeId !== LLM_ID) setActiveId(null);
     } catch (err) {
       console.error("Failed to refresh sparks:", err);
       setActionError(
@@ -302,11 +310,16 @@ function DashboardApp() {
               temperatureUnit={settings?.temperatureUnit ?? "celsius"}
               onSelectSpark={navigate}
             />
+          ) : isLlmView ? (
+            <LlmFleetPage
+              sparks={displaySparks}
+              benchShareImage={settings?.benchShareImage ?? false}
+              onSelectSpark={navigate}
+            />
           ) : displayActive ? (
             <SparkPage
               spark={displayActive}
               temperatureUnit={settings?.temperatureUnit ?? "celsius"}
-              benchShareImage={settings?.benchShareImage ?? false}
               onEdit={() => setEditId(displayActive.id)}
             />
           ) : (

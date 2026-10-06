@@ -1,8 +1,9 @@
 import { t, useI18n } from "../i18n";
 import { memo, useEffect, useState, useRef, useCallback } from "react";
 import type { SparkSnapshot } from "../api/types";
-import { PlusIcon, GridIcon } from "./ui/icons";
-import { OVERVIEW_ID } from "../constants";
+import { isLlmMonitoringEnabled } from "../api/sparkRole";
+import { PlusIcon, GridIcon, BotIcon } from "./ui/icons";
+import { OVERVIEW_ID, LLM_ID } from "../constants";
 
 interface SparkTabsProps {
   sparks: SparkSnapshot[];
@@ -150,6 +151,7 @@ export function SparkTabs({
   useI18n();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const showLlmTab = sparks.some(isLlmMonitoringEnabled);
 
   // Close mobile menu on resize to desktop
   useEffect(() => {
@@ -174,6 +176,7 @@ export function SparkTabs({
         <MobileSparkMenu
           sparks={sparks}
           activeId={activeId}
+          showLlm={showLlmTab}
           onSelect={onSelect}
           onAdd={onAdd}
           isOpen={mobileMenuOpen}
@@ -198,6 +201,8 @@ export function SparkTabs({
           />
         </div>
       ))}
+      {/* Fleet-level LLM tab — peer of the node pills, always after nodes. */}
+      {showLlmTab && <LlmTab isActive={activeId === LLM_ID} onSelect={onSelect} />}
     </nav>
   );
 }
@@ -224,11 +229,35 @@ function OverviewTab({
   );
 }
 
+/** Fleet-level LLM stats tab pill — peer of node pills, placed after them. */
+function LlmTab({
+  isActive,
+  onSelect,
+}: {
+  isActive: boolean;
+  onSelect: (id: string) => void;
+}) {
+  useI18n();
+  return (
+    <div className="shrink-0">
+      <button
+        type="button"
+        onClick={() => onSelect(LLM_ID)}
+        className={`pill-item ${isActive ? "is-active" : ""}`}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <BotIcon className="h-3.5 w-3.5" />
+        LLM</button>
+    </div>
+  );
+}
+
 /* ─── Mobile dropdown menu ────────────────────────────── */
 
 function MobileSparkMenu({
   sparks,
   activeId,
+  showLlm,
   onSelect,
   onAdd,
   isOpen,
@@ -236,6 +265,7 @@ function MobileSparkMenu({
 }: {
   sparks: SparkSnapshot[];
   activeId: string | null;
+  showLlm?: boolean;
   onSelect: (id: string) => void;
   onAdd: () => void;
   isOpen: boolean;
@@ -313,6 +343,18 @@ function MobileSparkMenu({
           {spark.name}
         </button>
       ))}
+      {showLlm && (
+        <button
+          type="button"
+          role="menuitem"
+          className={`mobile-menu-item ${activeId === LLM_ID ? "is-active" : ""}`}
+          aria-current={activeId === LLM_ID ? "page" : undefined}
+          onClick={() => handleItemClick(LLM_ID)}
+        >
+          <BotIcon className="h-3.5 w-3.5" />
+          LLM
+        </button>
+      )}
       <button
         type="button"
         role="menuitem"

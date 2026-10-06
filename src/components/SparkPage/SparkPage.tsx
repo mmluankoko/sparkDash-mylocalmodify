@@ -1,8 +1,7 @@
 import { t, useI18n } from "../../i18n";
 import { useState, useEffect, useCallback, type CSSProperties } from "react";
 import type { SparkSnapshot } from "../../api/types";
-import { isLlmMonitoringEnabled } from "../../api/sparkRole";
-import { updateSpark, refreshSparkMetric, addLlmPort, removeLlmPort } from "../../api/client";
+import { updateSpark, refreshSparkMetric } from "../../api/client";
 import { SparkHeader } from "./SparkHeader";
 import { SparkActions } from "./SparkActions";
 import { GpuPanel } from "./GpuPanel";
@@ -11,15 +10,12 @@ import { RamPanel } from "./RamPanel";
 import { StoragePanel } from "./StoragePanel";
 import { NetworkPanel } from "./NetworkPanel";
 import { TailscalePanel } from "./TailscalePanel";
-import { LlmPanel } from "./LlmPanel";
 import { ComfyPanel } from "./ComfyPanel";
 import { ChevronDownIcon } from "../ui/icons";
 
 interface SparkPageProps {
   spark: SparkSnapshot;
   temperatureUnit: "celsius" | "fahrenheit";
-  /** Show "Copy image" in the benchmark dialogs (Settings, off by default). */
-  benchShareImage?: boolean;
   onEdit?: () => void;
 }
 
@@ -84,7 +80,6 @@ function SectionHeading({
 export function SparkPage({
   spark,
   temperatureUnit,
-  benchShareImage = false,
   onEdit,
 }: SparkPageProps) {
   useI18n();
@@ -93,12 +88,9 @@ export function SparkPage({
   const [disabledInterfaces, setDisabledInterfaces] = useState<string[]>(
     spark.disabledInterfaces || []
   );
-  const [llmPorts, setLlmPorts] = useState<number[]>(spark.llmPorts ?? [spark.llmPort ?? 8888]);
   const [storagePollDisabled, setStoragePollDisabled] = useState<boolean>(
     spark.storagePollDisabled ?? false
   );
-  const [showAddPort, setShowAddPort] = useState(false);
-  const [newPortDraft, setNewPortDraft] = useState("");
   const [resourcesOpen, setResourcesOpen] = useState(() =>
     readSectionOpen(SECTION_OPEN_KEYS.resources, true)
   );
@@ -132,10 +124,6 @@ export function SparkPage({
   }, [spark.disabledInterfaces]);
 
   useEffect(() => {
-    if (spark.llmPorts) setLlmPorts(spark.llmPorts);
-  }, [spark.llmPorts]);
-
-  useEffect(() => {
     setStoragePollDisabled(spark.storagePollDisabled ?? false);
   }, [spark.storagePollDisabled]);
 
@@ -158,71 +146,9 @@ export function SparkPage({
     [spark.id]
   );
 
-  const handleAddPort = useCallback(async () => {
-    const port = parseInt(newPortDraft, 10);
-    if (!Number.isInteger(port) || port < 1 || port > 65535) return;
-    if (llmPorts.includes(port)) {
-      setNewPortDraft("");
-      setShowAddPort(false);
-      return;
-    }
-    try {
-      const result = await addLlmPort(spark.id, port);
-      setLlmPorts(result.llmPorts);
-      setNewPortDraft("");
-      setShowAddPort(false);
-    } catch (err) {
-      console.error("Failed to add LLM port:", err);
-    }
-  }, [spark.id, newPortDraft, llmPorts]);
-
-  const handleRemovePort = useCallback(async (port: number) => {
-    try {
-      const result = await removeLlmPort(spark.id, port);
-      setLlmPorts(result.llmPorts);
-    } catch (err) {
-      console.error("Failed to remove LLM port:", err);
-    }
-  }, [spark.id]);
-
-  const llmOn = isLlmMonitoringEnabled(spark);
   const comfyOn = Boolean(spark.comfyMonitoring);
   const tailscaleOn = Boolean(spark.tailscaleMonitoring);
-  /** First LLM + Comfy share a row when both are on. */
-  const primarySideBySide = llmOn && comfyOn;
-  const showServices = llmOn || comfyOn;
-  const primaryPort = llmPorts[0];
-  const extraPorts = llmPorts.slice(1);
-
-  /**
-   * Extra LLM ports (after the primary):
-   * - 1 extra → full-width own row
-   * - 2+ extras → 2-column pairs; if odd count, last one full-width alone
-   */
-  const extraLlmFullWidth = (extraIndex: number, extraCount: number) => {
-    if (extraCount === 1) return true;
-    if (extraCount % 2 === 1 && extraIndex === extraCount - 1) return true;
-    return false;
-  };
-
-  const renderLlmPanel = (port: number, portIndex: number, className?: string) => {
-    const llmMetrics = metrics.llm?.[portIndex] ?? null;
-    const canRemove = portIndex > 0;
-    return (
-      <LlmPanel
-        key={port}
-        llm={llmMetrics}
-        sparkId={spark.id}
-        sparkName={spark.name}
-        llmPort={port}
-        llmPorts={llmPorts}
-        hasApiKey={Boolean(spark.llmApiKeyPorts?.includes(port))}
-        shareImage={benchShareImage}
-        onRemovePort={canRemove ? handleRemovePort : undefined}
-        className={className}
-      />
-    );
-  };
+  const showServices = comfyOn;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--density-page-gap)" }}>
@@ -257,7 +183,6 @@ export function SparkPage({
               {/* grow: fill the gap so the left column's bottom aligns with the right */}
               <CpuPanel
                 cpu={metrics.cpu}
-                hardware={spark.hardware}
                 sparkId={spark.id}
                 temperatureUnit={temperatureUnit}
                 className="grow"
@@ -288,13 +213,7 @@ export function SparkPage({
             </div>
           </div>
         )}
-        {/*
-          Services layout:
-          - Primary LLM + ComfyUI → always same row, 2 columns (when both on)
-          - Alone → full width
-          - +1 LLM → own full-width row
-          - +2 LLMs → 2-column row; odd leftover → full-width row
-        */}
+        {/* Services layout: ComfyUI only — LLM panels moved to the LLM page. */}
         {showServices && (
           <SectionHeading
             title={t("Services")}
@@ -304,79 +223,13 @@ export function SparkPage({
           />
         )}
         {showServices && servicesOpen && (
-          <>
-            {llmOn &&
-              primaryPort != null &&
-              renderLlmPanel(
-                primaryPort,
-                0,
-                primarySideBySide ? undefined : "md:col-span-2"
-              )}
-            {comfyOn && (
-              <ComfyPanel
-                comfy={metrics.comfy ?? null}
-                comfyPort={spark.comfyPort ?? 8188}
-                sparkId={spark.id}
-                lanIp={spark.lanIp}
-                className={primarySideBySide ? undefined : "md:col-span-2"}
-              />
-            )}
-            {llmOn &&
-              extraPorts.map((port, j) =>
-                renderLlmPanel(
-                  port,
-                  j + 1,
-                  extraLlmFullWidth(j, extraPorts.length) ? "md:col-span-2" : undefined
-                )
-              )}
-            {llmOn &&
-              (showAddPort ? (
-                <div className="md:col-span-2 rounded-lg border border-border bg-surface p-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      max={65535}
-                      inputMode="numeric"
-                      placeholder={t("Port number")}
-                      value={newPortDraft}
-                      onChange={(e) => setNewPortDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void handleAddPort();
-                        }
-                      }}
-                      className="w-32 rounded-md border border-border bg-surface-elevated px-3 py-1.5 font-tabular text-sm text-text outline-none focus:border-accent"
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void handleAddPort()}
-                      disabled={!newPortDraft.trim()}
-                      className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-                    >
-                      {t("Add")}</button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddPort(false);
-                        setNewPortDraft("");
-                      }}
-                      className="rounded border border-border px-3 py-1.5 text-xs text-muted hover:bg-surface-hover"
-                    >
-                      {t("Cancel")}</button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowAddPort(true)}
-                  className="md:col-span-2 rounded-lg border border-dashed border-border bg-transparent p-3 text-xs text-muted hover:border-accent hover:text-accent transition-colors"
-                >
-                  {t("+ Add LLM port")}</button>
-              ))}
-          </>
+          <ComfyPanel
+            comfy={metrics.comfy ?? null}
+            comfyPort={spark.comfyPort ?? 8188}
+            sparkId={spark.id}
+            lanIp={spark.lanIp}
+            className="md:col-span-2"
+          />
         )}
       </div>
     </div>

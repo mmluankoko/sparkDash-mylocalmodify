@@ -19,7 +19,8 @@ describe("SparkTabs accessibility and scale", () => {
     );
     const current = container.querySelector('[aria-current="page"]');
     expect(current?.textContent).toContain("Spark b");
-    expect(container.querySelectorAll(".pill-item-with-handle, .pill-item")).toHaveLength(3);
+    // Overview + 2 nodes + fleet LLM tab (fixtures are LLM-enabled standalones)
+    expect(container.querySelectorAll(".pill-item-with-handle, .pill-item")).toHaveLength(4);
   });
 
   it("keeps 4/8/12-node desktop navigation in a horizontally overflowable nav", () => {
@@ -46,7 +47,7 @@ describe("SparkTabs accessibility and scale", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     act(() => toggle.click());
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(14);
+    expect(document.querySelectorAll('[role="menuitem"]')).toHaveLength(15); // overview + 12 nodes + LLM + add
     expect(document.querySelector('#mobile-spark-menu [aria-current="page"]')?.textContent).toContain("Spark m3");
   });
 });

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { SparkSnapshot, WsSnapshot } from "../api/types";
 import { ingestSnapshots } from "./metricsStore";
-import { OVERVIEW_ID } from "../constants";
+import { OVERVIEW_ID, LLM_ID } from "../constants";
 
 const TOKEN = (typeof localStorage !== "undefined" && localStorage.getItem("sparkdashToken")) || "";
 const WS_URL = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws${TOKEN ? `?token=${encodeURIComponent(TOKEN)}` : ""}`;
@@ -61,7 +61,8 @@ export function useSnapshot() {
           // Default to the Overview tab; keep the current selection if it
           // is still valid (Overview is always valid).
           setActiveId((prev) => {
-            if (prev === OVERVIEW_ID) return OVERVIEW_ID;
+            // Virtual tabs (Overview, fleet LLM) are always valid.
+            if (prev === OVERVIEW_ID || prev === LLM_ID) return prev;
             if (prev && msg.sparks.some((s) => s.id === prev)) return prev;
             return OVERVIEW_ID;
           });
