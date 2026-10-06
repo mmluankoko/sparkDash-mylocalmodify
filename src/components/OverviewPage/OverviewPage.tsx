@@ -1,5 +1,5 @@
 import { t, useI18n } from "../../i18n";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { SparkSnapshot } from "../../api/types";
 import { isWorkerSpark, resolveSparkRole } from "../../api/sparkRole";
 import { updateAllHermes } from "../../api/client";
@@ -11,7 +11,6 @@ import { FleetEnergyCard } from "./FleetEnergyCard";
 import { FleetAlertStrip } from "./FleetAlertStrip";
 import { FleetTokenTotals } from "./FleetTokenTotals";
 import { ActivityIcon, RotateIcon } from "../ui/icons";
-import { formatMb } from "../../shared/formatBytes";
 
 interface OverviewPageProps {
   sparks: SparkSnapshot[];
@@ -86,12 +85,10 @@ function MiniStat({
 
 function SparkCard({
   spark,
-  headSparkName,
   temperatureUnit,
   onSelect,
 }: {
   spark: SparkSnapshot;
-  headSparkName?: string | null;
   temperatureUnit: "celsius" | "fahrenheit";
   onSelect?: (id: string) => void;
 }) {
@@ -107,7 +104,6 @@ function SparkCard({
   const vramPct = gpu?.vram?.percentage ?? um?.percentage ?? 0;
   const vramUsed = gpu?.vram?.used ?? um?.used ?? 0;
   const vramTotal = gpu?.vram?.total ?? um?.total ?? 0;
-  const vramAvail = gpu?.vram?.available ?? um?.available ?? 0;
 
   // Temperature bar: cool → success, warm → warning, hot → danger
   const tempBarColor =
@@ -293,90 +289,20 @@ function SparkCard({
             )}
           </div>
 
-          {/* Secondary stats */}
+          {/* Secondary stats: GPU power + CPU power only */}
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-border pt-3.5">
             <MiniStat
               label={t("GPU Power")}
               value={`${gpu?.power?.draw ?? 0}W / ${gpu?.power?.limit ?? 0}W`}
             />
-            {vramAvail > 0 && (
-              <MiniStat
-                label={t("Available")}
-                value={formatMb(vramAvail)}
-                tone={vramAvail < 4096 ? "danger" : vramAvail < 16384 ? "warning" : "accent"}
-              />
-            )}
-            {(() => {
-              // Find the root disk by label "/" (the collector maps the host
-              // root mount to that label). Fall back to the GB10 partition name
-              // so the overview keeps working where labels aren't populated.
-              const rootDisk =
-                spark.metrics.storage.find((d) => d.label === "/") ??
-                spark.metrics.storage.find((d) => d.device === "nvme0n1p2");
-              if (rootDisk) {
-                return (
-                  <MiniStat
-                    label={t("Storage")}
-                    value={`${fmtStorage(rootDisk.used, false)} / ${fmtStorage(rootDisk.total, true)}`}
-                    tone={rootDisk.percentage > 85 ? "danger" : rootDisk.percentage > 60 ? "warning" : "default"}
-                    bold={false}
-                  />
-                );
+            <MiniStat
+              label={t("CPU Power")}
+              value={
+                spark.metrics.cpu && spark.metrics.cpu.tdp > 0
+                  ? `${spark.metrics.cpu.draw}W / ${spark.metrics.cpu.tdp}W`
+                  : "—"
               }
-              return null;
-            })()}
-            {(() => {
-              const role = resolveSparkRole(spark);
-
-              // Workers have no local LLM API — show cluster/model label instead.
-              // Priority: manual workerLabel override > derived head-model
-              // mirror > generic fallback. Derived never shows a stale model:
-              // the backend nulls it when the head is unresolvable/offline.
-              if (role === "worker") {
-                const label =
-                  spark.workerLabel?.trim() || spark.workerDerivedLabel?.trim() || t("distributed");
-                const title = headSparkName
-                  ? t("{0} · worker of {1}", label, headSparkName)
-                  : t("{0} · distributed LLM worker", label);
-                return (
-                  <MiniStat
-                    label={t("Worker")}
-                    value={label}
-                    tone="accent"
-                    title={title}
-                    wrap
-                  />
-                );
-              }
-
-              // Head / Standalone: same as before — live backend + model id.
-              const llmArr = spark.metrics.llm;
-              const llm = Array.isArray(llmArr) ? llmArr.find((l) => l.available) : null;
-              if (!llm) return null;
-              return (
-                <MiniStat
-                  label={
-                    llm.backend === "vllm"
-                      ? "vLLM"
-                      : llm.backend === "ds4"
-                        ? "ds4"
-                        : llm.backend === "sglang"
-                          ? "sgLang"
-                          : llm.backend === "exl3"
-                            ? "EXL3"
-                            : llm.backend === "q27"
-                              ? "q27"
-                              : llm.backend === "tensorfold"
-                                ? "TensorFold"
-                                : llm.backend ?? "LLM"
-                  }
-                  value={llm.modelId ?? "unknown"}
-                  tone="accent"
-                  title={llm.modelId ?? undefined}
-                  wrap
-                />
-              );
-            })()}
+            />
           </div>
 
         </>
@@ -386,8 +312,9 @@ function SparkCard({
 }
 
 /**
- * Fleet-level LLM stats card — generation/prefill throughput for a head or
- * standalone Spark's live LLM backend, shown as a sibling of the node cards.
+ * Fleet-level LLM stats card — full-width, placed after the node cards.
+ * One per head/standalone Spark with a live LLM backend: throughput with
+ * sparklines plus engine state, slots, context, KV cache, TTFT and totals.
  */
 function LlmStatsCard({
   spark,
@@ -404,18 +331,28 @@ function LlmStatsCard({
   const prefillTail = useMetricsHistoryTail(spark.id, `llm:${port}.prefill`);
   if (resolveSparkRole(spark) === "worker" || idx < 0) return null;
   const llm = llmArr[idx];
+  const engineState =
+    llm.gpuMemoryUtilization == null
+      ? null
+      : llm.gpuMemoryUtilization === 0
+        ? { text: t("Sleeping"), cls: "text-muted" }
+        : { text: t("Active"), cls: "text-success" };
+  const kvPct =
+    llm.kvCacheUsage == null
+      ? null
+      : `${(llm.kvCacheUsage * 100).toFixed(1)}%`;
   return (
     <div
-      className="overview-card flex flex-col"
+      className="overview-card flex flex-col sm:col-span-2 lg:col-span-3"
       style={{
         padding: "var(--density-card-pad)",
         gap: "var(--density-card-gap)",
       }}
     >
-      {/* Card header */}
-      <div className="flex items-center gap-2.5">
+      {/* Header: node · backend · port · engine state · model */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className="h-2 w-2 shrink-0 rounded-full bg-accent dot-glow-success" />
-        <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-text-strong">
+        <span className="min-w-0 text-[15px] font-semibold text-text-strong">
           {onSelect ? (
             <button
               type="button"
@@ -429,21 +366,27 @@ function LlmStatsCard({
           )}
         </span>
         <span className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent">
-          {backendLabel(llm.backend) ?? "LLM"}
+          LLM · {backendLabel(llm.backend) ?? "?"}
         </span>
         <span className="shrink-0 font-tabular text-[10px] text-muted">:{port}</span>
+        {engineState && (
+          <span className={`shrink-0 text-[10px] uppercase tracking-wide ${engineState.cls}`}>
+            ● {engineState.text}
+          </span>
+        )}
+        {llm.modelId && (
+          <span className="min-w-0 flex-1 truncate text-right text-[11px] text-muted" title={llm.modelId}>
+            {llm.modelId}
+          </span>
+        )}
       </div>
-      {llm.modelId && (
-        <div className="-mt-1.5 truncate text-[11px] text-muted" title={llm.modelId}>
-          {llm.modelId}
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-2">
+
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-[10px] tracking-wide text-muted">{t("Generation tok/s")}</span>
           <div className="flex items-end justify-between gap-2">
-            <Sparkline data={genTail} color="var(--color-accent)" height={24} />
-            <span className="font-tabular text-[22px] font-bold leading-none text-accent">
+            <Sparkline data={genTail} color="var(--color-accent)" height={26} />
+            <span className="font-tabular text-[24px] font-bold leading-none text-accent">
               {llm.generationTps.toFixed(0)}
             </span>
           </div>
@@ -451,12 +394,73 @@ function LlmStatsCard({
         <div className="flex min-w-0 flex-col gap-0.5 border-l border-border pl-2">
           <span className="text-[10px] tracking-wide text-muted">{t("Prefill tok/s")}</span>
           <div className="flex items-end justify-between gap-2">
-            <Sparkline data={prefillTail} color="var(--color-text)" height={24} />
-            <span className="font-tabular text-[22px] font-bold leading-none text-text-strong">
+            <Sparkline data={prefillTail} color="var(--color-text)" height={26} />
+            <span className="font-tabular text-[24px] font-bold leading-none text-text-strong">
               {llm.prefillTps.toFixed(0)}
             </span>
           </div>
         </div>
+        {llm.cachedPrefillTps != null && (
+          <div className="flex min-w-0 flex-col gap-0.5 border-l border-border pl-2">
+            <span className="text-[10px] tracking-wide text-muted">{t("Cached prefill tok/s")}</span>
+            <span className="font-tabular text-[15px] font-semibold text-muted">
+              {llm.cachedPrefillTps.toFixed(0)}
+            </span>
+          </div>
+        )}
+        {llm.uncachedPrefillTps != null && (
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-[10px] tracking-wide text-muted">{t("Uncached prefill tok/s")}</span>
+            <span className="font-tabular text-[15px] font-semibold text-text">
+              {llm.uncachedPrefillTps.toFixed(0)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Secondary engine stats */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3 sm:grid-cols-3 lg:grid-cols-5">
+        <MiniStat
+          label={t("Slots")}
+          value={
+            (llm.slotsTotal ?? 0) > 0
+              ? `${llm.slotsActive ?? 0} / ${llm.slotsTotal ?? 0}`
+              : (llm.slotsActive ?? 0) > 0
+                ? String(llm.slotsActive)
+                : "—"
+          }
+          tone={(llm.slotsActive ?? 0) > 0 ? "accent" : "default"}
+          bold={false}
+        />
+        <MiniStat
+          label={t("Context")}
+          value={llm.contextLength ? llm.contextLength.toLocaleString() : "—"}
+          bold={false}
+        />
+        <MiniStat
+          label={t("KV Cache")}
+          value={kvPct ?? "—"}
+          tone={
+            llm.kvCacheUsage == null
+              ? "default"
+              : llm.kvCacheUsage >= 0.8
+                ? "danger"
+                : llm.kvCacheUsage >= 0.5
+                  ? "warning"
+                  : "success"
+          }
+          bold={false}
+        />
+        <MiniStat
+          label={t("TTFT p95")}
+          value={llm.ttftP95Seconds != null ? `${llm.ttftP95Seconds.toFixed(3)}s` : "—"}
+          bold={false}
+        />
+        <MiniStat
+          label={t("Total Generated")}
+          value={llm.totalOutputTokens > 0 ? llm.totalOutputTokens.toLocaleString() : "—"}
+          bold={false}
+        />
       </div>
     </div>
   );
@@ -697,19 +701,15 @@ export function OverviewPage({
             {t("No units match the current search and status filters.")}</p>
         )}
         {visibleSparks.map((spark) => (
-          <Fragment key={spark.id}>
-            <SparkCard
-              spark={spark}
-              headSparkName={
-                spark.workerHeadId
-                  ? sparks.find((s) => s.id === spark.workerHeadId)?.name ?? null
-                  : null
-              }
-              temperatureUnit={temperatureUnit}
-              onSelect={onSelectSpark}
-            />
-            <LlmStatsCard spark={spark} onSelect={onSelectSpark} />
-          </Fragment>
+          <SparkCard
+            key={spark.id}
+            spark={spark}
+            temperatureUnit={temperatureUnit}
+            onSelect={onSelectSpark}
+          />
+        ))}
+        {visibleSparks.map((spark) => (
+          <LlmStatsCard key={`llm-${spark.id}`} spark={spark} onSelect={onSelectSpark} />
         ))}
       </div>
     </div>
