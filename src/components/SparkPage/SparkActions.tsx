@@ -1,10 +1,7 @@
 import { t, useI18n } from "../../i18n";
-import { useState } from "react";
 import type { SparkSnapshot } from "../../api/types";
-import { shutdownSpark, wakeSpark } from "../../api/client";
-import { ConfirmShutdownDialog } from "../ConfirmShutdownDialog";
 import { openHermesUpdateDialog } from "../../hooks/useHermesUpdateDialog";
-import { EditIcon, PowerOffIcon, PowerOnIcon, RotateIcon } from "../ui/icons";
+import { EditIcon, RotateIcon } from "../ui/icons";
 
 interface SparkActionsProps {
   spark: SparkSnapshot;
@@ -14,18 +11,12 @@ interface SparkActionsProps {
 }
 
 /**
- * Update Hermes / Shutdown·Wake / Edit action cluster.
- * Rendered twice: inline in the SparkHeader (desktop) and as a standalone row
- * just above "Resources" on mobile. Owning the shutdown dialog + transient
- * power message here keeps the two placements in sync.
+ * Update Hermes / Edit action cluster. Power actions (Shutdown / Wake) were
+ * removed by product decision. Rendered twice: inline in the SparkHeader
+ * (desktop) and as a standalone row just above "Resources" on mobile.
  */
 export function SparkActions({ spark, onEdit, className }: SparkActionsProps) {
   useI18n();
-  const online = spark.online;
-  const [powerLoading, setPowerLoading] = useState(false);
-  const [powerMsg, setPowerMsg] = useState<{ text: string; tone: "ok" | "err" } | null>(null);
-  const [shutdownOpen, setShutdownOpen] = useState(false);
-
   const hermes = spark.hermes;
   const hermesRunning = hermes?.status === "running";
 
@@ -37,134 +28,62 @@ export function SparkActions({ spark, onEdit, className }: SparkActionsProps) {
     });
   }
 
-  async function handleShutdown() {
-    setPowerLoading(true);
-    setPowerMsg(null);
-    try {
-      const res = await shutdownSpark(spark.id);
-      setPowerMsg({ text: res.message || "Shutdown initiated", tone: "ok" });
-    } catch (err: unknown) {
-      setPowerMsg({
-        text: err instanceof Error ? err.message : "Shutdown failed",
-        tone: "err",
-      });
-    } finally {
-      setPowerLoading(false);
-      setTimeout(() => setPowerMsg(null), 5000);
-    }
-  }
-
-  async function handleWake() {
-    setPowerLoading(true);
-    setPowerMsg(null);
-    try {
-      const res = await wakeSpark(spark.id);
-      setPowerMsg({ text: res.message || "Wake packet sent", tone: "ok" });
-    } catch (err: unknown) {
-      setPowerMsg({
-        text: err instanceof Error ? err.message : "Wake failed",
-        tone: "err",
-      });
-    } finally {
-      setPowerLoading(false);
-      setTimeout(() => setPowerMsg(null), 5000);
-    }
-  }
-
   return (
-    <>
-      <div className={className}>
-        {powerMsg && (
-          <span className={`text-[11px] ${powerMsg.tone === "ok" ? "text-success" : "text-danger"}`}>
-            {powerMsg.text}
-          </span>
-        )}
-        {hermesRunning && (
-          <span
-            className="flex items-center gap-1.5 text-[11px] text-warning"
-            title={t("Running `hermes update` on this machine via SSH — this can take a few minutes.")}
-          >
-            <RotateIcon className="h-3 w-3" />
-            {t("Hermes updating…")}</span>
-        )}
-        {!hermesRunning && hermes?.monitoring && hermes.status === "error" && (
-          <span
-            className="max-w-[16rem] truncate text-[11px] text-danger"
-            title={hermes.error || t("Hermes update failed")}
-          >
-            {t("Hermes update failed")}</span>
-        )}
-        {!hermesRunning && hermes?.monitoring && hermes.installed !== false && (
-          <button
-            type="button"
-            onClick={() => void handleHermesUpdate()}
-            disabled={powerLoading}
-            title={
-              hermes.updateAvailable === true
-                ? t("Run \"hermes update\" on this machine via SSH{0}", hermes.behindCommits ? ` (${hermes.behindCommits} commits behind)` : "")
-                : t("Open Hermes Agent update status and run updates on this machine via SSH")
-            }
-            className={`flex items-center gap-1.5 rounded-md border bg-surface-elevated px-3 py-1.5 text-[11px] transition-colors disabled:opacity-50 ${
-              hermes.updateAvailable === true
-                ? "border-warning/40 text-warning hover:bg-warning/15"
-                : "border-border text-muted hover:bg-surface-hover hover:text-text"
-            }`}
-          >
-            <RotateIcon className="h-3 w-3" />
-            {t("Update Hermes")}{hermes.updateAvailable === true && (
-              <span
-                className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[9px] font-bold leading-none text-white"
-                title={
-                  hermes.behindCommits != null
-                    ? t("{0} commit{1} behind", hermes.behindCommits, hermes.behindCommits === 1 ? "" : "s")
-                    : t("Update available")
-                }
-              >
-                {hermes.behindCommits != null ? hermes.behindCommits : "!"}
-              </span>
-            )}
-          </button>
-        )}
-        {online ? (
-          <button
-            type="button"
-            onClick={() => setShutdownOpen(true)}
-            disabled={powerLoading}
-            title={t("Graceful shutdown (requires /usr/local/bin/spark-shutdown on the host)")}
-            className="flex items-center gap-1.5 rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-[11px] text-muted transition-colors hover:bg-danger/20 hover:text-danger disabled:opacity-50"
-          >
-            <PowerOffIcon className="h-3 w-3" />
-            {t("Shutdown")}</button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => void handleWake()}
-            disabled={powerLoading}
-            title={t("Wake-on-LAN (set MAC address in Edit Spark)")}
-            className="flex items-center gap-1.5 rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-[11px] text-muted hover:bg-success/20 hover:text-success transition-colors disabled:opacity-50"
-          >
-            <PowerOnIcon className="h-3 w-3" />
-            {t("Wake")}</button>
-        )}
-        {onEdit && (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="flex items-center gap-1.5 rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-[11px] text-muted hover:bg-surface-hover hover:text-text transition-colors"
-          >
-            <EditIcon className="h-3 w-3" />
-            {t("Edit")}</button>
-        )}
-      </div>
-
-      <ConfirmShutdownDialog
-        open={shutdownOpen}
-        onClose={() => setShutdownOpen(false)}
-        onConfirm={handleShutdown}
-        title={t("Shut down {0}", spark.name)}
-        description={t("Gracefully shut down {0}? This will stop all containers and power off the node.", spark.name)}
-        confirmLabel="Shut down"
-      />
-    </>
+    <div className={className}>
+      {hermesRunning && (
+        <span
+          className="flex items-center gap-1.5 text-[11px] text-warning"
+          title={t("Running `hermes update` on this machine via SSH — this can take a few minutes.")}
+        >
+          <RotateIcon className="h-3 w-3" />
+          {t("Hermes updating…")}</span>
+      )}
+      {!hermesRunning && hermes?.monitoring && hermes.status === "error" && (
+        <span
+          className="max-w-[16rem] truncate text-[11px] text-danger"
+          title={hermes.error || t("Hermes update failed")}
+        >
+          {t("Hermes update failed")}</span>
+      )}
+      {!hermesRunning && hermes?.monitoring && hermes.installed !== false && (
+        <button
+          type="button"
+          onClick={() => void handleHermesUpdate()}
+          title={
+            hermes.updateAvailable === true
+              ? t("Run \"hermes update\" on this machine via SSH{0}", hermes.behindCommits ? ` (${hermes.behindCommits} commits behind)` : "")
+              : t("Open Hermes Agent update status and run updates on this machine via SSH")
+          }
+          className={`flex items-center gap-1.5 rounded-md border bg-surface-elevated px-3 py-1.5 text-[11px] transition-colors ${
+            hermes.updateAvailable === true
+              ? "border-warning/40 text-warning hover:bg-warning/15"
+              : "border-border text-muted hover:bg-surface-hover hover:text-text"
+          }`}
+        >
+          <RotateIcon className="h-3 w-3" />
+          {t("Update Hermes")}{hermes.updateAvailable === true && (
+            <span
+              className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[9px] font-bold leading-none text-white"
+              title={
+                hermes.behindCommits != null
+                  ? t("{0} commit{1} behind", hermes.behindCommits, hermes.behindCommits === 1 ? "" : "s")
+                  : t("Update available")
+              }
+            >
+              {hermes.behindCommits != null ? hermes.behindCommits : "!"}
+            </span>
+          )}
+        </button>
+      )}
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex items-center gap-1.5 rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-[11px] text-muted hover:bg-surface-hover hover:text-text transition-colors"
+        >
+          <EditIcon className="h-3 w-3" />
+          {t("Edit")}</button>
+      )}
+    </div>
   );
 }

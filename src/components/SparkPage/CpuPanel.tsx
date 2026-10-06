@@ -1,5 +1,5 @@
 import { t, useI18n } from "../../i18n";
-import type { CpuMetrics, HardwareInfo } from "../../api/types";
+import type { CpuMetrics } from "../../api/types";
 import { Sparkline } from "../ui/Sparkline";
 import { Panel } from "../ui/Panel";
 import { CpuIcon } from "../ui/icons";
@@ -7,7 +7,6 @@ import { useMetricsHistoryTail } from "../../hooks/metricsStore";
 
 interface CpuPanelProps {
   cpu: CpuMetrics | null;
-  hardware?: HardwareInfo | null;
   sparkId: string;
   temperatureUnit: "celsius" | "fahrenheit";
   className?: string;
@@ -48,7 +47,7 @@ function MetricRow({
  * this panel makes that visible at the device level. For non-Spark GPU
  * hosts it covers the discrete CPU.
  */
-export function CpuPanel({ cpu, hardware, sparkId, temperatureUnit, className }: CpuPanelProps) {
+export function CpuPanel({ cpu, sparkId, temperatureUnit, className }: CpuPanelProps) {
   useI18n();
   const usageHistory = useMetricsHistoryTail(sparkId, "cpu.usage");
   const tempHistory = useMetricsHistoryTail(sparkId, "cpu.temp");
@@ -70,9 +69,6 @@ export function CpuPanel({ cpu, hardware, sparkId, temperatureUnit, className }:
       : temperature > 85
         ? "var(--color-warning)"
         : "var(--color-accent)";
-
-  const model = hardware?.cpuModel;
-  const cores = hardware?.cpuCores;
 
   return (
     <Panel
@@ -117,15 +113,6 @@ export function CpuPanel({ cpu, hardware, sparkId, temperatureUnit, className }:
           {draw}W{tdp > 0 ? ` / ${tdp}W` : ""}
         </span>
       </div>
-      {model && (
-        <div className="flex justify-between border-t border-border pt-3 text-xs">
-          <span className="text-muted">{t("Model")}</span>
-          <span className="font-tabular text-text" title={model}>
-            {model}
-            {cores != null ? t(" · {0} cores", cores) : ""}
-          </span>
-        </div>
-      )}
     </Panel>
   );
 }
