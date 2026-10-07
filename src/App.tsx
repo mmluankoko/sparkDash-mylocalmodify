@@ -2,7 +2,7 @@ import { t, useI18n } from "./i18n";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useSnapshot } from "./hooks/useSnapshot";
 import { useAppRoute, useRoute } from "./hooks/useRoute";
-import { fetchSparks, fetchSettings } from "./api/client";
+import { fetchSparks, fetchSettings, fetchHealth } from "./api/client";
 import { SparkTabs } from "./components/SparkTabs";
 import { AddSparkDialog } from "./components/AddSparkDialog";
 import { EditSparkDialog } from "./components/EditSparkDialog";
@@ -14,12 +14,15 @@ import { ShowcasePage } from "./components/ShowcasePage/ShowcasePage";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { LanguageSwitch } from "./components/LanguageSwitch";
 import { initializeLanguage, setLanguage } from "./i18n";
+import { OpenAccessChip } from "./components/OpenAccessChip";
 import { SettingsDialog } from "./components/SettingsDialog";
+import { AccessTokenPrompt } from "./components/AccessTokenDialog";
+import { onTokenChange } from "./api/authToken";
 import { GearIcon, BoltIcon } from "./components/ui/icons";
 import { ConnectionBanner } from "./components/ui/ConnectionBanner";
 import { ErrorBanner } from "./components/ui/ErrorBanner";
 import { OVERVIEW_ID, LLM_ID } from "./constants";
-import type { Settings, SparkSnapshot } from "./api/types";
+import type { AuthMode, Settings, SparkSnapshot } from "./api/types";
 import { isWorkerSpark } from "./api/sparkRole";
 
 function placeholderSnapshot(
@@ -125,6 +128,7 @@ function DashboardApp() {
   const [editId, setEditId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   /** Used when WS is down so add/delete still updates the tab bar */
   const [fallbackSparks, setFallbackSparks] = useState<SparkSnapshot[]>([]);
@@ -167,15 +171,31 @@ function DashboardApp() {
     if (sparks.length > 0) setFallbackSparks([]);
   }, [sparks]);
 
-  // Fetch global settings on mount
+  // Fetch global settings on mount, and again when a new access token is
+  // saved (the first load may have been refused for the missing token).
   useEffect(() => {
-    fetchSettings()
-      .then(setSettings)
-      .catch((err) =>
-        setActionError(
-          `Could not load settings: ${err instanceof Error ? err.message : String(err)}. Reload to retry.`
-        )
-      );
+    const load = (afterTokenChange: boolean) =>
+      fetchSettings()
+        .then((s) => {
+          setSettings(s);
+          if (afterTokenChange) setActionError(null);
+        })
+        .catch((err) =>
+          setActionError(
+            `Could not load settings: ${err instanceof Error ? err.message : String(err)}. Reload to retry.`
+          )
+        );
+    void load(false);
+    return onTokenChange((token) => {
+      if (token) void load(true);
+    });
+  }, []);
+
+  // Auth posture once on load — drives the "Open access" header warning.
+  useEffect(() => {
+    fetchHealth()
+      .then((h) => setAuthMode(h.authMode))
+      .catch(() => setAuthMode(null));
   }, []);
 
   const handleSettingsSaved = useCallback((s: Settings) => {
@@ -277,6 +297,7 @@ function DashboardApp() {
           />
           <div className="ml-auto flex items-center gap-2.5">
             <LanguageSwitch />
+            <OpenAccessChip authMode={authMode} />
             <button
               type="button"
               onClick={() => setShowSettings(true)}
@@ -319,7 +340,9 @@ function DashboardApp() {
           ) : displayActive ? (
             <SparkPage
               spark={displayActive}
+              fleet={displaySparks}
               temperatureUnit={settings?.temperatureUnit ?? "celsius"}
+              showVramBreakdown={settings?.showVramBreakdown ?? true}
               onEdit={() => setEditId(displayActive.id)}
             />
           ) : (
@@ -385,10 +408,16 @@ function App() {
     return () => { cancelled = true; };
   }, []);
   if (!languageReady) return <div className="p-8 text-muted">加载中 / Loading…</div>;
-  if (route.mode === "showcase" && route.showcaseSparkId) {
-    return <ShowcasePage sparkId={route.showcaseSparkId} />;
-  }
-  return <DashboardApp />;
+  return (
+    <>
+      {route.mode === "showcase" && route.showcaseSparkId ? (
+        <ShowcasePage sparkId={route.showcaseSparkId} />
+      ) : (
+        <DashboardApp />
+      )}
+      <AccessTokenPrompt />
+    </>
+  );
 }
 
 export default App;

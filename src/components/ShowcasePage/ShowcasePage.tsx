@@ -3,6 +3,7 @@ import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   cancelShowcase,
+  cancelShowcaseBeacon,
   clearShowcaseHistory,
   fetchSparkMetrics,
   fetchSparks,
@@ -707,9 +708,8 @@ export function ShowcasePage({ sparkId }: ShowcasePageProps) {
     const cancelBeacon = () => {
       const sid = sessionIdRef.current;
       if (!sid || sessionStatus !== "running") return;
-      const url = `/api/sparks/${encodeURIComponent(sparkId)}/llm/showcase/${encodeURIComponent(sid)}`;
       try {
-        void fetch(url, { method: "DELETE", keepalive: true });
+        cancelShowcaseBeacon(sparkId, sid);
       } catch {
         /* ignore */
       }

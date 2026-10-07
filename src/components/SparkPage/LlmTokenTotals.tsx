@@ -1,4 +1,3 @@
-import { t, useI18n } from "../../i18n";
 /**
  * LlmTokenTotals — per-model cumulative prompt/completion token table.
  * Local-only component: lives in its own file, rendered by LlmPanel via one
@@ -7,7 +6,9 @@ import { t, useI18n } from "../../i18n";
 import { useEffect, useState } from "react";
 import { fetchLlmTokenTotals } from "../../api/llmTokenClient";
 import { formatTokensCompact } from "../../shared/tokenFormat";
+import { formatSince } from "../../shared/formatSince";
 import type { LlmTokenRange, LlmTokenSeriesTotals } from "../../api/llmTokenTypes";
+import { LEDGER_HINT, LEDGER_TITLE } from "./tokenTotalsCopy";
 
 const POLL_MS = 60_000;
 
@@ -19,19 +20,7 @@ const RANGE_OPTIONS: Array<{ value: LlmTokenRange; label: string }> = [
   { value: "30d", label: "Last month" },
 ];
 
-function age(ms: number | null): string | null {
-  if (ms == null || ms <= 0) return null;
-  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
-  if (s < 90) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 90) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 48) return `${h}h`;
-  return `${Math.floor(h / 24)}d`;
-}
-
 export function LlmTokenTotals({ sparkId, llmPort }: { sparkId: string; llmPort: number }) {
-  useI18n();
   const [series, setSeries] = useState<LlmTokenSeriesTotals[] | null>(null);
   const [range, setRange] = useState<LlmTokenRange>("all");
 
@@ -65,42 +54,46 @@ export function LlmTokenTotals({ sparkId, llmPort }: { sparkId: string; llmPort:
   return (
     <div className="border-t border-border pt-3 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] uppercase tracking-wide text-muted">
-          {t("Total tokens by model")}</span>
+        <span className="min-w-0" title={LEDGER_TITLE}>
+          <span className="block text-[10px] uppercase tracking-wide text-muted">
+            Total tokens by model
+          </span>
+          <span className="block text-[10px] text-muted">{LEDGER_HINT}</span>
+        </span>
         <div className="flex items-center gap-2">
           <select
             value={range}
             onChange={(e) => setRange(e.target.value as LlmTokenRange)}
-            aria-label={t("Token totals time range")}
+            aria-label="Token totals time range"
             className="rounded border border-border bg-surface-elevated text-text"
             style={{ height: "20px", padding: "0 4px", fontSize: "9px", width: "auto" }}
           >
             {RANGE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {t(opt.label)}
+                {opt.label}
               </option>
             ))}
           </select>
           <span className="shrink-0 whitespace-nowrap text-[10px] text-muted">
-            <span className="inline-block w-14 text-right">{t("Cached")}</span>
+            <span className="inline-block w-14 text-right">Cached</span>
 
-            <span className="inline-block w-14 text-right">{t("Prefill")}</span>
+            <span className="inline-block w-14 text-right">Prefill</span>
 
-            <span className="inline-block w-16 text-right">{t("Generated")}</span>
+            <span className="inline-block w-16 text-right">Generated</span>
           </span>
         </div>
       </div>
       <div className="space-y-1">
         {rows.length === 0 ? (
-          <p className="text-[11px] text-muted">{t("No tokens recorded in this period.")}</p>
+          <p className="text-[11px] text-muted">No tokens recorded in this period.</p>
         ) : (
           rows.map((row) => {
-          const seen = age(row.lastSeenAt);
+          const seen = formatSince(row.lastSeenAt);
           return (
             <div
               key={row.modelId}
               className="flex items-center justify-between gap-2 text-[11px]"
-              title={t("{0} prompt · {1} cached · {2} prefill · {3} generated{4}", row.promptTokens.toLocaleString(), row.cachedTokens.toLocaleString(), (row.promptTokens - row.cachedTokens).toLocaleString(), row.completionTokens.toLocaleString(), seen ? ` · ${seen} ago` : "")}
+              title={`${row.promptTokens.toLocaleString()} prompt · ${row.cachedTokens.toLocaleString()} cached · ${(row.promptTokens - row.cachedTokens).toLocaleString()} prefill · ${row.completionTokens.toLocaleString()} generated${seen ? ` · ${seen} ago` : ""}`}
             >
               <span
                 className="min-w-0 flex-1 truncate text-text"
