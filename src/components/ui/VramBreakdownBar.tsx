@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { t, useI18n } from "../../i18n";
 import { formatMb } from "../../shared/formatBytes";
 import {
   headroomTextClass,
@@ -74,6 +75,7 @@ function TipRow({
  * would otherwise leave the breakdown hanging behind it.
  */
 export function VramBreakdownBar({ label, breakdown: b, showLegend = false }: VramBreakdownBarProps) {
+  useI18n();
   const tipId = useId();
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
@@ -110,7 +112,7 @@ export function VramBreakdownBar({ label, breakdown: b, showLegend = false }: Vr
   const kvFull = kvNearlyFull(b);
   const kvPct = b.kv?.usage != null ? `${Math.round(b.kv.usage * 100)}%` : null;
   const items = legendItems(b);
-  const pool = b.model === "unified" ? "Unified memory" : "VRAM";
+  const pool = b.model === "unified" ? t("Unified memory") : t("VRAM");
 
   return (
     <div
@@ -141,7 +143,7 @@ export function VramBreakdownBar({ label, breakdown: b, showLegend = false }: Vr
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-xs text-muted">{label}</span>
         <span className={`font-tabular text-sm ${headroomTextClass(b.tone)}`} data-headroom={b.tone}>
-          {formatMb(b.freeMB)} free
+          {formatMb(b.freeMB)} {t("free")}
         </span>
       </div>
       <div className="flex h-1.5 gap-px overflow-hidden rounded-full bg-border">
@@ -184,29 +186,29 @@ export function VramBreakdownBar({ label, breakdown: b, showLegend = false }: Vr
           <>
             <TipRow
               swatch="engine"
-              label="Engine"
+              label={t("Engine")}
               detail={`${processLabel(b.engine.name)} · pid ${b.engine.pid}`}
               value={formatMb(b.engine.mb)}
             />
-            {b.kv?.weightsGb != null && <TipRow indent label="Weights" value={gb(b.kv.weightsGb)} />}
-            {b.kv?.poolGb != null && <TipRow indent label="KV pool" value={gb(b.kv.poolGb)} />}
+            {b.kv?.weightsGb != null && <TipRow indent label={t("Weights")} value={gb(b.kv.weightsGb)} />}
+            {b.kv?.poolGb != null && <TipRow indent label={t("KV pool")} value={gb(b.kv.poolGb)} />}
             {b.kv && (
               <TipRow
                 indent
-                label="KV in use"
-                value={kvPct ?? `not reported by ${b.kv.backend ?? "this backend"}`}
+                label={t("KV in use")}
+                value={kvPct ?? t("not reported by {0}", b.kv.backend ?? t("this backend"))}
                 valueClass={kvFull ? "text-warning" : kvPct != null ? "text-text" : "text-muted"}
               />
             )}
           </>
         )}
-        {b.systemMB != null && <TipRow swatch="system" label="System / CPU" value={formatMb(b.systemMB)} />}
+        {b.systemMB != null && <TipRow swatch="system" label={t("System / CPU")} value={formatMb(b.systemMB)} />}
         {b.engine ? (
-          b.otherMB > 0 && <TipRow swatch="other" label="Other GPU" value={formatMb(b.otherMB)} />
+          b.otherMB > 0 && <TipRow swatch="other" label={t("Other GPU")} value={formatMb(b.otherMB)} />
         ) : (
-          <TipRow swatch="gpu" label="GPU" value={formatMb(b.otherMB)} />
+          <TipRow swatch="gpu" label={t("GPU")} value={formatMb(b.otherMB)} />
         )}
-        <TipRow label="Free" value={formatMb(b.freeMB)} valueClass={headroomTextClass(b.tone)} />
+        <TipRow label={t("Free")} value={formatMb(b.freeMB)} valueClass={headroomTextClass(b.tone)} />
         <div
           className={`mt-1 border-t border-border pt-1 ${
             b.tone === "ok" ? (kvFull ? "text-warning" : "text-muted") : headroomTextClass(b.tone)

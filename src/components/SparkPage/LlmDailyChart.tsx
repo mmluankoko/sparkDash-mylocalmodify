@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { fetchLlmDaily } from "../../api/client";
 import type { LlmDailyDay } from "../../api/types";
@@ -35,12 +36,12 @@ export function barHeight(value: number, seriesMax: number, height: number): num
 export function dailyTooltipLines(day: LlmDailyDay, hasSplit: boolean): string[] {
   return [
     day.date,
-    `Decode peak ${fmt(day.decodeMax)} tok/s (avg ${fmt(day.decodeAvg)})`,
+    t("Decode peak {0} tok/s (avg {1})", fmt(day.decodeMax), fmt(day.decodeAvg)),
     hasSplit
-      ? `Uncached prefill peak ${fmt(day.uncachedPrefillMax)} tok/s (avg ${fmt(day.uncachedPrefillAvg)})`
-      : `Prefill peak ${fmt(day.prefillMax)} tok/s (avg ${fmt(day.prefillAvg)})`,
+      ? t("Uncached prefill peak {0} tok/s (avg {1})", fmt(day.uncachedPrefillMax), fmt(day.uncachedPrefillAvg))
+      : t("Prefill peak {0} tok/s (avg {1})", fmt(day.prefillMax), fmt(day.prefillAvg)),
     hasSplit
-      ? `Cached prefill peak ${fmt(day.cachedPrefillMax)} tok/s (avg ${fmt(day.cachedPrefillAvg)})`
+      ? t("Cached prefill peak {0} tok/s (avg {1})", fmt(day.cachedPrefillMax), fmt(day.cachedPrefillAvg))
       : null,
   ].filter((line): line is string => line != null);
 }
@@ -52,6 +53,7 @@ export function LlmDailyChart({
   sparkId: string;
   llmPort: number;
 }) {
+  useI18n();
   const [days, setDays] = useState<LlmDailyDay[] | null>(null);
   /** Day under the pointer or keyboard cursor; null hides the tooltip. */
   const [active, setActive] = useState<number | null>(null);
@@ -87,7 +89,7 @@ export function LlmDailyChart({
   // Each series on its own 14-day scale (see barHeight).
   const decodeMax = Math.max(0, ...decodeVals);
   const prefillMax = Math.max(0, ...prefillVals);
-  const prefillName = hasSplit ? "uncached prefill" : "prefill";
+  const prefillName = hasSplit ? t("uncached prefill") : t("prefill");
   const axisLabel = (m: number) => (m > 0 ? formatAxisMax(m) : "—");
   const n = days.length;
   const gap = 1.5;
@@ -125,15 +127,15 @@ export function LlmDailyChart({
     <div className="border-t border-border pt-3 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] uppercase tracking-wide text-muted">
-          Daily peak tok/s
+          {t("Daily peak tok/s")}
         </span>
         <span className="text-[10px] text-muted">
-          <span className="text-accent">decode</span> ·{" "}
-          <span className="text-text opacity-60">{prefillName}</span> · own scales · 14d
+          <span className="text-accent">{t("decode")}</span> ·{" "}
+          <span className="text-text opacity-60">{prefillName}</span> · {t("own scales")} · 14d
         </span>
       </div>
       {!busy ? (
-        <p className="text-[10px] text-muted">No busy samples in the last 14 days.</p>
+        <p className="text-[10px] text-muted">{t("No busy samples in the last 14 days.")}</p>
       ) : (
         <div className="flex items-stretch gap-1.5">
           <div
@@ -145,14 +147,14 @@ export function LlmDailyChart({
               <span
                 className="block text-accent"
                 data-testid="daily-chart-ymax-decode"
-                title={`Decode scale: top of the chart is ${axisLabel(decodeMax)}`}
+                title={t("Decode scale: top of the chart is {0}", axisLabel(decodeMax))}
               >
                 {axisLabel(decodeMax)}
               </span>
               <span
                 className="block text-text opacity-60"
                 data-testid="daily-chart-ymax-prefill"
-                title={`${prefillName[0].toUpperCase()}${prefillName.slice(1)} scale: top of the chart is ${axisLabel(prefillMax)}`}
+                title={t("{0} scale: top of the chart is {1}", prefillName[0].toUpperCase() + prefillName.slice(1), axisLabel(prefillMax))}
               >
                 {axisLabel(prefillMax)}
               </span>
@@ -163,7 +165,13 @@ export function LlmDailyChart({
             className="relative rounded-sm outline-none focus-visible:ring-1 focus-visible:ring-accent"
             tabIndex={0}
             role="group"
-            aria-label={`Daily peak decode and prefill tokens per second, last ${n} days. Each series has its own scale: decode 0 to ${axisLabel(decodeMax)}, ${prefillName} 0 to ${axisLabel(prefillMax)}. Use the arrow keys to read each day.`}
+            aria-label={t(
+              "Daily peak decode and prefill tokens per second, last {0} days. Each series has its own scale: decode 0 to {1}, {2} 0 to {3}. Use the arrow keys to read each day.",
+              n,
+              axisLabel(decodeMax),
+              prefillName,
+              axisLabel(prefillMax)
+            )}
             aria-describedby={activeDay ? tooltipId : undefined}
             onKeyDown={onKeyDown}
             onFocus={() => {

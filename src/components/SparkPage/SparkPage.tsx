@@ -10,7 +10,6 @@ import { RamPanel } from "./RamPanel";
 import { StoragePanel } from "./StoragePanel";
 import { NetworkPanel } from "./NetworkPanel";
 import { TailscalePanel } from "./TailscalePanel";
-import { ComfyPanel } from "./ComfyPanel";
 import { ChevronDownIcon } from "../ui/icons";
 import { vramContextFor } from "../../shared/vramBreakdown";
 
@@ -26,7 +25,6 @@ interface SparkPageProps {
 
 const SECTION_OPEN_KEYS = {
   resources: "sparkdash.ui.section.resources",
-  services: "sparkdash.ui.section.services",
 } as const;
 
 function readSectionOpen(key: string, fallback = true): boolean {
@@ -101,22 +99,11 @@ export function SparkPage({
   const [resourcesOpen, setResourcesOpen] = useState(() =>
     readSectionOpen(SECTION_OPEN_KEYS.resources, true)
   );
-  const [servicesOpen, setServicesOpen] = useState(() =>
-    readSectionOpen(SECTION_OPEN_KEYS.services, true)
-  );
 
   const toggleResources = useCallback(() => {
     setResourcesOpen((prev) => {
       const next = !prev;
       writeSectionOpen(SECTION_OPEN_KEYS.resources, next);
-      return next;
-    });
-  }, []);
-
-  const toggleServices = useCallback(() => {
-    setServicesOpen((prev) => {
-      const next = !prev;
-      writeSectionOpen(SECTION_OPEN_KEYS.services, next);
       return next;
     });
   }, []);
@@ -153,9 +140,7 @@ export function SparkPage({
     [spark.id]
   );
 
-  const comfyOn = Boolean(spark.comfyMonitoring);
   const tailscaleOn = Boolean(spark.tailscaleMonitoring);
-  const showServices = comfyOn;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--density-page-gap)" }}>
@@ -220,24 +205,6 @@ export function SparkPage({
               )}
             </div>
           </div>
-        )}
-        {/* Services layout: ComfyUI only — LLM panels moved to the LLM page. */}
-        {showServices && (
-          <SectionHeading
-            title={t("Services")}
-            open={servicesOpen}
-            onToggle={toggleServices}
-            style={{ marginTop: "var(--density-page-gap)" }}
-          />
-        )}
-        {showServices && servicesOpen && (
-          <ComfyPanel
-            comfy={metrics.comfy ?? null}
-            comfyPort={spark.comfyPort ?? 8188}
-            sparkId={spark.id}
-            lanIp={spark.lanIp}
-            className="md:col-span-2"
-          />
         )}
       </div>
     </div>

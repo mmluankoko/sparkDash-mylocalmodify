@@ -2,8 +2,8 @@ import { t, useI18n } from "../i18n";
 import { memo, useEffect, useState, useRef, useCallback } from "react";
 import type { SparkSnapshot } from "../api/types";
 import { isLlmMonitoringEnabled } from "../api/sparkRole";
-import { PlusIcon, GridIcon, BotIcon } from "./ui/icons";
-import { OVERVIEW_ID, LLM_ID } from "../constants";
+import { PlusIcon, GridIcon, BotIcon, ComfyIcon } from "./ui/icons";
+import { OVERVIEW_ID, LLM_ID, COMFY_ID } from "../constants";
 
 interface SparkTabsProps {
   sparks: SparkSnapshot[];
@@ -152,6 +152,12 @@ export function SparkTabs({
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const showLlmTab = sparks.some(isLlmMonitoringEnabled);
+  const showComfyTab = sparks.some((s) => Boolean(s.comfyMonitoring));
+  // Service liveness dots — green when at least one unit's service is reachable.
+  const llmOnline = sparks.some((s) =>
+    isLlmMonitoringEnabled(s) && s.metrics?.llm?.some((l) => l.available)
+  );
+  const comfyOnline = sparks.some((s) => s.comfyMonitoring && s.metrics?.comfy?.available);
 
   // Close mobile menu on resize to desktop
   useEffect(() => {
@@ -177,6 +183,9 @@ export function SparkTabs({
           sparks={sparks}
           activeId={activeId}
           showLlm={showLlmTab}
+          showComfy={showComfyTab}
+          llmOnline={llmOnline}
+          comfyOnline={comfyOnline}
           onSelect={onSelect}
           onAdd={onAdd}
           isOpen={mobileMenuOpen}
@@ -201,8 +210,13 @@ export function SparkTabs({
           />
         </div>
       ))}
-      {/* Fleet-level LLM tab — peer of the node pills, always after nodes. */}
-      {showLlmTab && <LlmTab isActive={activeId === LLM_ID} onSelect={onSelect} />}
+      {/* Fleet-level LLM + Comfy tabs — peers of node pills, always after nodes. */}
+      {showLlmTab && (
+        <LlmTab isActive={activeId === LLM_ID} online={llmOnline} onSelect={onSelect} />
+      )}
+      {showComfyTab && (
+        <ComfyTab isActive={activeId === COMFY_ID} online={comfyOnline} onSelect={onSelect} />
+      )}
     </nav>
   );
 }
@@ -232,9 +246,11 @@ function OverviewTab({
 /** Fleet-level LLM stats tab pill — peer of node pills, placed after them. */
 function LlmTab({
   isActive,
+  online,
   onSelect,
 }: {
   isActive: boolean;
+  online: boolean;
   onSelect: (id: string) => void;
 }) {
   useI18n();
@@ -246,8 +262,41 @@ function LlmTab({
         className={`pill-item ${isActive ? "is-active" : ""}`}
         aria-current={isActive ? "page" : undefined}
       >
+        <span
+          className={`mr-1.5 inline-block h-2 w-2 rounded-full ${online ? "bg-success" : "bg-danger"}`}
+          aria-hidden
+        />
         <BotIcon className="h-3.5 w-3.5" />
         LLM</button>
+    </div>
+  );
+}
+
+/** Fleet-level ComfyUI tab pill — peer of node pills, placed after LLM. */
+function ComfyTab({
+  isActive,
+  online,
+  onSelect,
+}: {
+  isActive: boolean;
+  online: boolean;
+  onSelect: (id: string) => void;
+}) {
+  useI18n();
+  return (
+    <div className="shrink-0">
+      <button
+        type="button"
+        onClick={() => onSelect(COMFY_ID)}
+        className={`pill-item ${isActive ? "is-active" : ""}`}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <span
+          className={`mr-1.5 inline-block h-2 w-2 rounded-full ${online ? "bg-success" : "bg-danger"}`}
+          aria-hidden
+        />
+        <ComfyIcon className="h-3.5 w-3.5" />
+        {t("Comfy")}</button>
     </div>
   );
 }
@@ -258,6 +307,9 @@ function MobileSparkMenu({
   sparks,
   activeId,
   showLlm,
+  showComfy,
+  llmOnline,
+  comfyOnline,
   onSelect,
   onAdd,
   isOpen,
@@ -266,6 +318,9 @@ function MobileSparkMenu({
   sparks: SparkSnapshot[];
   activeId: string | null;
   showLlm?: boolean;
+  showComfy?: boolean;
+  llmOnline?: boolean;
+  comfyOnline?: boolean;
   onSelect: (id: string) => void;
   onAdd: () => void;
   isOpen: boolean;
@@ -351,8 +406,30 @@ function MobileSparkMenu({
           aria-current={activeId === LLM_ID ? "page" : undefined}
           onClick={() => handleItemClick(LLM_ID)}
         >
+          <span
+            className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+              llmOnline ? "bg-success" : "bg-danger"
+            }`}
+          />
           <BotIcon className="h-3.5 w-3.5" />
           LLM
+        </button>
+      )}
+      {showComfy && (
+        <button
+          type="button"
+          role="menuitem"
+          className={`mobile-menu-item ${activeId === COMFY_ID ? "is-active" : ""}`}
+          aria-current={activeId === COMFY_ID ? "page" : undefined}
+          onClick={() => handleItemClick(COMFY_ID)}
+        >
+          <span
+            className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+              comfyOnline ? "bg-success" : "bg-danger"
+            }`}
+          />
+          <ComfyIcon className="h-3.5 w-3.5" />
+          {t("Comfy")}
         </button>
       )}
       <button

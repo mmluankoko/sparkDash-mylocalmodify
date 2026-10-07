@@ -1,4 +1,5 @@
 import { formatSince } from "./formatSince";
+import { t } from "../i18n";
 
 interface LlmRates {
   generationTps: number;
@@ -18,5 +19,5 @@ export function isLlmIdle(llm: LlmRates): boolean {
  */
 export function idleLabel(lastActiveAt: number | null | undefined, now: number = Date.now()): string {
   const since = formatSince(lastActiveAt, now);
-  return since ? `Idle · last served ${since} ago` : "Idle";
+  return since ? t("Idle · last served {0} ago", since) : t("Idle");
 }

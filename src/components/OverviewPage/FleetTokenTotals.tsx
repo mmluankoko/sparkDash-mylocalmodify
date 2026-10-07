@@ -4,6 +4,7 @@
  * Local-only component: own file + one import line and one render line in
  * OverviewPage (see docs/LOCAL-MODS.md).
  */
+import { t, useI18n } from "../../i18n";
 import { useEffect, useState } from "react";
 import { fetchLlmTokenTotals } from "../../api/llmTokenClient";
 import { addTokens, formatTokensCompact } from "../../shared/tokenFormat";
@@ -12,12 +13,12 @@ import { LEDGER_HINT, LEDGER_TITLE } from "../SparkPage/tokenTotalsCopy";
 
 const POLL_MS = 60_000;
 
-const RANGE_OPTIONS: Array<{ value: LlmTokenRange; label: string }> = [
-  { value: "all", label: "All time" },
-  { value: "today", label: "Today" },
-  { value: "7d", label: "Last 7 days" },
-  { value: "14d", label: "Last 14 days" },
-  { value: "30d", label: "Last month" },
+const RANGE_OPTIONS: Array<{ value: LlmTokenRange; label: () => string }> = [
+  { value: "all", label: () => t("All time") },
+  { value: "today", label: () => t("Today") },
+  { value: "7d", label: () => t("Last 7 days") },
+  { value: "14d", label: () => t("Last 14 days") },
+  { value: "30d", label: () => t("Last month") },
 ];
 
 /** Aggregate per-series model rows into one fleet-wide per-model table. */
@@ -67,6 +68,7 @@ export function aggregateModelTotals(
 }
 
 export function FleetTokenTotals() {
+  useI18n();
   const [series, setSeries] = useState<LlmTokenSeriesTotals[] | null>(null);
   const [range, setRange] = useState<LlmTokenRange>("all");
 
@@ -82,10 +84,10 @@ export function FleetTokenTotals() {
         });
     };
     load();
-    const t = setInterval(load, POLL_MS);
+    const timer = setInterval(load, POLL_MS);
     return () => {
       cancelled = true;
-      clearInterval(t);
+      clearInterval(timer);
     };
   }, [range]);
 
@@ -100,48 +102,56 @@ export function FleetTokenTotals() {
     <section className="panel p-4" aria-labelledby="fleet-token-totals-title">
       <div className="flex items-center justify-between gap-2">
         <h2 id="fleet-token-totals-title" className="text-sm font-semibold text-text-strong">
-          LLM Token Totals
+          {t("LLM Token Totals")}
         </h2>
         <div className="flex items-center gap-2">
           <span className="shrink-0 whitespace-nowrap text-[10px] text-muted">
-            {activeEndpoints} endpoint{activeEndpoints === 1 ? "" : "s"}
+            {activeEndpoints} {activeEndpoints === 1 ? t("endpoint") : t("endpoints")}
           </span>
           <select
             value={range}
             onChange={(e) => setRange(e.target.value as LlmTokenRange)}
-            aria-label="Token totals time range"
+            aria-label={t("Token totals time range")}
             className="rounded border border-border bg-surface-elevated text-text"
             style={{ height: "20px", padding: "0 4px", fontSize: "9px", width: "auto" }}
           >
             {RANGE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {opt.label()}
               </option>
             ))}
           </select>
         </div>
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] text-muted" title={LEDGER_TITLE}>
-          {LEDGER_HINT}, whole fleet
+        <span className="text-[10px] text-muted" title={t(LEDGER_TITLE)}>
+          {t(LEDGER_HINT)}, {t("whole fleet")}
         </span>
         <span className="shrink-0 whitespace-nowrap text-[10px] text-muted">
-          <span className="inline-block w-14 text-right">Cached</span>
+          <span className="inline-block w-14 text-right">{t("Cached")}</span>
 
-          <span className="inline-block w-14 text-right">Prefill</span>
+          <span className="inline-block w-14 text-right">{t("Prefill")}</span>
 
-          <span className="inline-block w-16 text-right">Generated</span>
+          <span className="inline-block w-16 text-right">{t("Generated")}</span>
         </span>
       </div>
       <div className="mt-3 space-y-1">
         {rows.length === 0 ? (
-          <p className="text-[11px] text-muted">No tokens recorded in this period.</p>
+          <p className="text-[11px] text-muted">{t("No tokens recorded in this period.")}</p>
         ) : (
           rows.map((row) => (
           <div
             key={row.modelId}
             className="flex items-center justify-between gap-2 text-[11px]"
-            title={`${row.promptTokens.toLocaleString()} prompt · ${row.cachedTokens.toLocaleString()} cached · ${(row.promptTokens - row.cachedTokens).toLocaleString()} prefill · ${row.completionTokens.toLocaleString()} generated · ${row.sparkCount} Spark${row.sparkCount === 1 ? "" : "s"}`}
+            title={t(
+                "{0} prompt · {1} cached · {2} prefill · {3} generated · {4} {5}",
+                row.promptTokens.toLocaleString(),
+                row.cachedTokens.toLocaleString(),
+                (row.promptTokens - row.cachedTokens).toLocaleString(),
+                row.completionTokens.toLocaleString(),
+                row.sparkCount,
+                row.sparkCount === 1 ? t("Spark") : t("Sparks")
+              )}
           >
             <span className="min-w-0 flex-1 truncate text-text" title={row.modelId}>
               {row.modelId}
@@ -167,7 +177,7 @@ export function FleetTokenTotals() {
         )}
       </div>
       <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-2 text-[11px]">
-        <span className="uppercase tracking-wide text-muted">Total</span>
+        <span className="uppercase tracking-wide text-muted">{t("Total")}</span>
         <span className="font-tabular">
           <span className="inline-block w-14 text-right text-muted">
             {totalCached > 0 ? formatTokensCompact(totalCached) : "—"}

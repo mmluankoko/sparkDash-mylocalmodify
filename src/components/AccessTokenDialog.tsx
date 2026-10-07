@@ -1,3 +1,4 @@
+import { t, useI18n } from "../i18n";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useModalPresence } from "../hooks/useModalPresence";
@@ -17,9 +18,10 @@ interface AccessTokenDialogProps {
   onClose: (saved?: boolean) => void;
 }
 
-const REJECTED_MESSAGE = "The server rejected this token. Check SPARKDASH_TOKEN on the host and try again.";
+const REJECTED_MESSAGE_KEY = "The server rejected this token. Check SPARKDASH_TOKEN on the host and try again.";
 
 export function AccessTokenDialog({ open, reason, onClose }: AccessTokenDialogProps) {
+  useI18n();
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,9 +38,9 @@ export function AccessTokenDialog({ open, reason, onClose }: AccessTokenDialogPr
       return;
     }
     // Reopened by a refusal while a token is stored: that token is the problem.
-    setError(reason === "rejected" && getToken() ? "The saved token was rejected by the server." : null);
-    const t = window.setTimeout(() => inputRef.current?.focus(), 50);
-    return () => window.clearTimeout(t);
+    setError(reason === "rejected" && getToken() ? t("The saved token was rejected by the server.") : null);
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 50);
+    return () => window.clearTimeout(focusTimer);
   }, [open, reason]);
 
   // Capture-phase Escape so a dialog underneath (Settings) does not close too.
@@ -62,7 +64,7 @@ export function AccessTokenDialog({ open, reason, onClose }: AccessTokenDialogPr
     try {
       const status = await fetchAuthStatus(candidate);
       if (status.tokenRequired && !status.authenticated) {
-        setError(REJECTED_MESSAGE);
+        setError(t(REJECTED_MESSAGE_KEY));
         setSubmitting(false);
         return;
       }
@@ -92,20 +94,20 @@ export function AccessTokenDialog({ open, reason, onClose }: AccessTokenDialogPr
         aria-labelledby={titleId}
       >
         <div className="modal-sheet__header" id={titleId}>
-          Access token
+          {t("Access token")}
         </div>
 
         <div className="modal-sheet__body space-y-3">
           <p className="text-xs leading-relaxed text-muted">
             {reason === "rejected"
-              ? "This sparkDash server requires an access token for live telemetry and changes. Enter the value of SPARKDASH_TOKEN set on the host."
-              : "Enter the value of SPARKDASH_TOKEN set on the host."}{" "}
-            It is stored in this browser only.
+              ? t("This sparkDash server requires an access token for live telemetry and changes. Enter the value of SPARKDASH_TOKEN set on the host.")
+              : t("Enter the value of SPARKDASH_TOKEN set on the host.")}{" "}
+            {t("It is stored in this browser only.")}
           </p>
 
           <div>
             <label htmlFor={`${titleId}-input`} className="mb-1 block text-xs text-muted">
-              Token
+              {t("Token")}
             </label>
             <input
               ref={inputRef}
@@ -144,7 +146,7 @@ export function AccessTokenDialog({ open, reason, onClose }: AccessTokenDialogPr
               disabled={submitting}
               className="rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-xs text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-50"
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="button"
@@ -152,7 +154,7 @@ export function AccessTokenDialog({ open, reason, onClose }: AccessTokenDialogPr
               disabled={!candidate || submitting}
               className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? "Checking…" : "Save"}
+              {submitting ? t("Checking…") : t("Save")}
             </button>
           </div>
         </div>

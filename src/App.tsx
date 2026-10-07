@@ -8,6 +8,7 @@ import { AddSparkDialog } from "./components/AddSparkDialog";
 import { EditSparkDialog } from "./components/EditSparkDialog";
 import { SparkPage } from "./components/SparkPage/SparkPage";
 import { LlmFleetPage } from "./components/SparkPage/LlmViewPage";
+import { ComfyFleetPage } from "./components/SparkPage/ComfyFleetPage";
 import { HermesUpdateDialog } from "./components/SparkPage/HermesUpdateDialog";
 import { OverviewPage } from "./components/OverviewPage/OverviewPage";
 import { ShowcasePage } from "./components/ShowcasePage/ShowcasePage";
@@ -21,7 +22,7 @@ import { onTokenChange } from "./api/authToken";
 import { GearIcon, BoltIcon } from "./components/ui/icons";
 import { ConnectionBanner } from "./components/ui/ConnectionBanner";
 import { ErrorBanner } from "./components/ui/ErrorBanner";
-import { OVERVIEW_ID, LLM_ID } from "./constants";
+import { OVERVIEW_ID, LLM_ID, COMFY_ID } from "./constants";
 import type { AuthMode, Settings, SparkSnapshot } from "./api/types";
 import { isWorkerSpark } from "./api/sparkRole";
 
@@ -149,6 +150,7 @@ function DashboardApp() {
 
   const isOverview = activeId === OVERVIEW_ID;
   const isLlmView = activeId === LLM_ID;
+  const isComfyView = activeId === COMFY_ID;
   const hideWorkers = settings?.hideWorkers ?? false;
   const hiddenWorkerIds = useMemo(() => {
     if (!hideWorkers) return new Set<string>();
@@ -163,7 +165,7 @@ function DashboardApp() {
     [displaySparks, hideWorkers, hiddenWorkerIds]
   );
   const displayActive =
-    isOverview || isLlmView
+    isOverview || isLlmView || isComfyView
       ? null
       : displaySparks.find((s) => s.id === activeId) || displaySparks[0] || activeSpark || null;
 
@@ -261,11 +263,12 @@ function DashboardApp() {
         configs.length &&
         activeId !== OVERVIEW_ID &&
         activeId !== LLM_ID &&
+        activeId !== COMFY_ID &&
         !configs.some((c) => c.id === activeId)
       ) {
         setActiveId(configs[0].id);
       }
-      if (configs.length === 0 && activeId !== OVERVIEW_ID && activeId !== LLM_ID) setActiveId(null);
+      if (configs.length === 0 && activeId !== OVERVIEW_ID && activeId !== LLM_ID && activeId !== COMFY_ID) setActiveId(null);
     } catch (err) {
       console.error("Failed to refresh sparks:", err);
       setActionError(
@@ -335,6 +338,11 @@ function DashboardApp() {
             <LlmFleetPage
               sparks={displaySparks}
               benchShareImage={settings?.benchShareImage ?? false}
+              onSelectSpark={navigate}
+            />
+          ) : isComfyView ? (
+            <ComfyFleetPage
+              sparks={displaySparks}
               onSelectSpark={navigate}
             />
           ) : displayActive ? (

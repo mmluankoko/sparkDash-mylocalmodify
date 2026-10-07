@@ -11,5 +11,6 @@
   "showFleetExceptions": false,
   "showOverviewSearch": false,
   "showLlmTokenTotals": false,
-  "benchShareImage": true
+  "benchShareImage": true,
+  "showVramBreakdown": true
 }
