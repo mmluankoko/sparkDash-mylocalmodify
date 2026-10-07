@@ -4,6 +4,7 @@ import type { LlmMetrics, LlmBenchTarget } from "../../api/types";
 import { setLlmApiKey, updateLlmPort, updateLlmPorts } from "../../api/client";
 import { Sparkline } from "../ui/Sparkline";
 import { Panel } from "../ui/Panel";
+import { ModelNameText } from "../ui/ModelNameText";
 import { BotIcon, GearIcon, InfoIcon } from "../ui/icons";
 import {
   useMetricsHistory,
@@ -701,7 +702,7 @@ export function LlmPanel({
                 className="min-w-0 flex-1 whitespace-normal break-words text-xs leading-snug text-text [overflow-wrap:anywhere]"
                 title={llm.modelId}
               >
-                {llm.modelId}
+                <ModelNameText id={llm.modelId} />
               </span>
             )}
             <span className="shrink-0 font-tabular text-[10px] text-muted">:{llmPort}</span>

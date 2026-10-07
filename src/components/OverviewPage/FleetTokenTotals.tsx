@@ -8,6 +8,7 @@ import { t, useI18n } from "../../i18n";
 import { useEffect, useState } from "react";
 import { fetchLlmTokenTotals } from "../../api/llmTokenClient";
 import { addTokens, formatTokensCompact } from "../../shared/tokenFormat";
+import { ModelNameText } from "../ui/ModelNameText";
 import type { LlmTokenRange, LlmTokenSeriesTotals } from "../../api/llmTokenTypes";
 import { LEDGER_HINT, LEDGER_TITLE } from "../SparkPage/tokenTotalsCopy";
 
@@ -154,7 +155,7 @@ export function FleetTokenTotals() {
               )}
           >
             <span className="min-w-0 flex-1 truncate text-text" title={row.modelId}>
-              {row.modelId}
+              <ModelNameText id={row.modelId} />
               {row.sparkCount > 1 && (
                 <span className="ml-1.5 text-[9px] text-muted">×{row.sparkCount}</span>
               )}

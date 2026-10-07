@@ -4,3 +4,5 @@ export const OVERVIEW_ID = "__overview__";
 export const LLM_ID = "__llm__";
 /** Reserved tab id for the fleet-level ComfyUI view (not a real Spark). */
 export const COMFY_ID = "__comfy__";
+/** Reserved tab id for the fleet-level LLM service control view (not a real Spark). */
+export const LLMCTL_ID = "__llmctl__";

@@ -6,6 +6,7 @@
 import { t, useI18n } from "../../i18n";
 import { useEffect, useState } from "react";
 import { fetchLlmTokenTotals } from "../../api/llmTokenClient";
+import { ModelNameText } from "../ui/ModelNameText";
 import { formatTokensCompact } from "../../shared/tokenFormat";
 import { formatSince } from "../../shared/formatSince";
 import type { LlmTokenRange, LlmTokenSeriesTotals } from "../../api/llmTokenTypes";
@@ -108,7 +109,7 @@ export function LlmTokenTotals({ sparkId, llmPort }: { sparkId: string; llmPort:
                 className="min-w-0 flex-1 truncate text-text"
                 title={row.modelId}
               >
-                {row.modelId}
+                <ModelNameText id={row.modelId} />
               </span>
               <span className="shrink-0 font-tabular text-muted">
                 <span className="inline-block w-14 text-right">

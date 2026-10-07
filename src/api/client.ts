@@ -5,6 +5,7 @@ import type {
   HealthResponse,
   HermesBatchUpdateResponse,
   HermesUpdatesResponse,
+  LlmCtlUnit,
   LlmMetrics,
   LlmDailyResponse,
   Settings,
@@ -435,6 +436,37 @@ export function shutdownAllSparks(): Promise<BatchPowerResult> {
 /** Send WoL to all registered Sparks that have a MAC configured. */
 export function wakeAllSparks(): Promise<BatchPowerResult> {
   return apiFetch("/api/sparks/wake-all", { method: "POST" });
+}
+
+// ─── LLM service control ─────────────────────────────
+/** Fleet-wide LLM service states for the control page. */
+export function fetchLlmCtl(): Promise<{ units: LlmCtlUnit[] }> {
+  return apiFetch("/api/llmctl");
+}
+
+/** Start an LLM service. Returns 202; poll fetchLlmCtl for progress. */
+export function startLlmService(sparkId: string, name: string): Promise<{ success: boolean }> {
+  return apiFetch(`/api/sparks/${encodeURIComponent(sparkId)}/llmctl/${encodeURIComponent(name)}/start`, {
+    method: "POST",
+  });
+}
+
+/** Stop an LLM service (graceful). */
+export function stopLlmService(sparkId: string, name: string): Promise<{ success: boolean }> {
+  return apiFetch(`/api/sparks/${encodeURIComponent(sparkId)}/llmctl/${encodeURIComponent(name)}/stop`, {
+    method: "POST",
+  });
+}
+
+/** Container log tail for one service rank. */
+export function fetchLlmCtlLogs(
+  sparkId: string,
+  name: string,
+  rank = 0,
+  lines = 40
+): Promise<{ lines: string[]; error?: string }> {
+  const q = new URLSearchParams({ name, rank: String(rank), lines: String(lines) });
+  return apiFetch(`/api/llmctl/${encodeURIComponent(sparkId)}/logs?${q.toString()}`);
 }
 
 // ─── Hermes update preview ───────────────────────────────

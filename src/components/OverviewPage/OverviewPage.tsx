@@ -4,6 +4,7 @@ import type { SparkSnapshot } from "../../api/types";
 import { isWorkerSpark, resolveSparkRole } from "../../api/sparkRole";
 import { updateAllHermes } from "../../api/client";
 import { MetricBar } from "../ui/MetricBar";
+import { ModelNameText } from "../ui/ModelNameText";
 import { Sparkline } from "../ui/Sparkline";
 import { useMetricsHistoryTail } from "../../hooks/metricsStore";
 import { backendLabel } from "../../shared/llmBackends.js";
@@ -376,7 +377,7 @@ function LlmStatsCard({
         )}
         {llm.modelId && (
           <span className="min-w-0 flex-1 truncate text-right text-[11px] text-muted" title={llm.modelId}>
-            {llm.modelId}
+            <ModelNameText id={llm.modelId} />
           </span>
         )}
       </div>

@@ -2,13 +2,15 @@ import { t, useI18n } from "./i18n";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useSnapshot } from "./hooks/useSnapshot";
 import { useAppRoute, useRoute } from "./hooks/useRoute";
-import { fetchSparks, fetchSettings, fetchHealth } from "./api/client";
+import { fetchSparks, fetchSettings, fetchHealth, fetchLlmCtl } from "./api/client";
+import { loadLlmModelNames } from "./api/llmModelNames";
 import { SparkTabs } from "./components/SparkTabs";
 import { AddSparkDialog } from "./components/AddSparkDialog";
 import { EditSparkDialog } from "./components/EditSparkDialog";
 import { SparkPage } from "./components/SparkPage/SparkPage";
 import { LlmFleetPage } from "./components/SparkPage/LlmViewPage";
 import { ComfyFleetPage } from "./components/SparkPage/ComfyFleetPage";
+import { LlmControlPage } from "./components/SparkPage/LlmControlPage";
 import { HermesUpdateDialog } from "./components/SparkPage/HermesUpdateDialog";
 import { OverviewPage } from "./components/OverviewPage/OverviewPage";
 import { ShowcasePage } from "./components/ShowcasePage/ShowcasePage";
@@ -22,7 +24,7 @@ import { onTokenChange } from "./api/authToken";
 import { GearIcon, BoltIcon } from "./components/ui/icons";
 import { ConnectionBanner } from "./components/ui/ConnectionBanner";
 import { ErrorBanner } from "./components/ui/ErrorBanner";
-import { OVERVIEW_ID, LLM_ID, COMFY_ID } from "./constants";
+import { OVERVIEW_ID, LLM_ID, COMFY_ID, LLMCTL_ID } from "./constants";
 import type { AuthMode, Settings, SparkSnapshot } from "./api/types";
 import { isWorkerSpark } from "./api/sparkRole";
 
@@ -131,6 +133,8 @@ function DashboardApp() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  /** LLM service control is available when config/llm-services.json has units. */
+  const [llmCtlAvailable, setLlmCtlAvailable] = useState(false);
   /** Used when WS is down so add/delete still updates the tab bar */
   const [fallbackSparks, setFallbackSparks] = useState<SparkSnapshot[]>([]);
   const staleAfterMs = Math.max(10_000, 3 * (refreshInterval ?? 2_000));
@@ -151,6 +155,7 @@ function DashboardApp() {
   const isOverview = activeId === OVERVIEW_ID;
   const isLlmView = activeId === LLM_ID;
   const isComfyView = activeId === COMFY_ID;
+  const isLlmCtlView = activeId === LLMCTL_ID;
   const hideWorkers = settings?.hideWorkers ?? false;
   const hiddenWorkerIds = useMemo(() => {
     if (!hideWorkers) return new Set<string>();
@@ -165,7 +170,7 @@ function DashboardApp() {
     [displaySparks, hideWorkers, hiddenWorkerIds]
   );
   const displayActive =
-    isOverview || isLlmView || isComfyView
+    isOverview || isLlmView || isComfyView || isLlmCtlView
       ? null
       : displaySparks.find((s) => s.id === activeId) || displaySparks[0] || activeSpark || null;
 
@@ -198,6 +203,14 @@ function DashboardApp() {
     fetchHealth()
       .then((h) => setAuthMode(h.authMode))
       .catch(() => setAuthMode(null));
+  }, []);
+
+  // LLM service control availability (tab visibility) — cheap, once on load.
+  useEffect(() => {
+    fetchLlmCtl()
+      .then((res) => setLlmCtlAvailable(res.units.length > 0))
+      .catch(() => setLlmCtlAvailable(false));
+    void loadLlmModelNames();
   }, []);
 
   const handleSettingsSaved = useCallback((s: Settings) => {
@@ -264,11 +277,12 @@ function DashboardApp() {
         activeId !== OVERVIEW_ID &&
         activeId !== LLM_ID &&
         activeId !== COMFY_ID &&
+        activeId !== LLMCTL_ID &&
         !configs.some((c) => c.id === activeId)
       ) {
         setActiveId(configs[0].id);
       }
-      if (configs.length === 0 && activeId !== OVERVIEW_ID && activeId !== LLM_ID && activeId !== COMFY_ID) setActiveId(null);
+      if (configs.length === 0 && activeId !== OVERVIEW_ID && activeId !== LLM_ID && activeId !== COMFY_ID && activeId !== LLMCTL_ID) setActiveId(null);
     } catch (err) {
       console.error("Failed to refresh sparks:", err);
       setActionError(
@@ -297,6 +311,7 @@ function DashboardApp() {
             onSelect={navigate}
             onAdd={() => setShowAdd(true)}
             onEdit={(id) => setEditId(id)}
+            showLlmCtl={llmCtlAvailable}
           />
           <div className="ml-auto flex items-center gap-2.5">
             <LanguageSwitch />
@@ -345,6 +360,8 @@ function DashboardApp() {
               sparks={displaySparks}
               onSelectSpark={navigate}
             />
+          ) : isLlmCtlView ? (
+            <LlmControlPage />
           ) : displayActive ? (
             <SparkPage
               spark={displayActive}

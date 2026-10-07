@@ -306,6 +306,46 @@ export interface UnifiedMemoryMetrics {
   };
 }
 
+// ─── LLM service control ───────────────────────────────
+export type LlmServiceState =
+  | "stopped"
+  | "starting"
+  | "loading"
+  | "ready"
+  | "stopping"
+  | "failed"
+  | "unknown";
+
+export interface LlmCtlRank {
+  rank: number;
+  container: string | null;
+  state: string | null;
+}
+
+export interface LlmCtlService {
+  name: string;
+  label: string;
+  engine: string;
+  /** Served model name (config-declared) used to resolve the global display name. */
+  modelId: string | null;
+  status: LlmServiceState;
+  ranks: LlmCtlRank[];
+  startedAt: number | null;
+  readyAt: number | null;
+  lastAction: "start" | "stop" | null;
+  lastActionAt: number | null;
+  lastError: string | null;
+  slow: boolean;
+}
+
+export interface LlmCtlUnit {
+  sparkId: string;
+  sparkName: string;
+  port: number;
+  rankLabels: string[];
+  services: LlmCtlService[];
+}
+
 // ─── LLM metrics ─────────────────────────────────────────
 export interface LlmMetrics {
   available: boolean;

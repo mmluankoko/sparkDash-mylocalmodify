@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from "react";
-import { OVERVIEW_ID, LLM_ID, COMFY_ID } from "../constants";
+import { OVERVIEW_ID, LLM_ID, COMFY_ID, LLMCTL_ID } from "../constants";
 
 export type RouteMode = "app" | "showcase";
 
@@ -67,6 +67,8 @@ export function useRoute(
       setActiveId(LLM_ID);
     } else if (path === "/comfy") {
       setActiveId(COMFY_ID);
+    } else if (path === "/llmctl") {
+      setActiveId(LLMCTL_ID);
     } else if (path !== "/spark") {
       setActiveId(OVERVIEW_ID);
     }
@@ -81,6 +83,7 @@ export function useRoute(
       if (match) setActiveId(match[1]);
       else if (path === "/llm") setActiveId(LLM_ID);
       else if (path === "/comfy") setActiveId(COMFY_ID);
+      else if (path === "/llmctl") setActiveId(LLMCTL_ID);
       else setActiveId(OVERVIEW_ID);
     };
     window.addEventListener("popstate", handler);
@@ -95,9 +98,11 @@ export function useRoute(
           ? "/llm"
           : id === COMFY_ID
             ? "/comfy"
-            : id && id !== OVERVIEW_ID
-              ? `/spark/${encodeURIComponent(id)}`
-              : "/";
+            : id === LLMCTL_ID
+              ? "/llmctl"
+              : id && id !== OVERVIEW_ID
+                ? `/spark/${encodeURIComponent(id)}`
+                : "/";
       window.history.pushState(null, "", url);
       setActiveId(id);
     },

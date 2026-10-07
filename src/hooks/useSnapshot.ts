@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { SparkSnapshot, WsSnapshot } from "../api/types";
 import { ingestSnapshots } from "./metricsStore";
-import { OVERVIEW_ID, LLM_ID, COMFY_ID } from "../constants";
+import { OVERVIEW_ID, LLM_ID, COMFY_ID, LLMCTL_ID } from "../constants";
 import { fetchAuthStatus, getToken, onTokenChange, reportAuthRequired } from "../api/authToken";
 
 const RECONNECT_DELAY = 2000;
@@ -89,8 +89,8 @@ export function useSnapshot() {
           // Default to the Overview tab; keep the current selection if it
           // is still valid (Overview is always valid).
           setActiveId((prev) => {
-            // Virtual tabs (Overview, fleet LLM) are always valid.
-            if (prev === OVERVIEW_ID || prev === LLM_ID || prev === COMFY_ID) return prev;
+            // Virtual tabs (Overview, fleet LLM/Comfy/control) are always valid.
+            if (prev === OVERVIEW_ID || prev === LLM_ID || prev === COMFY_ID || prev === LLMCTL_ID) return prev;
             if (prev && msg.sparks.some((s) => s.id === prev)) return prev;
             return OVERVIEW_ID;
           });

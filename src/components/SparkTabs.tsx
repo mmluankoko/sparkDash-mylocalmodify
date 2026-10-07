@@ -2,8 +2,8 @@ import { t, useI18n } from "../i18n";
 import { memo, useEffect, useState, useRef, useCallback } from "react";
 import type { SparkSnapshot } from "../api/types";
 import { isLlmMonitoringEnabled } from "../api/sparkRole";
-import { PlusIcon, GridIcon, BotIcon, ComfyIcon } from "./ui/icons";
-import { OVERVIEW_ID, LLM_ID, COMFY_ID } from "../constants";
+import { PlusIcon, GridIcon, BotIcon, ComfyIcon, PowerOffIcon } from "./ui/icons";
+import { OVERVIEW_ID, LLM_ID, COMFY_ID, LLMCTL_ID } from "../constants";
 
 interface SparkTabsProps {
   sparks: SparkSnapshot[];
@@ -11,6 +11,7 @@ interface SparkTabsProps {
   onSelect: (id: string) => void;
   onAdd: () => void;
   onEdit?: (id: string) => void;
+  showLlmCtl?: boolean;
 }
 
 /* ─── Mobile helpers ──────────────────────────────────── */
@@ -147,6 +148,7 @@ export function SparkTabs({
   onSelect,
   onAdd,
   onEdit,
+  showLlmCtl = false,
 }: SparkTabsProps) {
   useI18n();
   const isMobile = useIsMobile();
@@ -186,6 +188,7 @@ export function SparkTabs({
           showComfy={showComfyTab}
           llmOnline={llmOnline}
           comfyOnline={comfyOnline}
+          showLlmCtl={showLlmCtl}
           onSelect={onSelect}
           onAdd={onAdd}
           isOpen={mobileMenuOpen}
@@ -217,6 +220,7 @@ export function SparkTabs({
       {showComfyTab && (
         <ComfyTab isActive={activeId === COMFY_ID} online={comfyOnline} onSelect={onSelect} />
       )}
+      {showLlmCtl && <LlmCtlTab isActive={activeId === LLMCTL_ID} onSelect={onSelect} />}
     </nav>
   );
 }
@@ -301,7 +305,31 @@ function ComfyTab({
   );
 }
 
-/* ─── Mobile dropdown menu ────────────────────────────── */
+/** Fleet-level LLM service control tab pill — placed after Comfy. */
+function LlmCtlTab({
+  isActive,
+  onSelect,
+}: {
+  isActive: boolean;
+  onSelect: (id: string) => void;
+}) {
+  useI18n();
+  return (
+    <div className="shrink-0">
+      <button
+        type="button"
+        onClick={() => onSelect(LLMCTL_ID)}
+        className={`pill-item ${isActive ? "is-active" : ""}`}
+        aria-current={isActive ? "page" : undefined}
+      >
+        <PowerOffIcon className="mr-0.5 h-3.5 w-3.5" />
+        {t("LLM Control")}
+      </button>
+    </div>
+  );
+}
+
+/* ─── Mobile dropdown menu ────────────────────────── */
 
 function MobileSparkMenu({
   sparks,
@@ -310,6 +338,7 @@ function MobileSparkMenu({
   showComfy,
   llmOnline,
   comfyOnline,
+  showLlmCtl = false,
   onSelect,
   onAdd,
   isOpen,
@@ -321,6 +350,7 @@ function MobileSparkMenu({
   showComfy?: boolean;
   llmOnline?: boolean;
   comfyOnline?: boolean;
+  showLlmCtl?: boolean;
   onSelect: (id: string) => void;
   onAdd: () => void;
   isOpen: boolean;
@@ -430,6 +460,18 @@ function MobileSparkMenu({
           />
           <ComfyIcon className="h-3.5 w-3.5" />
           {t("Comfy")}
+        </button>
+      )}
+      {showLlmCtl && (
+        <button
+          type="button"
+          role="menuitem"
+          className={`mobile-menu-item ${activeId === LLMCTL_ID ? "is-active" : ""}`}
+          aria-current={activeId === LLMCTL_ID ? "page" : undefined}
+          onClick={() => handleItemClick(LLMCTL_ID)}
+        >
+          <PowerOffIcon className="h-3.5 w-3.5" />
+          {t("LLM Control")}
         </button>
       )}
       <button

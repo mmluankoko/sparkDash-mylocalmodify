@@ -1,0 +1,39 @@
+{
+  "comment": "LLM service control registry. Script paths are an allowlist — the web UI never sends commands. Each unit maps to LLMRT deployment dirs on that host; bin/*.sh shims wrap launcher.py (start/stop/status/logs). modelId is the served model name used to resolve the global display name (config/llm-model-names.json).",
+  "units": {
+    "dgx01": {
+      "port": 8888,
+      "rankLabels": ["dgx01", "dgx02"],
+      "services": [
+        {
+          "name": "glm-5.3-flash-nvfp4",
+          "modelId": "glm-5.3-flash-NVFP4",
+          "engine": "vllm",
+          "dir": "/home/edison/LLMRT/0rand-glm-5.3-flash-nvidia-nvfp4-dflash-2x-dgx-sparks",
+          "start": "bin/start-nvidia.sh",
+          "stop": "bin/stop.sh",
+          "status": "bin/status.sh"
+        },
+        {
+          "name": "qwen3.8-flash-nvfp4",
+          "modelId": "qwen-3.8-flash-NVFP4",
+          "engine": "vllm",
+          "dir": "/home/edison/LLMRT/MiaAI-Qwen3.8-Flash-Next-Dual-DGX-Sparks",
+          "start": "bin/start-nvidia.sh",
+          "stop": "bin/stop.sh",
+          "status": "bin/status.sh"
+        },
+        {
+          "name": "qwen3.8-27b-fp8",
+          "modelId": "qwen-3.8-27b-FP8",
+          "engine": "sglang",
+          "args": "--profile fp8",
+          "dir": "/home/edison/LLMRT/MiaAI-Qwen3.8-27B-SGLang-DGX-Spark",
+          "start": "bin/start-fp8.sh",
+          "stop": "bin/stop.sh",
+          "status": "bin/status.sh"
+        }
+      ]
+    }
+  }
+}

@@ -50,6 +50,8 @@ import {
   registerFleetEnergyRoute,
 } from "./energy/FleetEnergyRuntime.js";
 import { testSparkConnectivity } from "./connectivity.js";
+import { LlmControlManager } from "./llmctl/LlmControl.js";
+import { getModelNames } from "./llmctl/modelNames.js";
 import { TailscaleProbe } from "./collectors/TailscaleProbe.js";
 import { inspectStartupPreflight, logStartupPreflight } from "./startupPreflight.js";
 
@@ -262,6 +264,14 @@ const fleetEnergyTracker = new FleetEnergyTracker({
 
 // ─── Monitor map ─────────────────────────────────────────
 const monitors = new Map();
+
+// ─── LLM service control (LLMRT launchers via SSH) ──────
+let llmControl = null;
+try {
+  llmControl = new LlmControlManager({ registry });
+} catch (err) {
+  console.warn(`[sparkDash] LLM service control disabled: ${err.message}`);
+}
 
 // ─── Start monitor for a Spark ───────────────────────────
 function startMonitor(spark) {
@@ -589,6 +599,69 @@ app.post("/api/sparks/:id/refresh/:domain", async (req, res) => {
     await monitor.refreshDomain(domain);
     forceBroadcast();
     res.json({ success: true, domain });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── LLM service control (LLMRT launchers via SSH) ──────
+// All commands come from the allowlisted config/llm-services.json registry;
+// the request body is never executed. Start is 202 + poll (loads take minutes);
+// stop is synchronous (launcher enforces its own 30s graceful timeout).
+
+/** Global modelId → display-name map (single naming source for the UI). */
+app.get("/api/llm-model-names", (_req, res) => {
+  res.json({ names: getModelNames() });
+});
+
+/** Fleet-wide service states for the control page. */
+app.get("/api/llmctl", (_req, res) => {
+  if (!llmControl) return res.status(503).json({ error: "LLM service control is not configured" });
+  res.json({ units: llmControl.snapshot() });
+});
+
+/** Container log tail for one service rank (rank 0 = head, 1 = worker via SSH hop). */
+app.get("/api/llmctl/:sparkId/logs", async (req, res) => {
+  if (!llmControl) return res.status(503).json({ error: "LLM service control is not configured" });
+  try {
+    const name = String(req.query.name || "");
+    const rank = Number(req.query.rank) || 0;
+    const count = Number(req.query.lines) || 40;
+    const result = await llmControl.logs(req.params.sparkId, name, rank, count);
+    if (result.error) return res.status(400).json({ error: result.error, lines: result.lines });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Start an LLM service. Returns 202; progress via GET /api/llmctl. */
+app.post("/api/sparks/:id/llmctl/:name/start", async (req, res) => {
+  if (!llmControl) return res.status(503).json({ error: "LLM service control is not configured" });
+  if (!allowDestructive(principalKey(req)) || !allowGlobalDestructive(clientKey(req))) {
+    return rejectLimited(res, "Too many requests; try again shortly");
+  }
+  try {
+    const result = await llmControl.start(req.params.id, req.params.name);
+    if (!result.ok) return res.status(409).json({ error: result.reason || "cannot start" });
+    void llmControl.pollAll(); // refresh state quickly for the next UI poll
+    res.status(202).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Stop an LLM service (graceful; launcher-side 30s timeout). */
+app.post("/api/sparks/:id/llmctl/:name/stop", async (req, res) => {
+  if (!llmControl) return res.status(503).json({ error: "LLM service control is not configured" });
+  if (!allowDestructive(principalKey(req)) || !allowGlobalDestructive(clientKey(req))) {
+    return rejectLimited(res, "Too many requests; try again shortly");
+  }
+  try {
+    const result = await llmControl.stop(req.params.id, req.params.name);
+    if (!result.ok) return res.status(409).json({ error: result.reason || "cannot stop" });
+    void llmControl.pollAll();
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1763,6 +1836,7 @@ async function shutdown(signal) {
     console.error("[sparkDash] failed to flush LLM daily history:", err.message);
   }
   llmTokenRuntime.stop();
+  llmControl?.dispose();
   const energyPersistenceSucceeded = fleetEnergyRuntime.stop();
   const streamAgentClosedGracefully = await closeLlmStreamAgent();
   if (!streamAgentClosedGracefully) {

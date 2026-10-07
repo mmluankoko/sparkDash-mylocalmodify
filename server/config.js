@@ -24,6 +24,12 @@ const LLM_TOKEN_JSON_PATH =
 /** Rolling fleet energy estimates (gitignored; written atomically at mode 0600). */
 const FLEET_ENERGY_JSON_PATH =
   process.env.FLEET_ENERGY_JSON_PATH || path.join(ROOT, "config", "fleet-energy.json");
+/** LLM service control registry (unit → start/stop/status/log script paths). */
+const LLM_SERVICES_JSON_PATH =
+  process.env.LLM_SERVICES_JSON_PATH || path.join(ROOT, "config", "llm-services.json");
+/** Global modelId → display-name map, referenced by every LLM UI surface. */
+const LLM_MODEL_NAMES_JSON_PATH =
+  process.env.LLM_MODEL_NAMES_JSON_PATH || path.join(ROOT, "config", "llm-model-names.json");
 
 // ─── LLM / Comfy probe timeouts ──────────────────────────
 const LLM_PROBE_TIMEOUT_MS = 3000;
@@ -109,6 +115,8 @@ export {
   LLM_DAILY_JSON_PATH,
   LLM_TOKEN_JSON_PATH,
   FLEET_ENERGY_JSON_PATH,
+  LLM_SERVICES_JSON_PATH,
+  LLM_MODEL_NAMES_JSON_PATH,
   LLM_PROBE_TIMEOUT_MS,
   COMFY_PROBE_TIMEOUT_MS,
   TAILSCALE_PROBE_TIMEOUT_MS,
