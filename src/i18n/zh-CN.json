@@ -640,5 +640,8 @@
   "Starting takes 3–10 minutes. The GPU slot must be free.": "启动需要 3–10 分钟，GPU 槽位必须空闲。",
   "No LLM services configured": "未配置 LLM 服务",
   "Add services to config/llm-services.json to control them from here.": "在 config/llm-services.json 中添加服务后即可在此控制。",
-  "Loading is taking unusually long ({0}+). Check the logs.": "加载耗时异常（已超过 {0}），请查看日志。"
+  "Loading is taking unusually long ({0}+). Check the logs.": "加载耗时异常（已超过 {0}），请查看日志。",
+  "one service at a time — shared GPU slot": "同一时刻仅一个服务 · 共享 GPU",
+  "The GPU is occupied by another service — stop it first": "GPU 被其他服务占用 — 请先停止它",
+  "The GPU slot is occupied — only one service can run at a time.": "GPU 槽位被占用 — 同一时刻只能运行一个服务。"
 }

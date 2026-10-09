@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   LlmControlManager,
   parseLauncherStatus,
+  parseScriptStatus,
   normalizeUnitConfig,
 } from "../LlmControl.js";
 
@@ -147,6 +148,10 @@ test("start records PID and detaches via nohup; slot mutex blocks second start",
   const r = await mgr.start("dgx01", "svc-a");
   assert.equal(r.ok, true);
   assert.match(calls[0], /nohup bash '\/home\/edison\/LLMRT\/a\/bin\/start\.sh'/);
+  // stdin must be detached AND no `&&` before the background list: an implicit
+  // subshell would hold the SSH session open until the launcher exits.
+  assert.match(calls[0], /start\.sh'\s*<\/dev\/null > /);
+  assert.ok(!calls[0].includes("&& nohup"));
   assert.match(calls[0], /PID:\$!/);
   const state = mgr.state.get("dgx01").get("svc-a");
   assert.equal(state.status, "starting");
@@ -248,4 +253,137 @@ test("snapshot exposes labels, ranks and slow flag", async () => {
   assert.equal(svc.status, "loading");
   assert.equal(svc.ranks.length, 2);
   assert.equal(svc.slow, false);
+});
+
+// ─── script kind (ComfyRT-style plain control scripts) ───
+
+function comfyConfig() {
+  return {
+    units: {
+      dgx01: {
+        port: 8888,
+        rankLabels: ["dgx01", "dgx02"],
+        services: [
+          {
+            name: "comfyui",
+            label: "ComfyUI",
+            engine: "comfy",
+            kind: "script",
+            port: 8188,
+            dir: "/home/edison/ComfyRT",
+            start: "start.sh",
+            stop: "stop.sh",
+            status: "status.sh",
+            logFile: "/home/edison/ComfyRT/logs/comfyui.log",
+          },
+        ],
+      },
+    },
+  };
+}
+
+test("parseScriptStatus handles ComfyRT status output", () => {
+  assert.deepEqual(parseScriptStatus("ComfyUI stopped"), [
+    { rank: 0, container: null, state: "exited", pid: null },
+  ]);
+  const running = parseScriptStatus("ComfyUI running, PID 12345\nHTTP endpoint is not ready");
+  assert.equal(running[0].state, "running");
+  assert.equal(running[0].pid, 12345);
+  assert.deepEqual(parseScriptStatus("garbage"), []);
+});
+
+test("script kind config requires a safe logFile and allows port override", () => {
+  const unit = normalizeUnitConfig("dgx01", comfyConfig().units.dgx01);
+  assert.equal(unit.services[0].port, 8188);
+  assert.equal(unit.services[0].probePath, "/");
+  assert.equal(unit.services[0].logFile, "/home/edison/ComfyRT/logs/comfyui.log");
+  const bad = structuredClone(comfyConfig().units.dgx01);
+  delete bad.services[0].logFile;
+  assert.throws(() => normalizeUnitConfig("dgx01", bad), /requires logFile/);
+  const evil = structuredClone(comfyConfig().units.dgx01);
+  evil.services[0].logFile = "/tmp/x; touch /tmp/pwned";
+  assert.throws(() => normalizeUnitConfig("dgx01", evil), /unsafe logFile/);
+});
+
+test("script kind poll: starting → loading → ready, failure on exit", async () => {
+  // status outputs: spawn window (stopped), running+not ready ×2, ready
+  const stopped = "ComfyUI stopped";
+  const starting = "ComfyUI running, PID 999\nHTTP endpoint is not ready; see logs/comfyui.log";
+  const ready = "ComfyUI running, PID 999";
+  const { mgr } = makeManager({
+    config: comfyConfig(),
+    outputs: [stopped, stopped, starting, starting, ready, ready],
+    probeResults: [false, false, false, false, true, true],
+  });
+  const state = mgr._svcEntry("dgx01", mgr.units.get("dgx01"), "comfyui").state;
+  state.status = "starting";
+  state.startedAt = 990_000;
+  const unit = mgr.units.get("dgx01");
+  await mgr.pollUnit(SPARK, unit, "dgx01"); // spawn window → stays starting
+  assert.equal(state.status, "starting");
+  await mgr.pollUnit(SPARK, unit, "dgx01"); // spawn window → stays starting
+  assert.equal(state.status, "starting");
+  await mgr.pollUnit(SPARK, unit, "dgx01"); // process up, HTTP not ready → loading
+  assert.equal(state.status, "loading");
+  await mgr.pollUnit(SPARK, unit, "dgx01"); // still loading
+  assert.equal(state.status, "loading");
+  await mgr.pollUnit(SPARK, unit, "dgx01"); // /system_stats answers → ready
+  assert.equal(state.status, "ready");
+  assert.equal(state.ranks[0].pid, 999);
+  // Crash after ready → stopped with an error note.
+  mgr.state.get("dgx01").get("comfyui").readyAt = 500;
+  mgr.probeFn = async () => false;
+  mgr.execFn = async () => stopped;
+  await mgr.pollUnit(SPARK, unit, "dgx01");
+  assert.equal(state.status, "stopped");
+  assert.match(state.lastError, /exited unexpectedly/);
+});
+
+test("script kind start uses nohup without docker and stop runs stop.sh", async () => {
+  const { mgr, calls } = makeManager({
+    config: comfyConfig(),
+    outputs: ["PID:555", "ComfyUI stopped"],
+    probeResults: [false, false],
+  });
+  const r = await mgr.start("dgx01", "comfyui");
+  assert.equal(r.ok, true);
+  assert.match(calls[0], /nohup bash '\/home\/edison\/ComfyRT\/start\.sh'/);
+  assert.equal(mgr.state.get("dgx01").get("comfyui").status, "starting");
+  // Slot mutex: with comfy starting, an LLM start is refused.
+  const r2 = await mgr.start("dgx01", "comfyui");
+  assert.equal(r2.ok, false);
+  // Stop: synchronous stop.sh call.
+  const state = mgr.state.get("dgx01").get("comfyui");
+  state.status = "ready";
+  const r3 = await mgr.stop("dgx01", "comfyui");
+  assert.equal(r3.ok, true);
+  assert.match(calls[1], /bash '\/home\/edison\/ComfyRT\/stop\.sh'/);
+  assert.equal(state.status, "stopping");
+});
+
+test("script kind logs tail the configured log file", async () => {
+  const { mgr, calls } = makeManager({
+    config: comfyConfig(),
+    outputs: ["line-1\nline-2"],
+    probeResults: [false],
+  });
+  const res = await mgr.logs("dgx01", "comfyui", 0, 2);
+  assert.deepEqual(res.lines, ["line-1", "line-2"]);
+  assert.match(calls[0], /tail -n 2 '\/home\/edison\/ComfyRT\/logs\/comfyui\.log'/);
+});
+
+test("status poll wraps each script with remote timeout and neutral exit", async () => {
+  const { mgr, calls } = makeManager({
+    config: makeConfig(),
+    outputs: [""],
+    probeResults: [false],
+  });
+  await mgr.pollUnit(SPARK, mgr.units.get("dgx01"), "dgx01");
+  const cmd = calls[0];
+  // Each status script gets its own `timeout 8` guard (a launcher status can
+  // hang ~8s in its API-health check while the model loads).
+  assert.equal(cmd.split("timeout 8 bash ").length - 1, 2);
+  // Chain always exits 0 — only SSH transport failures may throw.
+  assert.ok(cmd.trimEnd().endsWith("; true"));
+  assert.ok(!cmd.includes("; true; true"));
 });

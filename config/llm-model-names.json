@@ -1,11 +1,11 @@
 {
   "comment": "Global modelId → display-name map. modelId is the served model name the LLM API reports (/v1/models, e.g. SERVED_MODEL_NAME in LLMRT env files). Every sparkDash UI surface renders the display name and keeps the raw id as tooltip/secondary text. Missing entries fall back to the raw id.",
   "names": {
-    "glm-5.3-flash-NVFP4": "GLM-5.3-Flash NVFP4",
-    "qwen-3.8-flash-NVFP4": "Qwen3.8-Flash-Next NVFP4",
-    "qwen-3.8-27b-FP8": "Qwen3.8-27B FP8",
-    "qwen-3.8-27b-NVFP4": "Qwen3.8-27B NVFP4",
-    "qwen-3.8-27b-uncensored-NVFP4": "Qwen3.8-27B Uncensored NVFP4",
-    "qwen3.8-flash-next-nvidia": "Qwen3.8-Flash-Next 单机"
+    "glm-5.3-flash-NVFP4": "GLM 5.3 Flash NVFP4",
+    "qwen-3.8-flash-NVFP4": "Qwen3.8 Flash Next NVFP4",
+    "qwen-3.8-27b-FP8": "Qwen3.8 27B FP8",
+    "qwen-3.8-27b-NVFP4": "Qwen3.8 27B NVFP4",
+    "qwen-3.8-27b-uncensored-NVFP4": "Qwen3.8 27B Uncensored NVFP4",
+    "qwen3.8-flash-next-nvidia": "Qwen3.8 Flash Next 单机"
   }
 }

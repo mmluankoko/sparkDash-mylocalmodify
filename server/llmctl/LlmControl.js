@@ -82,6 +82,28 @@ export function parseLauncherStatus(output) {
 }
 
 /**
+ * Parse a `script`-kind control status output (e.g. ComfyRT control.py):
+ *   "ComfyUI stopped" / "ComfyUI running, PID 123" /
+ *   "HTTP endpoint is not ready; see logs/comfyui.log"
+ * Returns a single synthetic rank so the UI treats it like one container.
+ *
+ * @param {string} output
+ * @returns {{ rank: number, container: string|null, state: string, pid: number|null }[]}
+ */
+export function parseScriptStatus(output) {
+  const text = String(output || "");
+  const pidMatch = text.match(/\bPID (\d+)/);
+  const pid = pidMatch ? parseInt(pidMatch[1], 10) : null;
+  if (/\brunning\b/i.test(text) || pidMatch) {
+    return [{ rank: 0, container: null, state: "running", pid }];
+  }
+  if (/\bstopped\b/i.test(text)) {
+    return [{ rank: 0, container: null, state: "exited", pid: null }];
+  }
+  return [];
+}
+
+/**
  * Normalize a config unit entry; throws on anything unsafe.
  *
  * @param {string} sparkId
@@ -118,6 +140,32 @@ export function normalizeUnitConfig(sparkId, raw) {
       throw new Error(`llm-services: ${sparkId}/${name} has an invalid modelId`);
     }
     const out = { name, label: svc.label || "", engine: svc.engine || "", dir, args, modelId };
+    // Service kind: "llmrt" (default) = LLMRT launcher shims with per-rank
+    // docker status; "script" = plain control scripts (e.g. ComfyRT), single
+    // process, status text like "ComfyUI running, PID N", logs from a file.
+    const kind = svc?.kind === "script" ? "script" : "llmrt";
+    out.kind = kind;
+    // Optional per-service port override (ComfyUI lives on its own port).
+    const port = Number(svc?.port);
+    if (svc?.port != null && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+      throw new Error(`llm-services: ${sparkId}/${name} has an invalid port`);
+    }
+    out.port = svc?.port != null ? port : null;
+    // HTTP path used by the readiness probe (default by kind).
+    const probePath = typeof svc?.probePath === "string" ? svc.probePath.trim() : "";
+    if (probePath && !/^[A-Za-z0-9._\/?=&-]*$/.test(probePath)) {
+      throw new Error(`llm-services: ${sparkId}/${name} has an unsafe probePath`);
+    }
+    out.probePath = probePath || (kind === "script" ? "/" : "/v1/models");
+    // script kind: log file path for tailing (no docker logs).
+    const logFile = typeof svc?.logFile === "string" ? svc.logFile.trim() : "";
+    if (logFile && (!logFile.startsWith("/") || !SAFE_PATH_RE.test(logFile))) {
+      throw new Error(`llm-services: ${sparkId}/${name} has an unsafe logFile path`);
+    }
+    out.logFile = logFile;
+    if (kind === "script" && !logFile) {
+      throw new Error(`llm-services: ${sparkId}/${name} (script kind) requires logFile`);
+    }
     for (const key of ["start", "stop", "status"]) {
       const rel = typeof svc?.[key] === "string" ? svc[key].trim() : "";
       if (!rel || !SAFE_PATH_RE.test(rel)) {
@@ -128,6 +176,12 @@ export function normalizeUnitConfig(sparkId, raw) {
     return out;
   });
   return { port, rankLabels, services: normalized };
+}
+
+/** Strip ANSI escape codes from log lines (docker/ComfyUI colorize output). */
+function stripAnsi(text) {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
 /** Quote a validated path for single-quoted shell embedding. */
@@ -167,14 +221,14 @@ export class LlmControlManager {
     this.pollIntervalMs = pollIntervalMs;
     this.probeFn =
       probeFn ||
-      (async (spark, port) => {
+      (async (spark, port, probePath = "/v1/models") => {
         const host = llmProbeHost(spark);
         if (!host || !isAllowedTargetHost(host)) return false;
         try {
-          const res = await fetch(`http://${host}:${port}/v1/models`, {
+          const res = await fetch(`http://${host}:${port}${probePath || "/v1/models"}`, {
             signal: AbortSignal.timeout(4000),
           });
-          // 200 OK or 401 (auth required) both prove the API is serving.
+          // 200 OK or 401 (auth required) both prove the server is answering.
           return res.status < 500;
         } catch {
           return false;
@@ -261,6 +315,8 @@ export class LlmControlManager {
             label: svc.label,
             engine: svc.engine,
             modelId: svc.modelId || null,
+            kind: svc.kind,
+            port: svc.port ?? unit.port,
             status: s.status || "unknown",
             ranks: s.ranks || [],
             startedAt: s.startedAt ?? null,
@@ -334,12 +390,22 @@ export class LlmControlManager {
     }
 
     const logFile = `${START_LOG_DIR}/${name}.log`;
-    const cmd = `mkdir -p ${shq(START_LOG_DIR)} && nohup bash ${shq(svc.start)} ${svc.args} > ${shq(logFile)} 2>&1 & echo "PID:$!"`;
+    // Detach rules (both are required — verified on dgx01):
+    // - `</dev/null` frees stdin so the launcher can't hold the SSH session.
+    // - `;` before nohup (NOT `&&`): `A && B &` wraps the list in an implicit
+    //   subshell whose unredirected stdio keeps the SSH session open until
+    //   the launcher exits (start "times out" at 15s while the model actually
+    //   loads fine). `A; B &` backgrounds the nohup command directly, ssh
+    //   returns instantly, and $! is the real launcher PID.
+    const cmd = `mkdir -p ${shq(START_LOG_DIR)}; nohup bash ${shq(svc.start)} ${svc.args} </dev/null > ${shq(logFile)} 2>&1 & echo "PID:$!"`;
     try {
       const out = await this.execFn(spark, cmd, { timeoutMs: 15_000 });
       const m = out.match(/PID:(\d+)/);
       state.status = "starting";
-      state.pid = m ? parseInt(m[1], 10) : null;
+      // For script-kind services the launcher exits on its own once the
+      // process is spawned (ComfyRT prints "is starting" after ~30s), so its
+      // PID is meaningless for tracking — status.sh reports the real PID.
+      state.pid = svc.kind === "script" ? null : m ? parseInt(m[1], 10) : null;
       state.startedAt = this.nowFn();
       state.readyAt = null;
       state.lastError = null;
@@ -399,6 +465,16 @@ export class LlmControlManager {
     if (!svc) return { lines: [], error: "unknown service" };
     const lines = Math.max(1, Math.min(200, Number(count) || 40));
     const r = Math.max(0, Math.min(1, Number(rank) || 0));
+    // script kind: plain log file tail (single node, rank ignored).
+    if (svc.kind === "script") {
+      if (!svc.logFile) return { lines: [], error: "no logFile configured" };
+      try {
+        const out = await this.execFn(spark, `tail -n ${lines} ${shq(svc.logFile)} 2>&1`, { timeoutMs: 15_000 });
+        return { lines: out.split("\n").map(stripAnsi) };
+      } catch (err) {
+        return { lines: [], error: err.message };
+      }
+    }
     const container = (this.state.get(sparkId)?.get(name)?.ranks || []).find((x) => x.rank === r)?.container;
     if (!container || !CONTAINER_RE.test(container)) {
       return { lines: [], error: "no container reported yet — start the service first" };
@@ -411,7 +487,7 @@ export class LlmControlManager {
         : `ssh -T -o BatchMode=yes "\${WORKER_SSH_TARGET:?worker target unset}" docker logs --tail ${lines} ${shq(container)} 2>&1`;
     try {
       const out = await this.execFn(spark, inner, { timeoutMs: 15_000 });
-      return { lines: out.split("\n") };
+      return { lines: out.split("\n").map(stripAnsi) };
     } catch (err) {
       return { lines: [], error: err.message };
     }
@@ -445,17 +521,29 @@ export class LlmControlManager {
       ? `; echo ---MARK---; ps -p ${tracking[1].pid} > /dev/null 2>&1 && echo PID_ALIVE || echo PID_DEAD`
       : "";
     const statusCmds = unit.services
-      .map((s) => `bash ${shq(s.status)} ${s.args}`)
+      .map((s) => `timeout 8 bash ${shq(s.status)} ${s.args}`)
       .join("; echo ---MARK---; ");
     let output = null;
     let execError = null;
     try {
-      output = await this.execFn(spark, `${statusCmds}${pidPart}`, { timeoutMs: 20_000 });
+      // `timeout 8` per script: during model load a launcher status can hang
+      // in its API-health check (~2×4s per script); one slow script must not
+      // poison the whole poll. Rank lines are printed before that check, so
+      // partial output stays parseable. Trailing `; true` neutralizes exit
+      // codes — only a transport failure may raise here.
+      output = await this.execFn(spark, `${statusCmds}${pidPart}; true`, { timeoutMs: 35_000 });
     } catch (err) {
       execError = err.message;
     }
 
-    const portUp = execError ? null : await this.probeFn(spark, unit.port);
+    // One probe per unique service port (ComfyUI may live on another port).
+    const ports = [...new Set(unit.services.map((s) => s.port ?? unit.port))];
+    const portResults = new Map();
+    if (!execError) {
+      for (const port of ports) {
+        portResults.set(port, await this.probeFn(spark, port, unit.services.find((s) => (s.port ?? unit.port) === port)?.probePath ?? "/v1/models"));
+      }
+    }
 
     // One chunk per service, in config order; a trailing chunk (when present)
     // is the PID liveness result.
@@ -465,7 +553,10 @@ export class LlmControlManager {
       const svc = unit.services[i];
       const state = svcMap.get(svc.name);
       if (!state) continue;
-      const ranks = chunks[i] != null ? parseLauncherStatus(chunks[i]) : [];
+      const chunk = chunks[i] != null ? chunks[i] : "";
+      const ranks = svc.kind === "script" ? parseScriptStatus(chunk) : parseLauncherStatus(chunk);
+      const port = svc.port ?? unit.port;
+      const portUp = execError ? null : (portResults.get(port) ?? false);
       this._applyPoll(sparkId, svc.name, ranks, portUp, execError, tracking?.[1]);
     }
     // PID liveness (start phase only): dead launcher + port still closed is
@@ -503,6 +594,8 @@ export class LlmControlManager {
 
     const anyRunning = ranks.some((r) => r.state === "running" || r.state === "restarting");
     state.ranks = ranks;
+    const svc = unit.services.find((s) => s.name === name);
+    const isScript = svc?.kind === "script";
 
     switch (state.status) {
       case "starting":
@@ -514,17 +607,19 @@ export class LlmControlManager {
           state.lastError = null;
         } else if (anyRunning) {
           state.status = "loading";
-        } else if (ranks.length > 0) {
+        } else if (ranks.length > 0 && !anyRunning && !isScript) {
           // Containers already exited during startup → launcher failed.
+          // (script kind: "stopped" status is normal before the process is
+          // spawned — never a failure signal on its own.)
           state.status = "failed";
           state.pid = null;
           state.lastError = "containers exited during startup — check logs";
-        } else if (state.status === "loading") {
-          // Was loading with containers, now none reported: launcher died.
+        } else if (state.status === "loading" && !anyRunning) {
+          // Was loading with a live process, now none reported: crashed.
           state.status = "failed";
-          state.lastError = "launcher exited before the API came up — check logs";
+          state.lastError = "process exited before the service became ready — check logs";
         }
-        // else: still in pre-flight (image checks, NFS) — keep starting.
+        // else: still in pre-flight (image checks, NFS, spawn) — keep starting.
         break;
       }
       case "stopping": {

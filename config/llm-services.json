@@ -32,6 +32,18 @@
           "start": "bin/start-fp8.sh",
           "stop": "bin/stop.sh",
           "status": "bin/status.sh"
+        },
+        {
+          "name": "comfyui",
+          "label": "ComfyUI",
+          "engine": "comfy",
+          "kind": "script",
+          "port": 8188,
+          "dir": "/home/edison/ComfyRT",
+          "start": "start.sh",
+          "stop": "stop.sh",
+          "status": "status.sh",
+          "logFile": "/home/edison/ComfyRT/logs/comfyui.log"
         }
       ]
     }

@@ -328,6 +328,10 @@ export interface LlmCtlService {
   engine: string;
   /** Served model name (config-declared) used to resolve the global display name. */
   modelId: string | null;
+  /** "llmrt" (launcher shims, per-rank docker) or "script" (plain control scripts). */
+  kind: string;
+  /** HTTP port for readiness probe (per-service override of the unit port). */
+  port: number;
   status: LlmServiceState;
   ranks: LlmCtlRank[];
   startedAt: number | null;

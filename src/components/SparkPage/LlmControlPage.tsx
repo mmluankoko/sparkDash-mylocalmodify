@@ -157,13 +157,18 @@ function ServiceRow({ unit, service, busy, onAction }: ServiceRowProps) {
     (s) => s.name !== service.name && ["starting", "loading", "ready", "stopping"].includes(s.status)
   );
   const otherBusy = slotTaken && !canStop(service.status);
+  const slotHint =
+    service.kind === "script"
+      ? t("The GPU is occupied by another service — stop it first")
+      : t("Another model holds the port — stop it first");
 
   return (
     <div className="rounded-lg border border-border bg-surface-elevated/60 p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {/* Rank dots — one per cluster node (head first) */}
+        {/* Rank dots — LLMRT dual-node services get one dot per node; script
+            services (e.g. ComfyUI) are single-node and show one dot. */}
         <div className="flex shrink-0 items-center gap-1.5" title={unit.rankLabels.join(" / ")}>
-          {unit.rankLabels.map((label, i) => {
+          {(service.kind === "script" ? unit.rankLabels.slice(0, 1) : unit.rankLabels).map((label, i) => {
             const rankState = service.ranks.find((r) => r.rank === i)?.state ?? null;
             const up = rankState === "running" || rankState === "restarting";
             return (
@@ -203,7 +208,7 @@ function ServiceRow({ unit, service, busy, onAction }: ServiceRowProps) {
             type="button"
             className="rounded-md bg-accent px-3 py-1.5 text-[11px] font-medium text-black transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
             disabled={busy || !canStart(service.status) || slotTaken}
-            title={slotTaken ? t("Another model holds the port — stop it first") : undefined}
+            title={slotTaken ? slotHint : undefined}
             onClick={() => onAction(service, "start")}
           >
             {t("Start")}
@@ -260,7 +265,7 @@ function ServiceRow({ unit, service, busy, onAction }: ServiceRowProps) {
       ) : null}
       {otherBusy ? (
         <p className="mt-1.5 text-[11px] text-muted">
-          {t("Port {0} is occupied — only one model can run at a time.", String(unit.port))}
+          {t("The GPU slot is occupied — only one service can run at a time.")}
         </p>
       ) : null}
     </div>
@@ -368,7 +373,7 @@ export function LlmControlPage() {
           accent
           actions={
             <span className="text-xs text-muted">
-              {t("port {0} · one model at a time", String(unit.port))}
+              {t("one service at a time — shared GPU slot")}
             </span>
           }
         >
