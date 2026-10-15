@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useEffect, useState } from "react";
 import { fetchInferenceActivity } from "../../api/client";
 import type { InferenceActivity } from "../../api/types";
@@ -16,6 +17,7 @@ function age(value: number): string {
 }
 
 export function InferenceTrafficCard() {
+  useI18n();
   const [activity, setActivity] = useState<InferenceActivity | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -55,44 +57,44 @@ export function InferenceTrafficCard() {
   const labels = activity?.labels ?? [];
   const total = active.reduce((sum, item) => sum + item.count, 0);
   return (
-    <Panel title="Inference activity" icon={<ActivityIcon className="h-3.5 w-3.5" />} className="ov-card" bodyClassName="flex flex-col gap-3">
+    <Panel title={t("Inference activity")} icon={<ActivityIcon className="h-3.5 w-3.5" />} className="ov-card" bodyClassName="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2 text-[11px] text-muted">
-        <span>Requests by principal</span>
+        <span>{t("Requests by principal")}</span>
         <span className={available ? "font-tabular text-success" : "text-muted"}>
           {available ? `${total} in flight` : "Live status unavailable"}
         </span>
       </div>
-      {!activity && !failed ? <p className="text-[12px] text-muted">Waiting for inference activity…</p> : !available ? (
-        <p className="text-[12px] text-muted">Inference activity unavailable; request counts are unknown.</p>
+      {!activity && !failed ? <p className="text-[12px] text-muted">{t("Waiting for inference activity…")}</p> : !available ? (
+        <p className="text-[12px] text-muted">{t("Inference activity unavailable; request counts are unknown.")}</p>
       ) : (
         <>
           <div className="flex flex-col gap-2">
-            {active.length === 0 ? <p className="text-[12px] text-muted">No in-flight inference requests now.</p> : active.map((item, index) => (
+            {active.length === 0 ? <p className="text-[12px] text-muted">{t("No in-flight inference requests now.")}</p> : active.map((item, index) => (
               <div key={`${item.principal}-${item.model}-${index}`} className="rounded border border-border bg-surface-elevated px-2.5 py-2">
                 <div className="flex items-center justify-between gap-2 text-[12px]">
                   <span className="truncate font-semibold text-text-strong">{safeLabel(item.principal, labels)}</span>
                   <span className="font-tabular text-success">{item.count}</span>
                 </div>
-                <div className="mt-1 text-[10px] text-muted">{item.model} · oldest {age(item.oldestAgeMs)}</div>
+                <div className="mt-1 text-[10px] text-muted">{item.model} {t("· oldest")} {age(item.oldestAgeMs)}</div>
               </div>
             ))}
           </div>
           <div className="border-t border-border pt-2.5">
-            <div className="mb-1.5 text-[10px] uppercase tracking-wide text-muted">Recent completions</div>
+            <div className="mb-1.5 text-[10px] uppercase tracking-wide text-muted">{t("Recent completions")}</div>
             {recent.slice(0, 6).map((event, index) => (
               <div key={`${event.observedAt}-${index}`} className="flex items-center justify-between gap-2 text-[11px]">
                 <span className="truncate text-text">{safeLabel(event.principal, labels)} · {event.model}</span>
                 <span className={event.status != null && event.status >= 400 ? "text-danger" : "font-tabular text-muted"}>
-                  {event.durationMs} ms{event.status != null ? ` · ${event.status}` : ""}
+                  {event.durationMs} {t("ms")}{event.status != null ? ` · ${event.status}` : ""}
                 </span>
               </div>
             ))}
-            {recent.length === 0 ? <p className="text-[12px] text-muted">No recent completed requests.</p> : null}
+            {recent.length === 0 ? <p className="text-[12px] text-muted">{t("No recent completed requests.")}</p> : null}
           </div>
         </>
       )}
-      {available && activity?.overflowed ? <p className="text-[10px] text-warning">Activity cap reached; counts may be incomplete.</p> : null}
-      <p className="text-[10px] text-muted">In flight includes queueing, prefill and decode; not GPU slots or per-key tok/s. Display labels only; no API keys or prompts.</p>
+      {available && activity?.overflowed ? <p className="text-[10px] text-warning">{t("Activity cap reached; counts may be incomplete.")}</p> : null}
+      <p className="text-[10px] text-muted">{t("In flight includes queueing, prefill and decode; not GPU slots or per-key tok/s. Display labels only; no API keys or prompts.")}</p>
     </Panel>
   );
 }

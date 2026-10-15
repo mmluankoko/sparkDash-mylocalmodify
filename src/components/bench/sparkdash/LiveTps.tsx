@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useEffect, useRef, useState } from "react";
 import { TrendLine } from "../../ui/TrendLine";
 
@@ -10,6 +11,7 @@ const MAX_SAMPLES = 90;
  * so the line moves smoothly between polls. Renders nothing when neither exists.
  */
 export function LiveTps({ tps, active }: { tps: number | null | undefined; active: boolean }) {
+  useI18n();
   const [samples, setSamples] = useState<number[]>([]);
   const latest = useRef<number | null>(tps ?? null);
   latest.current = tps ?? null;
@@ -28,15 +30,15 @@ export function LiveTps({ tps, active }: { tps: number | null | undefined; activ
   if (!active || tps == null) return null;
   const peak = samples.length ? Math.max(...samples) : tps;
   return (
-    <div className="bench-live" aria-label="Live generation speed">
+    <div className="bench-live" aria-label={t("Live generation speed")}>
       <div className="bench-live__head">
         <span className="bench-live__label">
           <span className="bench-live__dot" aria-hidden /> Live generation
         </span>
-        <span className="bench-live__peak">peak {peak.toFixed(1)} tok/s</span>
+        <span className="bench-live__peak">{t("peak")} {peak.toFixed(1)} {t("tok/s")}</span>
       </div>
       <div className="bench-live__value">
-        {tps.toFixed(1)} <small>tok/s</small>
+        {tps.toFixed(1)} <small>{t("tok/s")}</small>
       </div>
       <TrendLine data={samples} height={40} min={0} />
     </div>

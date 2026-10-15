@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { BenchIcon } from "../bench/BenchIcon";
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -23,6 +24,7 @@ interface MobileTabBarProps {
 
 /** Floating bottom tab bar for narrow screens (the fleet rail is hidden there). */
 export function MobileTabBar({ sparks, activeId, onSelect, onAdd, onOpenSettings }: MobileTabBarProps) {
+  useI18n();
   const [sheetKind, setSheetKind] = useState<"sparks" | "stats" | null>(null);
   const sheet = sheetKind != null;
   // Closing plays a slide-down first; the sheet unmounts when it has finished.
@@ -79,7 +81,7 @@ export function MobileTabBar({ sparks, activeId, onSelect, onAdd, onOpenSettings
   );
   return (
     <>
-      <nav className="tabbar" aria-label="Primary" data-tab={tabIndex}>
+      <nav className="tabbar" aria-label={t("Primary")} data-tab={tabIndex}>
         <button type="button" className={tabIndex === 0 ? "is-active" : ""} aria-current={activeId === OVERVIEW_ID ? "page" : undefined} onClick={() => onSelect(OVERVIEW_ID)}>
           <GridIcon className="h-[18px] w-[18px]" />
           Overview
@@ -123,7 +125,7 @@ export function MobileTabBar({ sparks, activeId, onSelect, onAdd, onOpenSettings
                   ) : (
                     <>
                   <div className="rail-label rail-label--spaced">
-                    <span>Benchmarks</span>
+                    <span>{t("Benchmarks")}</span>
                   </div>
                   {BENCH_TYPES.map((b) => (
                     <Fragment key={b.id}>
@@ -144,7 +146,7 @@ export function MobileTabBar({ sparks, activeId, onSelect, onAdd, onOpenSettings
                     </Fragment>
                   ))}
                   <div className="rail-label rail-label--spaced">
-                    <span>Sparks</span>
+                    <span>{t("Sparks")}</span>
                   </div>
                   {sparks.map((s) => (
                     <button
@@ -170,10 +172,10 @@ export function MobileTabBar({ sparks, activeId, onSelect, onAdd, onOpenSettings
                     }}
                   >
                     <PlusIcon className="h-4 w-4" />
-                    <span className="rail-item__name">Add Spark / GPU host</span>
+                    <span className="rail-item__name">{t("Add Spark / GPU host")}</span>
                   </button>
                   <div className="rail-label rail-label--spaced">
-                    <span>Fleet</span>
+                    <span>{t("Fleet")}</span>
                   </div>
                   <div className="sheet-power">
                     <ShutdownAll sparks={sparks} className="sheet-power__btn" />

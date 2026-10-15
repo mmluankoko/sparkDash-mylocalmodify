@@ -369,7 +369,7 @@ export function LlmControlPage() {
       {units.map((unit) => (
         <Panel
           key={unit.sparkId}
-          title="LLM Control"
+          title={t("LLM Control")}
           accent
           actions={
             <span className="text-xs text-muted">

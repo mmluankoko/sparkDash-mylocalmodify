@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LauncherRunState, LlmLauncher, SparkSnapshot } from "../../api/types";
 import { runLauncher } from "../../api/client";
@@ -28,6 +29,7 @@ export function ModelLauncher({
   /** Set when the GPU is in use although nothing serves yet (a model is probably loading). */
   busy?: string | null;
 }) {
+  useI18n();
   const sparkId = spark.id;
   const initial = getCachedLaunchers(sparkId);
   const [launchers, setLaunchers] = useState<LlmLauncher[] | null>(initial?.launchers ?? null);
@@ -108,7 +110,7 @@ export function ModelLauncher({
           <span className="ov-launch__spin" aria-hidden />
           Loading {loading.name}…
         </div>
-        <div className="ov-launch__hint">The start script is running; the model appears here once it serves.</div>
+        <div className="ov-launch__hint">{t("The start script is running; the model appears here once it serves.")}</div>
         {onOpen ? (
           <button type="button" className="btn btn--sm" onClick={() => onOpen(sparkId)}>
             View output
@@ -123,7 +125,7 @@ export function ModelLauncher({
           <span className="ov-launch__spin" aria-hidden />
           Something is loading
         </div>
-        <div className="ov-launch__hint">{busy}. Starting another model now could run out of memory.</div>
+        <div className="ov-launch__hint">{busy}{t(". Starting another model now could run out of memory.")}</div>
         <div className="ov-launch__more">
           {onOpen ? (
             <button type="button" className="btn btn--sm" onClick={() => onOpen(sparkId)}>
@@ -139,8 +141,8 @@ export function ModelLauncher({
   } else if (launchers.length === 0) {
     body = (
       <>
-        <div className="ov-launch__title">No model loaded</div>
-        <div className="ov-launch__hint">Add a model folder (start.sh / stop.sh) to start it from here.</div>
+        <div className="ov-launch__title">{t("No model loaded")}</div>
+        <div className="ov-launch__hint">{t("Add a model folder (start.sh / stop.sh) to start it from here.")}</div>
         <button type="button" className="btn btn--sm btn--primary" onClick={() => setAdding(true)}>
           <PlusIcon className="h-3.5 w-3.5" />
           Add a model

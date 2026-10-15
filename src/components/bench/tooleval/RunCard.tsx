@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useState } from "react";
 import { previewToolEval, probeToolEval } from "../../../api/client";
 import type { SparkSnapshot, ToolEvalProbeResponse, ToolEvalRunRequest } from "../../../api/types";
@@ -26,6 +27,7 @@ interface RunCardProps {
 
 /** Live command line, validation summary, connection check, scenario preview and the Start button. */
 export function RunCard({ spark, type, request, preview, problems, installed, busyReason, starting, onStart, baseUrl, probeOptions, port, hasScenarios, startError }: RunCardProps) {
+  useI18n();
   const [probe, setProbe] = useState<{ loading: boolean; res: ToolEvalProbeResponse | null; error: string | null }>({ loading: false, res: null, error: null });
   const [dry, setDry] = useState<{ loading: boolean; output: string | null; error: string | null }>({ loading: false, output: null, error: null });
 
@@ -53,19 +55,19 @@ export function RunCard({ spark, type, request, preview, problems, installed, bu
   const probeOutput = probe.res?.output?.trim() ?? "";
 
   return (
-    <aside className="panel te-card te-runcard" aria-label="Command and start">
+    <aside className="panel te-card te-runcard" aria-label={t("Command and start")}>
       <div className="te-card__head">
-        <h2>Command</h2>
-        {preview.status === "loading" ? <span className="te-faint" aria-live="polite">updating…</span> : null}
-        {preview.status === "ok" ? <Tag tone="good">valid</Tag> : null}
-        {invalid ? <Tag tone="bad">needs attention</Tag> : null}
+        <h2>{t("Command")}</h2>
+        {preview.status === "loading" ? <span className="te-faint" aria-live="polite">{t("updating…")}</span> : null}
+        {preview.status === "ok" ? <Tag tone="good">{t("valid")}</Tag> : null}
+        {invalid ? <Tag tone="bad">{t("needs attention")}</Tag> : null}
       </div>
       <p className="te-target">
-        Runs on <b>{spark.name}</b> against <span className="mono">{baseUrl}</span>
+        Runs on <b>{spark.name}</b> {t("against")} <span className="mono">{baseUrl}</span>
       </p>
       <div className="te-cmd">
         <div className="te-cmd__head">
-          <span className="eyebrow">Command line</span>
+          <span className="eyebrow">{t("Command line")}</span>
           {preview.command ? <CopyButton text={preview.command} /> : null}
         </div>
         <pre className="te-cmd__body" aria-live="polite">
@@ -76,7 +78,7 @@ export function RunCard({ spark, type, request, preview, problems, installed, bu
           The API key and header values never appear here. The result file path is added when the run starts.
         </p>
       </div>
-      {preview.status === "error" ? <Notice tone="bad" title="Preview failed">{preview.error}</Notice> : null}
+      {preview.status === "error" ? <Notice tone="bad" title={t("Preview failed")}>{preview.error}</Notice> : null}
       {preview.errors.length || problems.length ? (
         <ul className="te-form-errors" role="alert">
           {[...new Set([...problems, ...preview.errors])].map((e) => (
@@ -84,7 +86,7 @@ export function RunCard({ spark, type, request, preview, problems, installed, bu
           ))}
         </ul>
       ) : null}
-      {startError ? <Notice tone="bad" title="Could not start">{startError}</Notice> : null}
+      {startError ? <Notice tone="bad" title={t("Could not start")}>{startError}</Notice> : null}
 
       <div className="te-actions te-actions--stack">
         <button type="button" className="btn btn--primary te-start" disabled={disabled} onClick={onStart} aria-describedby={reason ? "te-start-reason" : undefined}>
@@ -117,7 +119,7 @@ export function RunCard({ spark, type, request, preview, problems, installed, bu
       {dry.output != null || dry.error ? (
         <div className="te-probe" role="status">
           <div className="te-probe__head">
-            <b>Scenarios that would run</b>
+            <b>{t("Scenarios that would run")}</b>
             {dry.output ? <CopyButton text={dry.output} /> : null}
           </div>
           {dry.error ? <p className="te-bad">{dry.error}</p> : null}

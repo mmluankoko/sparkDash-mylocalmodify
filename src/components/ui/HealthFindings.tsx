@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import type { HealthFinding } from "../../api/types";
 import { Tag } from "./Tag";
 import { AlertTriangleIcon } from "./icons";
@@ -19,12 +20,13 @@ export function worstSeverity(list: readonly HealthFinding[] | undefined): Healt
 
 /** Alert strip for an Overview card: icon + title per finding, details in the tooltip. */
 export function HealthChips({ findings }: { findings: readonly HealthFinding[] | undefined }) {
+  useI18n();
   const list = sortFindings(findings);
   if (list.length === 0) return null;
   const shown = list.slice(0, 2);
   const more = list.length - shown.length;
   return (
-    <div className="health-strip" role="status" aria-label="Health findings">
+    <div className="health-strip" role="status" aria-label={t("Health findings")}>
       {shown.map((f) => (
         <div key={f.id} className={`health-row health-row--${f.severity}`} title={`${f.detail} ${f.hint}`}>
           <AlertTriangleIcon className="health-row__icon" />
@@ -42,10 +44,11 @@ export function HealthChips({ findings }: { findings: readonly HealthFinding[] |
 
 /** Full list for the Spark page: what is wrong, the evidence, and what to try. */
 export function HealthList({ findings }: { findings: readonly HealthFinding[] | undefined }) {
+  useI18n();
   const list = sortFindings(findings);
   if (list.length === 0) return null;
   return (
-    <section className="health-list" aria-label="Health findings">
+    <section className="health-list" aria-label={t("Health findings")}>
       {list.map((f) => (
         <div key={f.id} className={`health-item health-item--${f.severity}`}>
           <div className="health-item__title">

@@ -65,7 +65,7 @@ const ROLE_CARDS: Array<{ id: SparkRole; label: string; hint: string }> = [
 
 function Stepper({ step }: { step: AddStep }) {
   return (
-    <ol className="stepper" aria-label="Progress">
+    <ol className="stepper" aria-label={t("Progress")}>
       {ADD_STEPS.map((label, i) => (
         <li
           key={label}
@@ -221,7 +221,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
           <h2 className="modal-sheet__title" id="add-spark-title">
             Add Spark/GPU Host
           </h2>
-          <button type="button" className="modal-sheet__close" onClick={onClose} aria-label="Close">
+          <button type="button" className="modal-sheet__close" onClick={onClose} aria-label={t("Close")}>
             <XIcon className="h-4 w-4" />
           </button>
         </div>
@@ -232,7 +232,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
           {step === 0 && (
             <>
               <div className="field">
-                <label htmlFor="add-spark-kind">Unit type</label>
+                <label htmlFor="add-spark-kind">{t("Unit type")}</label>
                 <select
                   id="add-spark-kind"
                   value={unitTypeOf(config)}
@@ -251,7 +251,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
                     checked={config.isLocal}
                     onChange={(e) => update({ isLocal: e.target.checked })}
                   />
-                  <span>This host (local collectors, no SSH for metrics)</span>
+                  <span>{t("This host (local collectors, no SSH for metrics)")}</span>
                 </label>
               )}
               {config.platform === "windows" && (
@@ -289,7 +289,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
 
               {config.kind !== "host" && (
                 <div className="field">
-                  <label htmlFor="add-spark-cx7">CX7 IP (optional)</label>
+                  <label htmlFor="add-spark-cx7">{t("CX7 IP (optional)")}</label>
                   <input
                     id="add-spark-cx7"
                     type="text"
@@ -325,7 +325,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
                       />
                     </div>
                   </div>
-                  <p className="field-hint">Default port 22. Change it when sshd listens elsewhere.</p>
+                  <p className="field-hint">{t("Default port 22. Change it when sshd listens elsewhere.")}</p>
 
                   <div className="field">
                     <label htmlFor="add-spark-ssh-auth">{t("SSH Auth")}</label>
@@ -349,7 +349,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
 
                   {config.ssh.auth === "pass" && (
                     <div className="field">
-                      <label htmlFor="add-spark-ssh-password">SSH Password</label>
+                      <label htmlFor="add-spark-ssh-password">{t("SSH Password")}</label>
                       <input
                         id="add-spark-ssh-password"
                         type="password"
@@ -375,7 +375,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
                 >
                   {testing ? "Testing..." : "Test"}
                 </button>
-                <span className="field-hint">Checks SSH, hardware and LLM before you add it. Optional.</span>
+                <span className="field-hint">{t("Checks SSH, hardware and LLM before you add it. Optional.")}</span>
               </div>
               {testResult && <TestResultList result={testResult} />}
             </>
@@ -405,16 +405,16 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
               </div>
 
               <div className="field">
-                <label htmlFor="add-spark-name">Name (required)</label>
+                <label htmlFor="add-spark-name">{t("Name (required)")}</label>
                 <input
                   id="add-spark-name"
                   type="text"
                   value={config.name}
                   onChange={(e) => update({ name: e.target.value })}
-                  placeholder="My Spark"
+                  placeholder={t("My Spark")}
                   autoFocus
                 />
-                <p className="text-[11px] text-muted">Shown in the sidebar and on the Overview.</p>
+                <p className="text-[11px] text-muted">{t("Shown in the sidebar and on the Overview.")}</p>
               </div>
             </>
           )}
@@ -423,7 +423,7 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
             <>
               {role !== "worker" ? (
                 <div className="field">
-                  <label htmlFor="add-spark-llm-ports">LLM ports (optional, comma-separated)</label>
+                  <label htmlFor="add-spark-llm-ports">{t("LLM ports (optional, comma-separated)")}</label>
                   <input
                     id="add-spark-llm-ports"
                     type="text"
@@ -435,9 +435,9 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
                     }}
                     placeholder={String(defaultLlmPort)}
                   />
-                  <p className="field-hint">Default: {defaultLlmPort}</p>
-                  <div role="group" aria-label="Server presets" className="sp-btns">
-                    <span className="eyebrow">Presets:</span>
+                  <p className="field-hint">{t("Default:")} {defaultLlmPort}</p>
+                  <div role="group" aria-label={t("Server presets")} className="sp-btns">
+                    <span className="eyebrow">{t("Presets:")}</span>
                     {SERVER_PRESETS.map((preset) => (
                       <button
                         key={preset.port}
@@ -452,20 +452,20 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
                   </div>
                 </div>
               ) : (
-                <p className="field-hint">Workers have no local LLM API, so no ports are probed.</p>
+                <p className="field-hint">{t("Workers have no local LLM API, so no ports are probed.")}</p>
               )}
 
               <div className="set-row">
                 <div className="set-row__text">
-                  <span className="set-row__title">Monitor ComfyUI</span>
-                  <small>Job queue and live progress. Default port 8188.</small>
+                  <span className="set-row__title">{t("Monitor ComfyUI")}</span>
+                  <small>{t("Job queue and live progress. Default port 8188.")}</small>
                 </div>
                 <div className="set-row__control">
                   <button
                     type="button"
                     role="switch"
                     aria-checked={Boolean(config.comfyMonitoring)}
-                    aria-label="Monitor ComfyUI"
+                    aria-label={t("Monitor ComfyUI")}
                     onClick={() =>
                       update({ comfyMonitoring: !config.comfyMonitoring, comfyPort: config.comfyPort ?? 8188 })
                     }
@@ -485,15 +485,15 @@ export function AddSparkDialog({ open, onClose, onAdded, defaultLlmPort = 8888 }
               {config.platform !== "windows" && (
                 <div className="set-row">
                   <div className="set-row__text">
-                    <span className="set-row__title">Monitor Hermes updates</span>
-                    <small>Checks for new releases every 10 min and adds an Update Hermes button.</small>
+                    <span className="set-row__title">{t("Monitor Hermes updates")}</span>
+                    <small>{t("Checks for new releases every 10 min and adds an Update Hermes button.")}</small>
                   </div>
                   <div className="set-row__control">
                     <button
                       type="button"
                       role="switch"
                       aria-checked={Boolean(config.hermesMonitoring)}
-                      aria-label="Monitor Hermes updates"
+                      aria-label={t("Monitor Hermes updates")}
                       onClick={() => update({ hermesMonitoring: !config.hermesMonitoring })}
                       className={`toggle-track relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors${
                         config.hermesMonitoring ? " is-on" : ""

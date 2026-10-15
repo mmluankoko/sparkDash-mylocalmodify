@@ -163,19 +163,19 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
           <h2 className="modal-sheet__title" id="settings-title">
             Settings
           </h2>
-          <button type="button" className="modal-sheet__close" onClick={onClose} aria-label="Close">
+          <button type="button" className="modal-sheet__close" onClick={onClose} aria-label={t("Close")}>
             <XIcon className="h-4 w-4" />
           </button>
         </div>
 
         <div className="modal-sheet__body">
-          {loading && <p className="bench-sheet__hint">Loading…</p>}
+          {loading && <p className="bench-sheet__hint">{t("Loading…")}</p>}
 
           <SettingRow
-            title="Appearance"
+            title={t("Appearance")}
             help="Applies instantly on this device. Saved in this browser."
           >
-            <div className="swatches" role="radiogroup" aria-label="Theme">
+            <div className="swatches" role="radiogroup" aria-label={t("Theme")}>
               {THEME_CHOICES.map((t) => (
                 <button
                   key={t.id}
@@ -207,7 +207,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
               </SettingRow>
 
               <SettingRow title={t("Refresh rate")} help="How often every unit is polled for GPU, CPU, memory, network and LLM metrics, and how often the dashboard updates. Remote units are polled over SSH, so 1s costs the most; storage and liveness keep their own slower checks.">
-                <div className="seg" role="radiogroup" aria-label="Poll interval">
+                <div className="seg" role="radiogroup" aria-label={t("Poll interval")}>
                   {POLL_PRESETS.map((preset) => (
                     <button
                       key={preset.value}
@@ -224,7 +224,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
               </SettingRow>
 
               <SettingRow title={t("Temperature unit")}>
-                <div className="seg" role="radiogroup" aria-label="Temperature unit">
+                <div className="seg" role="radiogroup" aria-label={t("Temperature unit")}>
                   <button
                     type="button"
                     role="radio"
@@ -247,7 +247,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
               </SettingRow>
 
               <SettingRow
-                title="Time zone"
+                title={t("Time zone")}
                 help={`Hour and day boundaries and labels on the Tokens, Energy and Activity charts. Empty follows this browser (${browserTimeZone}). Daily token buckets and monthly energy totals stay UTC.`}
                 htmlFor="settings-time-zone"
                 stack
@@ -258,7 +258,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                     type="text"
                     list="settings-time-zones"
                     value={settings.timeZone ?? ""}
-                    placeholder="Browser default"
+                    placeholder={t("Browser default")}
                     title={`Empty follows this browser (${browserTimeZone})`}
                     spellCheck={false}
                     autoComplete="off"
@@ -298,7 +298,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
               </SettingRow>
 
               <SettingRow
-                title="Default LLM port"
+                title={t("Default LLM port")}
                 help="Pre-filled when adding a new Spark (1–65535)."
                 htmlFor="settings-default-llm-port"
               >
@@ -317,49 +317,49 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
               </SettingRow>
 
               <ToggleRow
-                title="Hide offline Sparks"
+                title={t("Hide offline Sparks")}
                 help="Auto-hide offline Sparks on Overview."
                 checked={settings.autoHideOffline}
                 onChange={(v) => update({ autoHideOffline: v })}
               />
               <ToggleRow
-                title="Hide worker nodes"
+                title={t("Hide worker nodes")}
                 help="Removes Worker-role Sparks from Overview and the sidebar. Direct URLs and batch power / Hermes actions still include them."
                 checked={Boolean(settings.hideWorkers)}
                 onChange={(v) => update({ hideWorkers: v })}
               />
               <ToggleRow
-                title="Show search and status filters"
+                title={t("Show search and status filters")}
                 help="Overview search field and status dropdown (All / Online / Offline / Issues). Off by default."
                 checked={Boolean(settings.showOverviewSearch)}
                 onChange={(v) => update({ showOverviewSearch: v })}
               />
               <ToggleRow
-                title="Benchmark share image"
+                title={t("Benchmark share image")}
                 help="The decode/prefill Copy results button gains a caret with Copy as text / Copy as image (a share card). Turn it off to keep the plain text button."
                 checked={Boolean(settings.benchShareImage)}
                 onChange={(v) => update({ benchShareImage: v })}
               />
               <ToggleRow
-                title="Detailed VRAM breakdown"
+                title={t("Detailed VRAM breakdown")}
                 help="VRAM bars split memory into LLM engine, system and free, and turn amber or red on low free memory rather than on a high percentage. Turn it off for the single percentage bar."
                 checked={settings.showVramBreakdown ?? true}
                 onChange={(v) => update({ showVramBreakdown: v })}
               />
               <ToggleRow
-                title="Prometheus metrics"
+                title={t("Prometheus metrics")}
                 help={`Serves every unit's metrics for Prometheus / Grafana to scrape at ${window.location.origin}/metrics. Off by default.`}
                 checked={Boolean(settings.prometheusExport)}
                 onChange={(v) => update({ prometheusExport: v })}
               />
               <ToggleRow
-                title="Show Fleet Energy"
+                title={t("Show Fleet Energy")}
                 help="Overview card with rolling fleet power estimates. The full Fleet energy page is always available from the sidebar."
                 checked={Boolean(settings.showFleetEnergy)}
                 onChange={(v) => update({ showFleetEnergy: v })}
               />
               <SettingRow
-                title="Electricity price"
+                title={t("Electricity price")}
                 help="Per kWh, used for the estimated cost on the Fleet energy page. Leave empty to hide cost."
                 htmlFor="settings-energy-price"
               >
@@ -367,7 +367,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                   <input
                     id="settings-energy-currency"
                     type="text"
-                    aria-label="Currency symbol"
+                    aria-label={t("Currency symbol")}
                     maxLength={4}
                     value={settings.energyCurrency ?? "$"}
                     onChange={(e) => update({ energyCurrency: e.target.value })}
@@ -393,49 +393,49 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
                 </div>
               </SettingRow>
               <ToggleRow
-                title="Show LLM Token Totals"
+                title={t("Show LLM Token Totals")}
                 help="Overview card with cumulative prompt/generated tokens per model. The full Token totals page is always available from the sidebar."
                 checked={Boolean(settings.showLlmTokenTotals)}
                 onChange={(v) => update({ showLlmTokenTotals: v })}
               />
               <ToggleRow
-                title="Show Recent activity"
+                title={t("Show Recent activity")}
                 help="Overview card with the latest health and kernel events. The full Activity page is always available from the sidebar."
                 checked={settings.showActivityFeed ?? true}
                 onChange={(v) => update({ showActivityFeed: v })}
               />
               <ToggleRow
-                title="Show Fleet decode tile"
+                title={t("Show Fleet decode tile")}
                 help="Overview tile with the fleet's total generation tok/s."
                 checked={settings.showKpiDecode ?? true}
                 onChange={(v) => update({ showKpiDecode: v })}
               />
               <ToggleRow
-                title="Show Fleet power tile"
+                title={t("Show Fleet power tile")}
                 help="Overview tile with the fleet's total power draw."
                 checked={settings.showKpiPower ?? true}
                 onChange={(v) => update({ showKpiPower: v })}
               />
               <ToggleRow
-                title="Show Memory in use tile"
+                title={t("Show Memory in use tile")}
                 help="Overview tile with the fleet's total memory in use."
                 checked={settings.showKpiMemory ?? true}
                 onChange={(v) => update({ showKpiMemory: v })}
               />
               <ToggleRow
-                title="Show Tokens today tile"
+                title={t("Show Tokens today tile")}
                 help="Overview tile with the tokens generated today (or the online unit count, when no tokens are tracked yet)."
                 checked={settings.showKpiTokens ?? true}
                 onChange={(v) => update({ showKpiTokens: v })}
               />
               <ToggleRow
-                title="Show active fleet exceptions"
+                title={t("Show active fleet exceptions")}
                 help="Overview strip for offline hosts, GPU throttle, disk, LLM, and Tailnet alerts. Off by default."
                 checked={Boolean(settings.showFleetExceptions)}
                 onChange={(v) => update({ showFleetExceptions: v })}
               />
               <ToggleRow
-                title="Save benchmark debug traces"
+                title={t("Save benchmark debug traces")}
                 help="Stores prompts, HTTP/completion IDs, content previews, and GPU samples in bench history. Off by default; larger history files."
                 checked={Boolean(settings.benchDebugTraces)}
                 onChange={(v) => update({ benchDebugTraces: v })}
@@ -445,7 +445,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
 
           {/* Outside the settings block: a rejected token is exactly when settings fail to load. */}
           <SettingRow
-            title="Access token"
+            title={t("Access token")}
             help="Sent to servers that set SPARKDASH_TOKEN. Stored in this browser only."
           >
             <div className="set-token">
@@ -465,7 +465,7 @@ export function SettingsDialog({ open, onClose, onSaved }: SettingsDialogProps) 
           </SettingRow>
 
           <div className="settings-links">
-            <span>sparkDash v{packageJson.version}</span>
+            <span>{t("sparkDash v")}{packageJson.version}</span>
             <span aria-hidden>·</span>
             <a href="https://mia-ai.net/" target="_blank" rel="noopener noreferrer">
               mia-ai.net

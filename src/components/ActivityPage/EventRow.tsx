@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { memo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import type { ActivityEvent } from "../../api/types";
 import { ChevronRightIcon } from "../ui/icons";
@@ -95,37 +96,37 @@ export const EventRow = memo(function EventRow({ event: e, open, fresh, now, onT
       {open ? (
         <dl className="ac-detail" id={detailId}>
           <div className="ac-detail__wide">
-            <dt>Message</dt>
+            <dt>{t("Message")}</dt>
             <dd>{e.message}</dd>
           </div>
           <div>
-            <dt>Time</dt>
+            <dt>{t("Time")}</dt>
             <dd className="mono">
               {formatStamp(e.ts)} <span className="ac-detail__dim">({formatAgo(e.ts, now)})</span>
             </dd>
           </div>
           <div>
-            <dt>Severity</dt>
+            <dt>{t("Severity")}</dt>
             <dd>{SEVERITY_LABEL[e.severity]}</dd>
           </div>
           <div>
-            <dt>Type</dt>
+            <dt>{t("Type")}</dt>
             <dd className="mono">{e.type}</dd>
           </div>
           <div>
-            <dt>Event id</dt>
+            <dt>{t("Event id")}</dt>
             <dd className="mono">#{e.id}</dd>
           </div>
           {e.sparkId ? (
             <div>
-              <dt>Spark</dt>
+              <dt>{t("Spark")}</dt>
               <dd>
                 {e.sparkName ?? e.sparkId} <span className="ac-detail__dim mono">{e.sparkId}</span>
               </dd>
             </div>
           ) : null}
           <div>
-            <dt>Category</dt>
+            <dt>{t("Category")}</dt>
             <dd>{categoryLabel(categorize(e.type))}</dd>
           </div>
           {hasData ? (

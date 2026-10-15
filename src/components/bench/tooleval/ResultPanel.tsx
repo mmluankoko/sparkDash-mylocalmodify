@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import type { ToolEvalLine, ToolEvalRun } from "../../../api/types";
 import { Tag } from "../../ui/Tag";
 import { GenericResult, GenericValue } from "./GenericResult";
@@ -10,6 +11,7 @@ import { ToolResult } from "./ToolResult";
 
 /** Run facts: when, how long, what it ran against, the command and the (redacted) options. */
 export function RunMeta({ run }: { run: ToolEvalRun }) {
+  useI18n();
   const dur = run.finishedAt ? (run.finishedAt - run.startedAt) / 1000 : null;
   const optionCount = Object.keys(run.options ?? {}).length;
   return (
@@ -17,13 +19,13 @@ export function RunMeta({ run }: { run: ToolEvalRun }) {
       <div className="te-runmeta__tags">
         <Tag tone={statusTone(run.status)}>{statusLabel(run.status)}</Tag>
         <span className="te-faint">{fmtDate(run.startedAt)}</span>
-        {dur != null ? <span className="te-faint">took {fmtDuration(dur)}</span> : null}
+        {dur != null ? <span className="te-faint">{t("took")} {fmtDuration(dur)}</span> : null}
         {run.model ? <Tag tone="neutral">{run.model}</Tag> : null}
         <span className="te-faint mono">{run.id}</span>
       </div>
       <div className="te-cmd">
         <div className="te-cmd__head">
-          <span className="eyebrow">Command</span>
+          <span className="eyebrow">{t("Command")}</span>
           <CopyButton text={run.command} />
         </div>
         <pre className="te-cmd__body">{run.command}</pre>
@@ -31,7 +33,7 @@ export function RunMeta({ run }: { run: ToolEvalRun }) {
       {optionCount ? (
         <details className="te-disclosure">
           <summary>
-            <span>Options used ({optionCount})</span>
+            <span>{t("Options used (")}{optionCount})</span>
           </summary>
           <div className="te-disclosure__body">
             <GenericValue value={run.options} />
@@ -55,6 +57,7 @@ interface ResultPanelProps {
 
 /** The result of one run: headline renderers for tool-call data, metric-first for everything else, and failure explanations. */
 export function ResultPanel({ sparkId, type, run, lines, errorCode, version }: ResultPanelProps) {
+  useI18n();
   const wantsResult = run.status === "completed" || run.status === "stopped" || run.status === "failed";
   const state = useToolEvalResult(sparkId, wantsResult ? run.id : null, version);
   const tool = state.result ? normalizeToolResult(state.result) : null;
@@ -78,7 +81,7 @@ export function ResultPanel({ sparkId, type, run, lines, errorCode, version }: R
       {!failed && lines && lines.length ? (
         <>
           {toolNotes(lines).length ? (
-            <Notice tone="info" title="Good to know">
+            <Notice tone="info" title={t("Good to know")}>
               {toolNotes(lines).map((n) => (
                 <p key={n.key}>{n.text}</p>
               ))}
@@ -89,17 +92,17 @@ export function ResultPanel({ sparkId, type, run, lines, errorCode, version }: R
       {failed && lines && lines.length ? (
         <details className="te-disclosure" open>
           <summary>
-            <span>Output of the run</span>
+            <span>{t("Output of the run")}</span>
           </summary>
           <div className="te-disclosure__body">
             <RunTerminal lines={lines} />
           </div>
         </details>
       ) : null}
-      {run.status === "running" ? <Notice tone="info">This run has not finished yet. Its result appears here when it does.</Notice> : null}
+      {run.status === "running" ? <Notice tone="info">{t("This run has not finished yet. Its result appears here when it does.")}</Notice> : null}
       {state.loading ? <Skeleton lines={5} /> : null}
       {state.error && wantsResult ? (
-        <Notice tone={failed ? "info" : "bad"} title={failed ? "No result was saved" : "Could not load the result"} actions={failed ? null : <button type="button" className="btn btn--sm" onClick={state.reload}>Retry</button>}>
+        <Notice tone={failed ? "info" : "bad"} title={failed ? "No result was saved" : "Could not load the result"} actions={failed ? null : <button type="button" className="btn btn--sm" onClick={state.reload}>{t("Retry")}</button>}>
           {state.error}
         </Notice>
       ) : null}

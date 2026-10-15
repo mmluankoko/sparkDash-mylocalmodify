@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import type { ReactNode } from "react";
 import type { SparkSnapshot } from "../../api/types";
 import { benchTypeById } from "./benchCatalog";
@@ -17,12 +18,13 @@ interface BenchPageShellProps {
 
 /** Common header for every benchmark page: title and blurb, then a "Run on" Spark picker right under it. */
 export function BenchPageShell({ type, spark, sparks, onSelectSpark, tools, picker = true, children }: BenchPageShellProps) {
+  useI18n();
   const bench = benchTypeById(type);
   return (
     <div className="bench-page">
       <div className="page-head">
         <div>
-          <div className="eyebrow">Benchmarks{bench ? ` · ${bench.family}` : ""}</div>
+          <div className="eyebrow">{t("Benchmarks")}{bench ? ` · ${bench.family}` : ""}</div>
           <h1>{bench?.label ?? "Benchmark"}</h1>
           {bench ? <p className="page-head__sub">{bench.blurb}</p> : null}
         </div>
@@ -32,8 +34,8 @@ export function BenchPageShell({ type, spark, sparks, onSelectSpark, tools, pick
       </div>
       {picker ? (
         <div className="bench-runon">
-          <span className="eyebrow">Run on</span>
-          {sparks.length === 0 ? <span className="bench-runon__none">No Sparks available</span> : null}
+          <span className="eyebrow">{t("Run on")}</span>
+          {sparks.length === 0 ? <span className="bench-runon__none">{t("No Sparks available")}</span> : null}
           <SparkChips sparks={sparks} activeId={spark?.id ?? null} onSelect={onSelectSpark} />
         </div>
       ) : null}

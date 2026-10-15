@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 export type BenchKind = "decode" | "prefill" | "quality";
 
 const LABELS: Record<BenchKind, string> = {
@@ -20,9 +21,10 @@ export function BenchSwitcher({
   onSwitch?: (kind: BenchKind) => void;
   disabled?: boolean;
 }) {
+  useI18n();
   if (!onSwitch) return null;
   return (
-    <div className="seg" role="tablist" aria-label="Benchmark type">
+    <div className="seg" role="tablist" aria-label={t("Benchmark type")}>
       {(Object.keys(LABELS) as BenchKind[]).map((k) => (
         <button
           key={k}

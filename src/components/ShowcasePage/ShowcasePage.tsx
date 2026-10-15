@@ -805,7 +805,7 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
             <a href="/" className="logo-pill showcase-brand" title={t("sparkDash home")}>
               <BoltIcon className="showcase-brand__bolt" />
               <span>
-                spark<span className="logo-pill-dash">Dash</span>
+                spark<span className="logo-pill-dash">{t("Dash")}</span>
               </span>
             </a>
             <div className="showcase-config__subtitle">
@@ -828,7 +828,7 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
                 <span className="showcase-config-peek__tps-value font-tabular">
                   {aggregateTps > 0 ? `${aggregateTps.toFixed(0)}` : "—"}
                 </span>
-                <span className="showcase-config-peek__tps-unit">tok/s</span>
+                <span className="showcase-config-peek__tps-unit">{t("tok/s")}</span>
                 {totalTokens > 0 && (
                   <span className="showcase-config-peek__tps-tokens font-tabular">
                     · {formatToks(totalTokens)} tok
@@ -855,7 +855,7 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
             <a href="/" className="logo-pill showcase-brand" title={t("sparkDash home")}>
               <BoltIcon className="showcase-brand__bolt" />
               <span>
-                spark<span className="logo-pill-dash">Dash</span>
+                spark<span className="logo-pill-dash">{t("Dash")}</span>
               </span>
             </a>
             <div className="showcase-config__subtitle">
@@ -1089,10 +1089,10 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
                             <span>· {row.promptType}</span>
                           ) : null}
                           {row.meanDecodeTps > 0 && (
-                            <span>{t("· avg ")}{row.meanDecodeTps.toFixed(0)} tok/s</span>
+                            <span>{t("· avg ")}{row.meanDecodeTps.toFixed(0)} {t("tok/s")}</span>
                           )}
                           {row.totalTokens > 0 && (
-                            <span>· {formatToks(row.totalTokens)} tok</span>
+                            <span>· {formatToks(row.totalTokens)} {t("tok")}</span>
                           )}
                         </span>
                         {row.modelId ? (
@@ -1159,7 +1159,7 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
             <span className="showcase-metrics__label">{t("Aggregate")}</span>
             <span className="showcase-metrics__hero-value font-tabular">
               {aggregateTps > 0 ? aggregateTps.toFixed(0) : "—"}
-              <span className="showcase-metrics__hero-unit">tok/s</span>
+              <span className="showcase-metrics__hero-unit">{t("tok/s")}</span>
             </span>
             {aggregatePeakTps > 0 && (
                 <span className="showcase-metrics__sub">
@@ -1184,7 +1184,7 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
                 <span className="showcase-metrics__label">{t("Avg")}</span>
                 <span className="showcase-metrics__value font-tabular">
                   {sessionAvgTps.toFixed(0)}
-                  <span className="showcase-metrics__unit"> tok/s</span>
+                  <span className="showcase-metrics__unit"> {t("tok/s")}</span>
                 </span>
                 <span className="showcase-metrics__sub">{t("per stream")}</span>
               </div>
@@ -1207,7 +1207,7 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
             <span className="showcase-metrics__value font-tabular">
               {serverTps != null ? `${serverTps.toFixed(0)}` : "—"}
               {serverTps != null && (
-                <span className="showcase-metrics__unit"> tok/s</span>
+                <span className="showcase-metrics__unit"> {t("tok/s")}</span>
               )}
             </span>
             {serverTpsMax != null && serverTpsMax > 0 && (

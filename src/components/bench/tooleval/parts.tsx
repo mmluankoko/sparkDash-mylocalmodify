@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ToolEvalLine } from "../../../api/types";
 import { AlertTriangleIcon, CheckIcon, InfoIcon } from "../../ui/icons";
@@ -99,6 +100,7 @@ export function Skeleton({ lines = 3, className = "" }: { lines?: number; classN
 
 /** Streamed output with stderr lines dimmed; sticks to the bottom until the reader scrolls up. */
 export function RunTerminal({ lines, partial = "", running, maxVisible = 1500 }: { lines: readonly ToolEvalLine[]; partial?: string; running?: boolean; maxVisible?: number }) {
+  useI18n();
   const ref = useRef<HTMLPreElement>(null);
   const stick = useRef(true);
   const shown = lines.length > maxVisible ? lines.slice(lines.length - maxVisible) : lines;
@@ -113,13 +115,13 @@ export function RunTerminal({ lines, partial = "", running, maxVisible = 1500 }:
       className="live-term te-term"
       tabIndex={0}
       role="log"
-      aria-label="Raw tool output"
+      aria-label={t("Raw tool output")}
       onScroll={(e) => {
         const el = e.currentTarget;
         stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 28;
       }}
     >
-      {lines.length > shown.length ? <span className="live-term__note">… {(lines.length - shown.length).toLocaleString()} earlier lines hidden (copy gets everything)</span> : null}
+      {lines.length > shown.length ? <span className="live-term__note">… {(lines.length - shown.length).toLocaleString()} {t("earlier lines hidden (copy gets everything)")}</span> : null}
       {shown.map((l) => (
         <span key={l.seq} className={l.stream === "err" ? "te-term__err" : undefined}>
           {l.text}

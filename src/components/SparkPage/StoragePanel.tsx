@@ -123,7 +123,7 @@ export function StoragePanel({
       actions={
         <div className="sp-actions">
           {!showSettings && visibleDisks.length > 0 && (
-            <span className="mono sp-muted sp-nowrap sp-actions__lead" title="Combined disk throughput">
+            <span className="mono sp-muted sp-nowrap sp-actions__lead" title={t("Combined disk throughput")}>
               r {formatBytesPerSec(totalRead)} · w {formatBytesPerSec(totalWrite)}
             </span>
           )}
@@ -217,7 +217,7 @@ export function StoragePanel({
                         <span className="sp-sep">·</span>
                         <span className="text-accent">↓</span> {formatBytesPerSec(disk.readSpeed || 0)}
                       </span>
-                      <span className="mono">{formatGb(disk.available)} free</span>
+                      <span className="mono">{formatGb(disk.available)} {t("free")}</span>
                     </div>
                   </div>
                 );

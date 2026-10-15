@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useMemo } from "react";
 import type { GpuMetrics, LlmMetrics, UnifiedMemoryMetrics } from "../../api/types";
 import { Panel } from "../ui/Panel";
@@ -20,6 +21,7 @@ interface UnifiedMemoryPanelProps {
  * pool (vLLM `cache_config_info`); without it the GPU slice stays whole.
  */
 export function UnifiedMemoryPanel({ um, gpu, llm, className }: UnifiedMemoryPanelProps) {
+  useI18n();
   const total = um?.total ?? 0;
   const segments = useMemo(() => {
     if (!um || um.total <= 0) return [];
@@ -40,14 +42,14 @@ export function UnifiedMemoryPanel({ um, gpu, llm, className }: UnifiedMemoryPan
 
   return (
     <Panel
-      title="Unified memory"
+      title={t("Unified memory")}
       icon={<MemoryIcon />}
       className={`panel-memory ${className ?? ""}`}
       bodyClassName="sp-stack"
       actions={
         total > 0 ? (
           <span className="mono sp-muted">
-            {formatMb(used)} of {formatMb(total)} · {pct}%
+            {formatMb(used)} {t("of")} {formatMb(total)} · {pct}%
           </span>
         ) : undefined
       }
@@ -80,14 +82,14 @@ export function UnifiedMemoryPanel({ um, gpu, llm, className }: UnifiedMemoryPan
               </Tag>
             )}
             {um && um.bandwidth.current > 0 && (
-              <Tag title="GPU memory bandwidth (nvidia-smi dmon)">
+              <Tag title={t("GPU memory bandwidth (nvidia-smi dmon)")}>
                 {um.bandwidth.current.toFixed(1)} / {um.bandwidth.peak} GB/s
               </Tag>
             )}
           </div>
         </>
       ) : (
-        <p className="sp-muted">Waiting for memory reading…</p>
+        <p className="sp-muted">{t("Waiting for memory reading…")}</p>
       )}
       {processes.length > 0 && <GpuProcessTable processes={processes} />}
     </Panel>

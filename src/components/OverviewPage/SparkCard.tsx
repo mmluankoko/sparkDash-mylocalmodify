@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { memo, useState } from "react";
 import type { SparkSnapshot } from "../../api/types";
 import { resolveSparkRole } from "../../api/sparkRole";
@@ -79,6 +80,7 @@ function SparkCardImpl({
   temperatureUnit: Unit;
   onSelect?: (id: string) => void;
 }) {
+  useI18n();
   const gpu = spark.metrics.gpu;
   const um = spark.metrics.unifiedMemory;
   const online = spark.online;
@@ -190,14 +192,14 @@ function SparkCardImpl({
         </Tag>
       ) : null}
       {online && throttle?.clockCapMHz != null ? (
-        <Tag title="GPU clock locked with nvidia-smi -lgc">
+        <Tag title={t("GPU clock locked with nvidia-smi -lgc")}>
           Cap {(throttle.clockCapMHz / 1000).toFixed(1)} GHz
         </Tag>
       ) : null}
       {online && llmChip ? <Tag tone={(llm?.requestsRunning ?? llm?.slotsActive ?? 0) > 0 ? "good" : "neutral"}>{llmChip}</Tag> : null}
       {comfy !== undefined || spark.comfyMonitoring ? (
         !comfy?.available ? (
-          <Tag title="ComfyUI monitoring on — not reachable">Comfy</Tag>
+          <Tag title={t("ComfyUI monitoring on — not reachable")}>{t("Comfy")}</Tag>
         ) : (comfy.queueRunning ?? 0) > 0 ? (
           <Tag tone="info" title={comfy.activeJob?.title ? `ComfyUI running: ${comfy.activeJob.title}` : "ComfyUI job running"}>
             <ImageIcon className="h-3.5 w-3.5" />
@@ -205,16 +207,16 @@ function SparkCardImpl({
             {comfy.progress?.percent != null ? ` ${Math.round(comfy.progress.percent)}%` : ""}
           </Tag>
         ) : (comfy.queuePending ?? 0) > 0 ? (
-          <Tag tone="warn" title={`ComfyUI queue: ${comfy.queuePending} pending`}>Comfy {"·"} {comfy.queuePending}q</Tag>
+          <Tag tone="warn" title={`ComfyUI queue: ${comfy.queuePending} pending`}>{t("Comfy")} {"·"} {comfy.queuePending}q</Tag>
         ) : (
-          <Tag title="ComfyUI idle">Comfy {"·"} idle</Tag>
+          <Tag title={t("ComfyUI idle")}>{t("Comfy")} {"·"} {t("idle")}</Tag>
         )
       ) : null}
-      {hermes?.monitoring && hermes.status === "running" ? <Tag tone="info">Hermes updating</Tag> : null}
+      {hermes?.monitoring && hermes.status === "running" ? <Tag tone="info">{t("Hermes updating")}</Tag> : null}
       {hermes?.monitoring && hermes.status !== "running" && hermes.updateAvailable ? (
-        <Tag tone="acc" title="A Hermes update is available">Hermes update available</Tag>
+        <Tag tone="acc" title={t("A Hermes update is available")}>{t("Hermes update available")}</Tag>
       ) : null}
-      {!online ? <Tag>Offline</Tag> : null}
+      {!online ? <Tag>{t("Offline")}</Tag> : null}
     </div>
   );
 
@@ -296,7 +298,7 @@ function SparkCardImpl({
           {showLauncher ? <ModelLauncher spark={spark} onOpen={onSelect} busy={loadingHint} /> : null}
           {role === "worker" ? (
             <div className="ov-launch ov-launch--worker">
-              <div className="eyebrow">Worker of</div>
+              <div className="eyebrow">{t("Worker of")}</div>
               {headSpark ? (
                 <AppLink
                   href={idToPath(headSpark.id)}
@@ -308,7 +310,7 @@ function SparkCardImpl({
                   {headSpark.name}
                 </AppLink>
               ) : (
-                <div className="ov-launch__title">Head not set</div>
+                <div className="ov-launch__title">{t("Head not set")}</div>
               )}
               <div className="ov-launch__hint">
                 {headLlm
@@ -324,18 +326,18 @@ function SparkCardImpl({
           {showTps && llm ? (
             <div className="ov-tps">
               <div>
-                <div className="eyebrow">Decode</div>
-                <div className="big-num ov-tps__num">{llm.generationTps.toFixed(1)}<small>tok/s</small></div>
+                <div className="eyebrow">{t("Decode")}</div>
+                <div className="big-num ov-tps__num">{llm.generationTps.toFixed(1)}<small>{t("tok/s")}</small></div>
               </div>
               <div>
-                <div className="eyebrow">Prefill</div>
+                <div className="eyebrow">{t("Prefill")}</div>
                 {llm.prefillActive && llm.prefillTps <= 0 ? (
-                  <div className="big-num ov-tps__num ov-tps__num--live" title="A prompt is being processed. The engine reports its speed only when the request finishes.">
+                  <div className="big-num ov-tps__num ov-tps__num--live" title={t("A prompt is being processed. The engine reports its speed only when the request finishes.")}>
                     <span className="ov-tps__dots" aria-hidden />
-                    <small>prefilling</small>
+                    <small>{t("prefilling")}</small>
                   </div>
                 ) : (
-                  <div className="big-num ov-tps__num">{Math.round(llm.prefillTps).toLocaleString()}<small>tok/s</small></div>
+                  <div className="big-num ov-tps__num">{Math.round(llm.prefillTps).toLocaleString()}<small>{t("tok/s")}</small></div>
                 )}
               </div>
             </div>
@@ -344,7 +346,7 @@ function SparkCardImpl({
           {rootDisk ? (
             <div className="ov-foot">
               <div className="ov-kv">
-                <span>Storage</span>
+                <span>{t("Storage")}</span>
                 <b
                   className="mono"
                   title={`${fmtStorage(rootDisk.used, true)} of ${fmtStorage(rootDisk.total, true)} used (${Math.round(rootDisk.percentage)}%)`}
@@ -353,7 +355,7 @@ function SparkCardImpl({
                 </b>
               </div>
               <div className="ov-kv">
-                <span>Storage available</span>
+                <span>{t("Storage available")}</span>
                 <b className="mono">{fmtStorage(rootDisk.available ?? Math.max(0, rootDisk.total - rootDisk.used), true)}</b>
               </div>
             </div>
@@ -375,7 +377,7 @@ function SparkCardImpl({
           ])].filter((name) => name !== modelText).map((name) => (
             <div className="ov-modelrow" key={name} title={`${name} · loaded model; throughput shown for the monitored endpoint above`}>
               <code>{name}</code>
-              <span className="ov-modelrow__ctx">Loaded</span>
+              <span className="ov-modelrow__ctx">{t("Loaded")}</span>
             </div>
           ))}
         </>

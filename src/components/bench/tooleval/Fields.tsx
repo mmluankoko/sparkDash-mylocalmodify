@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useState } from "react";
 import type { ToolEvalArgSpec } from "../../../api/types";
 import { byteLength, jsonObjectError, splitList, type FieldValue } from "./options";
@@ -24,6 +25,7 @@ function rangeHint(a: ToolEvalArgSpec): string {
 
 /** One generated form control, chosen by the option's kind. */
 export function Field({ arg, value, error, onChange }: FieldProps) {
+  useI18n();
   const id = idOf(arg.name);
   const set = (v: FieldValue) => onChange(arg.name, v);
   const err = error ? (
@@ -94,7 +96,7 @@ export function Field({ arg, value, error, onChange }: FieldProps) {
         <>
           <textarea id={id} rows={4} value={text} onChange={(e) => set(e.target.value)} aria-invalid={Boolean(error)} aria-describedby={describedBy} spellCheck={false} />
           <p className={`te-counter ${bytes > max ? "is-over" : ""}`} aria-live="polite">
-            {fmtBytes(bytes)} of {fmtBytes(max)}
+            {fmtBytes(bytes)} {t("of")} {fmtBytes(max)}
           </p>
         </>
       );
@@ -117,7 +119,7 @@ export function Field({ arg, value, error, onChange }: FieldProps) {
       ) : (
         <>
           <input id={id} type="text" value={typeof value === "string" ? value : ""} placeholder={arg.name === "scenarios" ? "TC-01 TC-07 TC-12" : "space separated"} onChange={(e) => set(e.target.value)} aria-invalid={Boolean(error)} aria-describedby={describedBy} autoComplete="off" spellCheck={false} />
-          {typeof value === "string" && value.trim() ? <p className="te-counter">{splitList(value).length} item(s)</p> : null}
+          {typeof value === "string" && value.trim() ? <p className="te-counter">{splitList(value).length} {t("item(s)")}</p> : null}
         </>
       );
       break;
@@ -154,10 +156,11 @@ export function Field({ arg, value, error, onChange }: FieldProps) {
 }
 
 function CategoryPicker({ id, value, choices, onChange }: { id: string; value: string[]; choices: string[]; onChange: (v: string[]) => void }) {
+  useI18n();
   const on = new Set(value.map((v) => v.toUpperCase()));
   const toggle = (c: string) => onChange(choices.filter((x) => (x === c ? !on.has(x) : on.has(x))));
   return (
-    <div className="te-cats" role="group" aria-label="Categories" id={id}>
+    <div className="te-cats" role="group" aria-label={t("Categories")} id={id}>
       {choices.map((c) => (
         <button key={c} type="button" className={`te-chip ${on.has(c) ? "is-on" : ""}`} aria-pressed={on.has(c)} onClick={() => toggle(c)} title={CATEGORY_NAMES[c] ? `${c}: ${CATEGORY_NAMES[c]}` : c}>
           <b>{c}</b>

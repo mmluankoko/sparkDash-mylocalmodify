@@ -503,7 +503,7 @@ export function HermesUpdateDialog() {
 
         <div className="modal-sheet__footer">
           <p className="text-[10px] text-muted">
-            {t("Runs ")}<code className="rounded bg-surface-elevated px-1 font-mono">hermes update</code> {t(" on")}{" "}
+            {t("Runs ")}<code className="rounded bg-surface-elevated px-1 font-mono">{t("hermes update")}</code> {t(" on")}{" "}
             {target?.sparkName} {t(" via SSH.")}</p>
           <div className="modal-sheet__footer-actions">
             <button

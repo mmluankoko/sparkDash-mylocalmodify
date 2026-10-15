@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useMemo, useState } from "react";
 import { Ring } from "../../ui/Ring";
 import { Tag } from "../../ui/Tag";
@@ -26,6 +27,7 @@ export function Stars({ n, max = 5 }: { n: number; max?: number }) {
 
 /** Headline, safety, categories and scenarios of a tool-call result. */
 export function ToolResult({ data, raw }: { data: NormToolResult; raw: unknown }) {
+  useI18n();
   const tier = scoreTier(data.score);
   const ratingStars = (data.rating?.match(/★/g) ?? []).length || tier?.stars || 0;
   const done = data.counts.pass + data.counts.partial + data.counts.fail + data.counts.other;
@@ -46,30 +48,30 @@ export function ToolResult({ data, raw }: { data: NormToolResult; raw: unknown }
             <Tile label="Deployability" value={data.deployability} suffix="/100" />
             <Tile label="Responsiveness" value={data.responsiveness} suffix="/100" />
             <div className="te-tile">
-              <span className="eyebrow">Completion</span>
+              <span className="eyebrow">{t("Completion")}</span>
               <b className="big-num">
                 {done}
-                <small>/ {data.total ?? done} scenarios</small>
+                <small>/ {data.total ?? done} {t("scenarios")}</small>
               </b>
               <span className="te-counters te-counters--tight">
-                <span className="te-counter-chip is-pass"><b>{data.counts.pass}</b> pass</span>
-                <span className="te-counter-chip is-partial"><b>{data.counts.partial}</b> partial</span>
-                <span className="te-counter-chip is-fail"><b>{data.counts.fail}</b> fail</span>
+                <span className="te-counter-chip is-pass"><b>{data.counts.pass}</b> {t("pass")}</span>
+                <span className="te-counter-chip is-partial"><b>{data.counts.partial}</b> {t("partial")}</span>
+                <span className="te-counter-chip is-fail"><b>{data.counts.fail}</b> {t("fail")}</span>
               </span>
             </div>
           </div>
           <p className="te-faint te-meta-line">
-            {data.model ? <>Model <b className="mono">{data.model}</b> · </> : null}
+            {data.model ? <>{t("Model")} <b className="mono">{data.model}</b> · </> : null}
             {data.backend ? <>{data.backend} · </> : null}
-            {data.version ? <>tool-eval-bench {data.version} · </> : null}
-            {data.runId ? <>run <span className="mono">{data.runId}</span></> : null}
+            {data.version ? <>{t("tool-eval-bench")} {data.version} · </> : null}
+            {data.runId ? <>{t("run")} <span className="mono">{data.runId}</span></> : null}
           </p>
         </div>
       </section>
 
       {data.safety.length ? (
-        <section className="te-safety" role="alert" aria-label="Safety warnings">
-          <h3>Safety warnings ({data.safety.length})</h3>
+        <section className="te-safety" role="alert" aria-label={t("Safety warnings")}>
+          <h3>{t("Safety warnings (")}{data.safety.length})</h3>
           <ul>
             {data.safety.map((w, i) => (
               <li key={i}>{w}</li>
@@ -84,7 +86,7 @@ export function ToolResult({ data, raw }: { data: NormToolResult; raw: unknown }
       {Object.keys(data.config).length ? (
         <details className="te-disclosure">
           <summary>
-            <span>Configuration used</span>
+            <span>{t("Configuration used")}</span>
           </summary>
           <div className="te-disclosure__body">
             <GenericValue value={data.config} />
@@ -111,9 +113,10 @@ function Tile({ label, value, suffix }: { label: string; value: number | null; s
 }
 
 function Categories({ data }: { data: NormToolResult }) {
+  useI18n();
   return (
     <section className="te-section">
-      <h3>Category scores</h3>
+      <h3>{t("Category scores")}</h3>
       <ul className="te-catbars">
         {data.categories.map((c) => {
           const pct = c.percent == null ? null : Math.max(0, Math.min(100, c.percent));
@@ -136,6 +139,7 @@ function Categories({ data }: { data: NormToolResult }) {
 }
 
 function Scenarios({ scenarios }: { scenarios: NormScenario[] }) {
+  useI18n();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | ScenarioStatus>("all");
   const [cat, setCat] = useState("all");
@@ -160,19 +164,19 @@ function Scenarios({ scenarios }: { scenarios: NormScenario[] }) {
 
   return (
     <section className="te-section">
-      <h3>Scenarios <span className="te-faint">({rows.length === scenarios.length ? scenarios.length : `${rows.length} of ${scenarios.length}`})</span></h3>
+      <h3>{t("Scenarios")} <span className="te-faint">({rows.length === scenarios.length ? scenarios.length : `${rows.length} of ${scenarios.length}`})</span></h3>
       <div className="te-filters">
-        <input type="search" aria-label="Search scenarios" placeholder="Search id, title, reasoning…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-          <option value="all">All statuses</option>
-          <option value="fail">Failed</option>
-          <option value="partial">Partial</option>
-          <option value="pass">Passed</option>
-          <option value="other">Other</option>
+        <input type="search" aria-label={t("Search scenarios")} placeholder={t("Search id, title, reasoning…")} value={q} onChange={(e) => setQ(e.target.value)} />
+        <select aria-label={t("Filter by status")} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+          <option value="all">{t("All statuses")}</option>
+          <option value="fail">{t("Failed")}</option>
+          <option value="partial">{t("Partial")}</option>
+          <option value="pass">{t("Passed")}</option>
+          <option value="other">{t("Other")}</option>
         </select>
         {cats.length > 1 ? (
-          <select aria-label="Filter by category" value={cat} onChange={(e) => setCat(e.target.value)}>
-            <option value="all">All categories</option>
+          <select aria-label={t("Filter by category")} value={cat} onChange={(e) => setCat(e.target.value)}>
+            <option value="all">{t("All categories")}</option>
             {cats.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -181,15 +185,15 @@ function Scenarios({ scenarios }: { scenarios: NormScenario[] }) {
             ))}
           </select>
         ) : null}
-        <select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-          <option value="order">Original order</option>
-          <option value="worst">Worst first</option>
-          <option value="id">By id</option>
-          <option value="points">Fewest points</option>
-          <option value="duration">Slowest</option>
+        <select aria-label={t("Sort")} value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+          <option value="order">{t("Original order")}</option>
+          <option value="worst">{t("Worst first")}</option>
+          <option value="id">{t("By id")}</option>
+          <option value="points">{t("Fewest points")}</option>
+          <option value="duration">{t("Slowest")}</option>
         </select>
       </div>
-      {rows.length === 0 ? <p className="te-empty">No scenario matches these filters.</p> : null}
+      {rows.length === 0 ? <p className="te-empty">{t("No scenario matches these filters.")}</p> : null}
       <ul className="te-scn-rows">
         {rows.slice(0, limit).map((s) => {
           const isOpen = open.has(s.id);
@@ -199,7 +203,7 @@ function Scenarios({ scenarios }: { scenarios: NormScenario[] }) {
               <button type="button" className="te-scn-row__head" aria-expanded={isOpen} onClick={() => toggle(s.id)}>
                 <Tag tone={STATUS_TONE[s.status]}>{s.rawStatus ?? s.status}</Tag>
                 <span className="mono te-scn-row__id">{s.id}</span>
-                <span className="te-scn-row__title">{s.title ?? <span className="te-faint">(no title)</span>}</span>
+                <span className="te-scn-row__title">{s.title ?? <span className="te-faint">{t("(no title)")}</span>}</span>
                 {s.category ? <span className="te-token" title={CATEGORY_NAMES[s.category]}>{s.category}</span> : null}
                 <span className="mono te-scn-row__pts">{s.points != null ? `${fmtNum(s.points, 1)}${s.maxPoints != null ? `/${s.maxPoints}` : " pts"}` : ""}</span>
                 <span className="te-faint te-scn-row__dur">{s.durationSeconds != null ? fmtDuration(s.durationSeconds) : ""}</span>
@@ -209,11 +213,11 @@ function Scenarios({ scenarios }: { scenarios: NormScenario[] }) {
                 <div className="te-scn-row__body">
                   {s.reasoning ? (
                     <div>
-                      <span className="eyebrow">Reasoning</span>
+                      <span className="eyebrow">{t("Reasoning")}</span>
                       <pre className="te-pre">{s.reasoning}</pre>
                     </div>
                   ) : null}
-                  {Object.keys(extra).length ? <GenericValue value={extra} /> : !s.reasoning ? <p className="te-faint">No further details were recorded for this scenario.</p> : null}
+                  {Object.keys(extra).length ? <GenericValue value={extra} /> : !s.reasoning ? <p className="te-faint">{t("No further details were recorded for this scenario.")}</p> : null}
                 </div>
               ) : null}
             </li>

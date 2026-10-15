@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useMemo, useState, type ReactNode } from "react";
 import { activeTimeZone } from "../../shared/timeZone";
 import { formatTokensCompact } from "../../shared/tokenFormat";
@@ -109,7 +110,8 @@ function ShareBar({ share }: { share: number }) {
 }
 
 function CacheCell({ rate, cached }: { rate: number | null; cached: number }) {
-  if (rate == null) return <span className="tk-faint" title="No prompt tokens reported">{"—"}</span>;
+  useI18n();
+  if (rate == null) return <span className="tk-faint" title={t("No prompt tokens reported")}>{"—"}</span>;
   return <span title={`${cached.toLocaleString()} cached prompt tokens`}>{fmtPct(rate)}</span>;
 }
 

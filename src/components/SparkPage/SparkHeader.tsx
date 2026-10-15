@@ -65,7 +65,7 @@ export function SparkHeader({ spark, onEdit }: SparkHeaderProps) {
                 {workerLabel}
               </Tag>
             )}
-            {spark.isLocal && <Tag title={t("This dashboard runs on this machine")}>local</Tag>}
+            {spark.isLocal && <Tag title={t("This dashboard runs on this machine")}>{t("local")}</Tag>}
             {online && backend && <Tag tone="info">{backend}</Tag>}
             {!online && spark.offlineReason && (
               <Tag tone="bad" className="sp-tag-clip" title={`Offline — ${spark.offlineReason}`}>
@@ -104,7 +104,7 @@ export function SparkHeader({ spark, onEdit }: SparkHeaderProps) {
           {tailscaleIp && (
             <>
               {spark.lanIp && <span className="sp-sep">·</span>}
-              <span className="mono">{tailscaleIp}</span> <span>(tailscale)</span>
+              <span className="mono">{tailscaleIp}</span> <span>{t("(tailscale)")}</span>
             </>
           )}
           {(spark.lanIp || tailscaleIp) && hw.length > 0 && <span className="sp-sep">·</span>}

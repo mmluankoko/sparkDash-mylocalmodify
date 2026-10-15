@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import type { SparkSnapshot } from "../../api/types";
 import { useBenchSpark } from "../bench/useBenchSpark";
 import { SparkChips } from "../bench/SparkChips";
@@ -8,6 +9,7 @@ import { ShowcasePage } from "./ShowcasePage";
 
 /** The Showcase as a page of the dashboard: pick a Spark, run it here, or pop it out into its own window. */
 export function ShowcaseView({ sparks }: { sparks: readonly SparkSnapshot[] }) {
+  useI18n();
   const { spark, select, eligible } = useBenchSpark(sparks);
   const canRun = Boolean(spark && spark.online && isLlmMonitoringEnabled(spark) && !spark.workerNode);
   const runnable = (s: SparkSnapshot) =>
@@ -23,9 +25,9 @@ export function ShowcaseView({ sparks }: { sparks: readonly SparkSnapshot[] }) {
     <div className="bench-page showcase-view">
       <div className="page-head">
         <div>
-          <div className="eyebrow">Workspace</div>
-          <h1>Showcase</h1>
-          <p className="page-head__sub">Run prompts on several terminals at once and watch your model stream.</p>
+          <div className="eyebrow">{t("Workspace")}</div>
+          <h1>{t("Showcase")}</h1>
+          <p className="page-head__sub">{t("Run prompts on several terminals at once and watch your model stream.")}</p>
         </div>
         <div className="page-head__tools">
           {spark ? (
@@ -34,7 +36,7 @@ export function ShowcaseView({ sparks }: { sparks: readonly SparkSnapshot[] }) {
               href={showcaseUrl(spark)}
               target="_blank"
               rel="noopener noreferrer"
-              title="Open the showcase in its own full-screen window"
+              title={t("Open the showcase in its own full-screen window")}
             >
               Open in new window ↗
             </a>
@@ -42,8 +44,8 @@ export function ShowcaseView({ sparks }: { sparks: readonly SparkSnapshot[] }) {
         </div>
       </div>
       <div className="bench-runon">
-        <span className="eyebrow">Run on</span>
-        {eligible.length === 0 ? <span className="bench-runon__none">No Sparks available</span> : null}
+        <span className="eyebrow">{t("Run on")}</span>
+        {eligible.length === 0 ? <span className="bench-runon__none">{t("No Sparks available")}</span> : null}
         <SparkChips sparks={eligible} activeId={spark?.id ?? null} onSelect={select} />
       </div>
       {spark ? (
@@ -61,7 +63,7 @@ export function ShowcaseView({ sparks }: { sparks: readonly SparkSnapshot[] }) {
                 Run on {alternative.name}
               </button>
             ) : (
-              <p className="sc-empty__hint">No Spark with a reachable model is online right now.</p>
+              <p className="sc-empty__hint">{t("No Spark with a reachable model is online right now.")}</p>
             )}
           </div>
         )

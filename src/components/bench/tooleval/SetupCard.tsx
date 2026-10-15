@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useEffect, useRef, useState } from "react";
 import { fetchToolEvalInstallCommand, fetchToolEvalUpdateCheck } from "../../../api/client";
 import type { SparkSnapshot, ToolEvalSpec, ToolEvalStatus, ToolEvalUpdateCheck } from "../../../api/types";
@@ -21,6 +22,7 @@ const NO_EXTRAS: string[] = [];
 
 /** Install / upgrade of tool-eval-bench on the Spark, and the installed-state status line. */
 export function SetupCard({ spark, spec, status, loading, error, reload, busy }: SetupProps) {
+  useI18n();
   const install = useToolEvalInstall(spark.id, reload);
   // The optional pip extras (perf, hf) are not offered: the plain install is all sparkDash needs.
   const extras: string[] = NO_EXTRAS;
@@ -77,7 +79,7 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
   if (!status && loading) return <Skeleton lines={2} className="te-card te-card--pad" />;
   if (!status) {
     return (
-      <Notice tone="bad" title="Could not check the Tool Eval Bench install" actions={<button type="button" className="btn btn--sm" onClick={reload}>Retry</button>}>
+      <Notice tone="bad" title={t("Could not check the Tool Eval Bench install")} actions={<button type="button" className="btn btn--sm" onClick={reload}>{t("Retry")}</button>}>
         {error ?? "No answer from the server."}
       </Notice>
     );
@@ -90,7 +92,7 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
     <div className="te-installer">
       <div className="te-cmd">
         <div className="te-cmd__head">
-          <span className="eyebrow">Command run on {spark.name}</span>
+          <span className="eyebrow">{t("Command run on")} {spark.name}</span>
           {command ? <CopyButton text={command} /> : null}
         </div>
         <pre className="te-cmd__body">{command ?? "…"}</pre>
@@ -98,18 +100,18 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
       <p className="te-note">
         {installed && !forceReinstall ? (
           <>
-            This runs <code>uv tool upgrade</code> <b>on {spark.name}</b>: it fetches the newest tool-eval-bench from GitHub (SeraphimSerapis/tool-eval-bench) and replaces the installed copy. If uv did not install the current copy, it reinstalls from GitHub instead. Tick <b>force reinstall</b> to reinstall from scratch instead.
+            This runs <code>{t("uv tool upgrade")}</code> <b>{t("on")} {spark.name}</b>{t(": it fetches the newest tool-eval-bench from GitHub (SeraphimSerapis/tool-eval-bench) and replaces the installed copy. If uv did not install the current copy, it reinstalls from GitHub instead. Tick")} <b>{t("force reinstall")}</b> to reinstall from scratch instead.
           </>
         ) : (
           <>
-            This runs <code>uv tool install</code> from GitHub (SeraphimSerapis/tool-eval-bench) <b>on {spark.name}</b>, as the user sparkDash connects with.
+            This runs <code>{t("uv tool install")}</code> {t("from GitHub (SeraphimSerapis/tool-eval-bench)")} <b>{t("on")} {spark.name}</b>, as the user sparkDash connects with.
           </>
         )}{" "}
         It downloads Python packages and needs internet access on that Spark. Nothing is installed on the machine running sparkDash.
       </p>
       {uvMissing ? (
-        <Notice tone="warn" title="uv is not installed on this Spark">
-          Installation uses <code>uv</code>. Install it first (<code>curl -LsSf https://astral.sh/uv/install.sh | sh</code> on the Spark), then check again.
+        <Notice tone="warn" title={t("uv is not installed on this Spark")}>
+          Installation uses <code>{t("uv")}</code>{t(". Install it first (")}<code>{t("curl -LsSf https://astral.sh/uv/install.sh | sh")}</code> on the Spark), then check again.
         </Notice>
       ) : null}
       {install.job ? (
@@ -121,9 +123,9 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
             <CopyButton text={() => linesText(install.lines, install.partial)} label="Copy output" />
           </div>
           <RunTerminal lines={install.lines} partial={install.partial} running={install.running} />
-          {install.job.status === "completed" ? <p className="te-ok" role="status">Done. Checking the install…</p> : null}
+          {install.job.status === "completed" ? <p className="te-ok" role="status">{t("Done. Checking the install…")}</p> : null}
           {install.job.status === "failed" ? (
-            <Notice tone="bad" title="The install did not finish">
+            <Notice tone="bad" title={t("The install did not finish")}>
               {uvProblem ? "uv was not found on the Spark. Install uv first, then try again." : install.job.error ?? "See the output above for the reason (no internet, a missing Python, a full disk…)."}
             </Notice>
           ) : null}
@@ -137,7 +139,7 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
           </button>
         ) : (
           <>
-            <span className="te-confirm-text">Run the command above on {spark.name}?</span>
+            <span className="te-confirm-text">{t("Run the command above on")} {spark.name}?</span>
             <button
               type="button"
               className="btn btn--primary"
@@ -166,11 +168,11 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
             </button>
           </>
         )}
-        {busy ? <span className="te-faint">Another Tool Eval Bench job is running on this Spark.</span> : null}
+        {busy ? <span className="te-faint">{t("Another Tool Eval Bench job is running on this Spark.")}</span> : null}
         {installed ? (
           <label className="te-check te-check--inline">
             <input type="checkbox" checked={forceReinstall} onChange={(e) => setForceReinstall(e.target.checked)} disabled={install.running} />
-            <span>force reinstall</span>
+            <span>{t("force reinstall")}</span>
           </label>
         ) : null}
         {installed ? null : (
@@ -187,24 +189,24 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
       <section className="panel te-card te-card--setup" aria-labelledby="te-setup-title">
         <div className="te-card__head">
           <div>
-            <div className="eyebrow">Setup</div>
-            <h2 id="te-setup-title">Tool Eval Bench is not installed on {spark.name}</h2>
+            <div className="eyebrow">{t("Setup")}</div>
+            <h2 id="te-setup-title">{t("Tool Eval Bench is not installed on")} {spark.name}</h2>
           </div>
-          <Tag tone="warn">Not installed</Tag>
+          <Tag tone="warn">{t("Not installed")}</Tag>
         </div>
         <p className="te-lead">
-          This page drives the external <b>tool-eval-bench</b> CLI, which runs on the Spark itself. Install it once and every Tool Eval Bench page becomes available. You can still configure and preview a run meanwhile; Start is disabled until it is installed.
+          This page drives the external <b>{t("tool-eval-bench")}</b> CLI, which runs on the Spark itself. Install it once and every Tool Eval Bench page becomes available. You can still configure and preview a run meanwhile; Start is disabled until it is installed.
         </p>
-        {status.error && !status.reachable ? <Notice tone="bad" title="The Spark could not be reached">{status.error}</Notice> : null}
+        {status.error && !status.reachable ? <Notice tone="bad" title={t("The Spark could not be reached")}>{status.error}</Notice> : null}
         {installer}
       </section>
     );
   }
 
   return (
-    <section className="panel te-card te-status" aria-label="Tool Eval Bench install status">
+    <section className="panel te-card te-status" aria-label={t("Tool Eval Bench install status")}>
       <div className="te-status__line">
-        <Tag tone="good">Installed</Tag>
+        <Tag tone="good">{t("Installed")}</Tag>
         <span>
           tool-eval-bench <b className="mono">{status.version?.replace(/^tool-eval-bench\s+/i, "") ?? "unknown version"}</b>
         </span>
@@ -215,7 +217,7 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
           {check.loading ? "Checking GitHub…" : "Check for updates"}
         </button>
       </div>
-      {check.error ? <Notice tone="bad" title="Could not check for updates">{check.error}</Notice> : null}
+      {check.error ? <Notice tone="bad" title={t("Could not check for updates")}>{check.error}</Notice> : null}
       {check.data ? (
         check.data.upToDate === true ? (
           <p className="te-ok" role="status">
@@ -231,7 +233,7 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
         ) : check.data.upToDate === false ? (
           <Notice
             tone="info"
-            title="A newer version is available"
+            title={t("A newer version is available")}
             actions={
               <button type="button" className="btn btn--sm btn--primary" onClick={openUpgrade}>
                 Upgrade now
@@ -239,12 +241,12 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
             }
           >
             Latest commit <code>{check.data.latestCommit?.slice(0, 9)}</code>
-            {check.data.latestDate ? ` (${fmtDate(Date.parse(check.data.latestDate))})` : ""}; installed <code>{check.data.installedCommit}</code>. Upgrading runs on {spark.name}.
+            {check.data.latestDate ? ` (${fmtDate(Date.parse(check.data.latestDate))})` : ""}{t("; installed")} <code>{check.data.installedCommit}</code>{t(". Upgrading runs on")} {spark.name}.
           </Notice>
         ) : (
           <Notice
             tone="warn"
-            title="Could not tell if there is an update"
+            title={t("Could not tell if there is an update")}
             actions={
               <button type="button" className="btn btn--sm" onClick={openUpgrade}>
                 Upgrade anyway
@@ -257,7 +259,7 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
       ) : null}
       {status.workDir ? (
         <p className="te-note">
-          Where results live: each run keeps its files under <code>{status.workDir}</code> on {spark.name}; sparkDash also caches finished results so history stays readable when the Spark is off.
+          Where results live: each run keeps its files under <code>{status.workDir}</code> {t("on")} {spark.name}; sparkDash also caches finished results so history stays readable when the Spark is off.
         </p>
       ) : null}
       {done && !showInstaller ? (
@@ -272,16 +274,16 @@ export function SetupCard({ spark, spec, status, loading, error, reload, busy }:
         >
           {done.kind === "upgrade" && done.from && done.from !== status.version ? (
             <>
-              tool-eval-bench on {spark.name} went from <code>{done.from.replace(/^tool-eval-bench\s+/i, "")}</code> to{" "}
+              tool-eval-bench on {spark.name} {t("went from")} <code>{done.from.replace(/^tool-eval-bench\s+/i, "")}</code> {t("to")}{" "}
               <code>{status.version?.replace(/^tool-eval-bench\s+/i, "")}</code>. You can run a benchmark now.
             </>
           ) : done.kind === "upgrade" ? (
             <>
-              tool-eval-bench on {spark.name} was reinstalled and is now <code>{status.version?.replace(/^tool-eval-bench\s+/i, "")}</code>. You can run a benchmark now.
+              tool-eval-bench on {spark.name} {t("was reinstalled and is now")} <code>{status.version?.replace(/^tool-eval-bench\s+/i, "")}</code>. You can run a benchmark now.
             </>
           ) : (
             <>
-              tool-eval-bench <code>{status.version?.replace(/^tool-eval-bench\s+/i, "")}</code> is installed on {spark.name}. You can run a benchmark now.
+              tool-eval-bench <code>{status.version?.replace(/^tool-eval-bench\s+/i, "")}</code> {t("is installed on")} {spark.name}. You can run a benchmark now.
             </>
           )}
         </Notice>

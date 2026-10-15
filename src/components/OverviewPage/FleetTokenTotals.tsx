@@ -141,22 +141,22 @@ export function FleetTokenTotals({ onOpenDetails }: { onOpenDetails?: () => void
           {t(LEDGER_HINT)}, {t("whole fleet")}
         </div>
       </div>
-      <div className="seg-bar" role="img" aria-label="Generated, cached prefill and computed prefill token share">
+      <div className="seg-bar" role="img" aria-label={t("Generated, cached prefill and computed prefill token share")}>
         <i className="ov-seg ov-seg--gen" style={{ width: pct(totalCompletion) }} />
         <i className="ov-seg ov-seg--cached" style={{ width: pct(totalCached) }} />
         <i className="ov-seg ov-seg--comp" style={{ width: pct(prefillComputed) }} />
       </div>
       <div className="legend">
-        <span className="ov-leg--gen">Generated</span>
-        <span className="ov-leg--cached">Cached</span>
-        <span className="ov-leg--comp">Prefill</span>
+        <span className="ov-leg--gen">{t("Generated")}</span>
+        <span className="ov-leg--cached">{t("Cached")}</span>
+        <span className="ov-leg--comp">{t("Prefill")}</span>
       </div>
       <div className="ov-rows">
         <div className="ov-row ov-row--head">
-          <span className="ov-row__name eyebrow">Model</span>
-          <span className="ov-row__num eyebrow">Cached</span>
-          <span className="ov-row__num eyebrow">Prefill</span>
-          <span className="ov-row__num eyebrow">Gen</span>
+          <span className="ov-row__name eyebrow">{t("Model")}</span>
+          <span className="ov-row__num eyebrow">{t("Cached")}</span>
+          <span className="ov-row__num eyebrow">{t("Prefill")}</span>
+          <span className="ov-row__num eyebrow">{t("Gen")}</span>
         </div>
         {rows.length === 0 ? (
           <p className="ov-card__sub">{t("No tokens recorded in this period.")}</p>

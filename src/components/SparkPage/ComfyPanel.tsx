@@ -255,7 +255,7 @@ export function ComfyPanel({
 
   return (
     <Panel
-      title="ComfyUI"
+      title={t("ComfyUI")}
       icon={<ComfyIcon />}
       className={`panel-comfy ${className}`}
       bodyClassName="sp-stack"
@@ -418,7 +418,7 @@ export function ComfyPanel({
                   ) : null}
                   {modelsInstalled.loras.length > 0 ? (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wide text-muted">LoRAs</div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted">{t("LoRAs")}</div>
                       <ul className="mt-0.5 space-y-0.5">
                         {modelsInstalled.loras.slice(0, 12).map((m) => (
                           <li

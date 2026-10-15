@@ -528,7 +528,7 @@ function DashboardApp() {
           authMode={authMode}
         />
         <div className="side-strip" aria-hidden={!sideHidden}>
-          <button type="button" className="icon-circle" onClick={toggleSidebar} tabIndex={sideHidden ? 0 : -1} title="Show sidebar (Ctrl+B)" aria-label="Show sidebar">
+          <button type="button" className="icon-circle" onClick={toggleSidebar} tabIndex={sideHidden ? 0 : -1} title={t("Show sidebar (Ctrl+B)")} aria-label={t("Show sidebar")}>
             <PanelLeftIcon className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -538,7 +538,7 @@ function DashboardApp() {
             <a
               href={idToPath(OVERVIEW_ID)}
               className="brand"
-              aria-label="sparkDash overview"
+              aria-label={t("sparkDash overview")}
               onClick={(e) => {
                 if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
                 e.preventDefault();
@@ -549,10 +549,10 @@ function DashboardApp() {
                 <BoltIcon className="h-[17px] w-[17px]" />
               </span>
               <span>
-                spark<span className="brand__dash">Dash</span>
+                spark<span className="brand__dash">{t("Dash")}</span>
               </span>
             </a>
-            <button type="button" className="search-trigger" onClick={() => setShowPalette(true)} aria-label="Open command palette">
+            <button type="button" className="search-trigger" onClick={() => setShowPalette(true)} aria-label={t("Open command palette")}>
               <SearchIcon className="h-4 w-4" />
             </button>
             <LanguageSwitch />
@@ -697,7 +697,7 @@ function App() {
     return () => { cancelled = true; };
   }, []);
   useSmoothWheel();
-  if (!languageReady) return <div className="p-8 text-muted">加载中 / Loading…</div>;
+  if (!languageReady) return <div className="p-8 text-muted">{t("加载中 / Loading…")}</div>;
   return (
     <>
       {route.mode === "showcase" && route.showcaseSparkId ? (

@@ -1,3 +1,4 @@
+import { t, useI18n } from "../i18n";
 import { useEffect, useRef, useState } from "react";
 import type { SparkSnapshot } from "../api/types";
 import { shutdownAllSparks } from "../api/client";
@@ -10,6 +11,7 @@ import { PowerOffIcon } from "./ui/icons";
  * and in the mobile Sparks sheet, so the flow exists once.
  */
 export function ShutdownAll({ sparks, className = "" }: { sparks: SparkSnapshot[]; className?: string }) {
+  useI18n();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ text: string; tone: "ok" | "err" } | null>(null);
@@ -51,7 +53,7 @@ export function ShutdownAll({ sparks, className = "" }: { sparks: SparkSnapshot[
         type="button"
         onClick={() => setOpen(true)}
         disabled={busy || onlineCount === 0}
-        title="Shut down all online Sparks"
+        title={t("Shut down all online Sparks")}
         className={`btn btn--danger ${className}`}
       >
         <PowerOffIcon className="h-3.5 w-3.5" />
@@ -61,7 +63,7 @@ export function ShutdownAll({ sparks, className = "" }: { sparks: SparkSnapshot[
         open={open}
         onClose={() => setOpen(false)}
         onConfirm={run}
-        title="Shutdown All"
+        title={t("Shutdown All")}
         description={`Gracefully shut down all ${onlineCount} online Spark${onlineCount === 1 ? "" : "s"}? Offline nodes will be skipped.`}
         confirmLabel="Shut down all"
         warnings={shutdownWarnings(sparks)}

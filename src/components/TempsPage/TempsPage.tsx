@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getGpuHistory, type GpuHistoryResponse } from "../../api/client";
 import type { SparkSnapshot } from "../../api/types";
@@ -42,6 +43,7 @@ function writePref(value: TempsRange) {
 }
 
 export function TempsPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[]; onSelectSpark?: (id: string) => void }) {
+  useI18n();
   const [range, setRange] = useState<TempsRange>(() => parseTempsRange(readPref()));
   const [data, setData] = useState<Record<string, GpuHistoryResponse>>({});
   const [error, setError] = useState<string | null>(null);
@@ -94,14 +96,14 @@ export function TempsPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[]; 
     <div className="tp">
       <div className="page-head">
         <div>
-          <h1>Temps</h1>
+          <h1>{t("Temps")}</h1>
           <p className="page-head__sub">
             GPU temperature across the fleet over the last {rangeDef.long}. Minute-resolution history is kept for a week on
             the server, so the graphs survive a refresh.
           </p>
         </div>
         <div className="page-head__tools">
-          <div className="seg" role="group" aria-label="Time range">
+          <div className="seg" role="group" aria-label={t("Time range")}>
             {TEMPS_RANGES.map((r) => (
               <button key={r.id} type="button" aria-pressed={range === r.id} className={range === r.id ? "is-on" : ""} onClick={() => pickRange(r.id)}>
                 {r.label}
@@ -112,18 +114,18 @@ export function TempsPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[]; 
       </div>
       {error && !loaded ? (
         <section className="panel tp-state" role="alert">
-          <h2>Could not load GPU history</h2>
+          <h2>{t("Could not load GPU history")}</h2>
           <p>{error}</p>
-          <button type="button" className="btn btn--primary btn--sm" onClick={() => void load()}>Retry</button>
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => void load()}>{t("Retry")}</button>
         </section>
       ) : !loaded ? (
         <section className="panel tp-state" role="status" aria-live="polite">
-          <h2>Loading temperature history…</h2>
+          <h2>{t("Loading temperature history…")}</h2>
         </section>
       ) : withData.length === 0 ? (
         <section className="panel tp-state" role="status">
-          <h2>Warming up</h2>
-          <p>No GPU temperature was recorded in this range yet. Graphs appear as sparks report telemetry and fill in backwards over time.</p>
+          <h2>{t("Warming up")}</h2>
+          <p>{t("No GPU temperature was recorded in this range yet. Graphs appear as sparks report telemetry and fill in backwards over time.")}</p>
         </section>
       ) : (
         <div className="tp-grid">
@@ -155,6 +157,7 @@ function TempCard({
   color: string;
   onSelectSpark?: (id: string) => void;
 }) {
+  useI18n();
   const endAt = resp?.t.length ? resp.t[resp.t.length - 1] : 0;
   const series: TempSeries[] = resp ? tempSeriesOf(resp) : [];
   const multi = series.length > 1;
@@ -184,7 +187,7 @@ function TempCard({
       {lines.some((l) => l.segs.some((seg) => seg.length > 1)) ? (
         <TempSvg lines={lines} endAt={endAt} rangeMs={rangeMs} axis={[axA, axB]} />
       ) : (
-        <p className="tp-card__empty">No temperature samples in this range.</p>
+        <p className="tp-card__empty">{t("No temperature samples in this range.")}</p>
       )}
       {multi && (
         <div className="legend">
@@ -201,6 +204,7 @@ function TempCard({
 
 /** Fixed-width SVG plot on a 0–100 °C axis; the card is wide enough that one width is fine. */
 function TempSvg({ lines, endAt, rangeMs, axis }: { lines: Line[]; endAt: number; rangeMs: number; axis: [string, string] }) {
+  useI18n();
   const width = 640;
   const iw = width - PAD.l - PAD.r;
   const ih = HEIGHT - PAD.t - PAD.b;
@@ -209,7 +213,7 @@ function TempSvg({ lines, endAt, rangeMs, axis }: { lines: Line[]; endAt: number
   const yOf = (v: number) => PAD.t + ih - (Math.max(0, Math.min(100, v)) / 100) * ih;
   const d = (seg: Pt[]) => seg.map((p, i) => `${i ? "L" : "M"}${xOf(p.at).toFixed(1)} ${yOf(p.value).toFixed(1)}`).join(" ");
   return (
-    <svg width={width} height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} className="tp-plot" role="img" aria-label="GPU temperature history">
+    <svg width={width} height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} className="tp-plot" role="img" aria-label={t("GPU temperature history")}>
       {[0, 25, 50, 75, 100].map((t) => (
         <g key={t}>
           <line x1={PAD.l} x2={width - PAD.r} y1={yOf(t)} y2={yOf(t)} stroke="var(--color-border)" strokeDasharray={t ? "2 4" : undefined} />

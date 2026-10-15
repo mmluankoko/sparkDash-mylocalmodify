@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SparkSnapshot } from "../../api/types";
 import { StackedBarChart, type BarBucket, type BarSeries } from "../ui/StackedBarChart";
@@ -65,6 +66,7 @@ function legacyCopy(text: string): boolean {
 }
 
 export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[]; onSelectSpark?: (id: string) => void }) {
+  useI18n();
   const [filter, setFilter] = useState<ActivityFilter>(EMPTY_FILTER);
   const [open, setOpen] = useState<ReadonlySet<number>>(new Set());
   const [now, setNow] = useState(() => Date.now());
@@ -201,7 +203,7 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
   const timeline = (() => {
     if (feed.status === "loading") {
       return (
-        <ul className="ac-skel" aria-busy="true" aria-label="Loading activity">
+        <ul className="ac-skel" aria-busy="true" aria-label={t("Loading activity")}>
           {Array.from({ length: 8 }, (_, i) => (
             <li key={i} className="ac-skel__row">
               <i className="ac-skel__bar ac-skel__bar--s" />
@@ -215,7 +217,7 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
     if (feed.status === "error") {
       return (
         <div className="ac-state" role="alert">
-          <h3>Couldn't load activity</h3>
+          <h3>{t("Couldn't load activity")}</h3>
           <p>{feed.error}</p>
           <button type="button" className="btn btn--primary btn--sm" onClick={() => void feed.reload()}>
             Retry
@@ -226,7 +228,7 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
     if (events.length === 0) {
       return (
         <div className="ac-state">
-          <h3>Nothing recorded yet</h3>
+          <h3>{t("Nothing recorded yet")}</h3>
           <p>
             The server logs fleet events as they happen: Sparks going online or offline, GPU thermal throttling, Hermes
             updates, benchmark runs, shutdown and wake, LLM start and stop runs, and Sparks being added or removed.
@@ -237,8 +239,8 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
     if (visible.length === 0) {
       return (
         <div className="ac-state">
-          <h3>No events match your filters</h3>
-          <p>Try a wider time range or clear a filter.</p>
+          <h3>{t("No events match your filters")}</h3>
+          <p>{t("Try a wider time range or clear a filter.")}</p>
           <button type="button" className="btn btn--sm" onClick={() => setFilter(EMPTY_FILTER)}>
             Reset filters
           </button>
@@ -276,7 +278,7 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
     <div className="ac" ref={rootRef}>
       <header className="page-head">
         <div>
-          <h1>Activity</h1>
+          <h1>{t("Activity")}</h1>
           <p className="page-head__sub">
             Everything that happened across the fleet: restarts, throttling, updates, benchmarks, power and LLM runs. The
             server keeps the latest 2,000 events.
@@ -306,7 +308,7 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
         </div>
       </header>
 
-      <div className="ac-tiles" role="group" aria-label="Summary, click to filter">
+      <div className="ac-tiles" role="group" aria-label={t("Summary, click to filter")}>
         {tiles.map((t) => (
           <button
             key={t.id}
@@ -323,9 +325,9 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
         ))}
       </div>
 
-      <section className="panel ac-chart" aria-label="Events per day">
+      <section className="panel ac-chart" aria-label={t("Events per day")}>
         <div className="ac-chart__head">
-          <h2 className="panel-title">Events per day</h2>
+          <h2 className="panel-title">{t("Events per day")}</h2>
           <ul className="ac-legend">
             {SERIES.map((s) => (
               <li key={s.id}>
@@ -346,9 +348,9 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
         />
       </section>
 
-      <section className="panel ac-filters" aria-label="Filters">
+      <section className="panel ac-filters" aria-label={t("Filters")}>
         <div className="ac-filters__row">
-          <div className="ac-chips" role="group" aria-label="Severity">
+          <div className="ac-chips" role="group" aria-label={t("Severity")}>
             <button type="button" className="ac-chip" aria-pressed={filter.severities.length === 0} onClick={() => patch({ severities: [] })}>
               All <b className="mono">{SEVERITIES.reduce((n, s) => n + sevCounts[s], 0)}</b>
             </button>
@@ -366,7 +368,7 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
               </button>
             ))}
           </div>
-          <div className="seg" role="group" aria-label="Time range">
+          <div className="seg" role="group" aria-label={t("Time range")}>
             {RANGES.map((r) => (
               <button key={r.id} type="button" aria-pressed={filter.range === r.id} onClick={() => patch({ range: r.id })}>
                 {r.label}
@@ -381,14 +383,14 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
               type="search"
               value={filter.query}
               onChange={(e) => patch({ query: e.target.value })}
-              placeholder="Search message, Spark or type"
-              aria-label="Search events"
+              placeholder={t("Search message, Spark or type")}
+              aria-label={t("Search events")}
             />
           </label>
           <label className="ac-select">
-            <span className="eyebrow">Category</span>
+            <span className="eyebrow">{t("Category")}</span>
             <select value={filter.category} onChange={(e) => patch({ category: e.target.value as CategoryId | "all" })}>
-              <option value="all">All categories</option>
+              <option value="all">{t("All categories")}</option>
               {CATEGORIES.filter((c) => catCounts[c.id] > 0 || filter.category === c.id).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label} ({catCounts[c.id]})
@@ -397,15 +399,15 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
             </select>
           </label>
           <label className="ac-select">
-            <span className="eyebrow">Spark</span>
+            <span className="eyebrow">{t("Spark")}</span>
             <select value={filter.sparkId} onChange={(e) => patch({ sparkId: e.target.value })}>
-              <option value="all">All Sparks</option>
+              <option value="all">{t("All Sparks")}</option>
               {options.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.name} ({sparkCounts[o.id] ?? 0})
                 </option>
               ))}
-              {hasNoSpark ? <option value={NO_SPARK}>Fleet-wide ({sparkCounts[NO_SPARK] ?? 0})</option> : null}
+              {hasNoSpark ? <option value={NO_SPARK}>{t("Fleet-wide (")}{sparkCounts[NO_SPARK] ?? 0})</option> : null}
             </select>
           </label>
           <button type="button" className="btn btn--ghost btn--sm ac-reset" onClick={() => setFilter(EMPTY_FILTER)} disabled={!active}>
@@ -418,7 +420,7 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
       <div className="ac-count" role="status" aria-live="polite">
         {feed.status === "ready" ? (
           <>
-            Showing <b className="mono">{visible.length}</b> of <b className="mono">{events.length}</b> loaded events
+            Showing <b className="mono">{visible.length}</b> {t("of")} <b className="mono">{events.length}</b> loaded events
             {active ? " (filtered)" : ""}
           </>
         ) : (
@@ -430,7 +432,7 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
       {away && unseen > 0 ? (
         <div className="ac-newbar">
           <button type="button" className="btn btn--primary btn--sm" onClick={jumpToNewest}>
-            {unseen} new event{unseen === 1 ? "" : "s"}, jump to top
+            {unseen} {t("new event")}{unseen === 1 ? "" : "s"}, jump to top
           </button>
         </div>
       ) : null}
@@ -440,13 +442,13 @@ export function ActivityPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[
       {feed.status === "ready" && events.length > 0 ? (
         <div className="ac-more">
           {feed.reachedOldest ? (
-            <p className="ac-more__end">You've reached the oldest event the server kept.</p>
+            <p className="ac-more__end">{t("You've reached the oldest event the server kept.")}</p>
           ) : (
             <>
               <button type="button" className="btn btn--sm" onClick={() => void feed.loadOlder()} disabled={feed.loadingMore}>
                 {feed.loadingMore ? "Loading…" : "Load older"}
               </button>
-              {active ? <p className="ac-more__hint">Filters apply to the events loaded so far.</p> : null}
+              {active ? <p className="ac-more__hint">{t("Filters apply to the events loaded so far.")}</p> : null}
               {feed.moreError ? (
                 <p className="ac-more__err" role="alert">
                   Couldn't load older events: {feed.moreError}

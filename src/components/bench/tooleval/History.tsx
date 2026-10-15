@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ToolEvalRun } from "../../../api/types";
 import { Tag } from "../../ui/Tag";
@@ -32,6 +33,7 @@ function headline(run: ToolEvalRun): string {
 
 /** Runs of this page type on this Spark, with open / re-run / delete and a two-run compare. */
 export function History({ sparkId, sparkName, runs, error, followedId, viewedId, onReload, onOpen, onRerun, onDelete, onRefresh, onAttach }: HistoryProps) {
+  useI18n();
   const [picked, setPicked] = useState<string[]>([]);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -43,14 +45,14 @@ export function History({ sparkId, sparkName, runs, error, followedId, viewedId,
   }, [picked, runs]);
 
   if (error && !runs) {
-    return <Notice tone="bad" title="Could not load the history" actions={<button type="button" className="btn btn--sm" onClick={onReload}>Retry</button>}>{error}</Notice>;
+    return <Notice tone="bad" title={t("Could not load the history")} actions={<button type="button" className="btn btn--sm" onClick={onReload}>{t("Retry")}</button>}>{error}</Notice>;
   }
   if (!runs) return <Skeleton lines={4} className="te-card te-card--pad" />;
   if (!runs.length) {
     return (
       <div className="te-empty te-empty--big">
-        <b>No runs yet</b>
-        <p>Runs of this benchmark on {sparkName} show up here with their results, so you can open, re-run and compare them.</p>
+        <b>{t("No runs yet")}</b>
+        <p>{t("Runs of this benchmark on")} {sparkName} {t("show up here with their results, so you can open, re-run and compare them.")}</p>
       </div>
     );
   }
@@ -66,7 +68,7 @@ export function History({ sparkId, sparkName, runs, error, followedId, viewedId,
           const dur = r.finishedAt ? (r.finishedAt - r.startedAt) / 1000 : null;
           return (
             <li key={r.id} className={`te-run ${viewedId === r.id ? "is-viewed" : ""}`}>
-              <label className="te-run__pick" title="Select for comparison">
+              <label className="te-run__pick" title={t("Select for comparison")}>
                 <input type="checkbox" checked={picked.includes(r.id)} onChange={() => toggle(r.id)} aria-label={`Compare run from ${fmtDate(r.startedAt)}`} />
               </label>
               <div className="te-run__main">
@@ -88,7 +90,7 @@ export function History({ sparkId, sparkName, runs, error, followedId, viewedId,
               <div className="te-run__actions">
                 {confirmDel === r.id ? (
                   <>
-                    <span className="te-confirm-text">Delete this run?</span>
+                    <span className="te-confirm-text">{t("Delete this run?")}</span>
                     <button
                       type="button"
                       className="btn btn--sm btn--danger"
@@ -103,15 +105,15 @@ export function History({ sparkId, sparkName, runs, error, followedId, viewedId,
                     >
                       Delete
                     </button>
-                    <button type="button" className="btn btn--sm" onClick={() => setConfirmDel(null)}>Cancel</button>
+                    <button type="button" className="btn btn--sm" onClick={() => setConfirmDel(null)}>{t("Cancel")}</button>
                   </>
                 ) : (
                   <>
-                    <button type="button" className="btn btn--sm" onClick={() => onOpen(r)}>Open</button>
-                    <button type="button" className="btn btn--sm btn--ghost" onClick={() => onRerun(r)} title="Load these options into the form">Re-run…</button>
+                    <button type="button" className="btn btn--sm" onClick={() => onOpen(r)}>{t("Open")}</button>
+                    <button type="button" className="btn btn--sm btn--ghost" onClick={() => onRerun(r)} title={t("Load these options into the form")}>{t("Re-run…")}</button>
                     {stuck ? (
                       <>
-                        <button type="button" className="btn btn--sm btn--ghost" onClick={() => onAttach(r)}>Watch</button>
+                        <button type="button" className="btn btn--sm btn--ghost" onClick={() => onAttach(r)}>{t("Watch")}</button>
                         <button
                           type="button"
                           className="btn btn--sm btn--ghost"
@@ -121,7 +123,7 @@ export function History({ sparkId, sparkName, runs, error, followedId, viewedId,
                             await onRefresh(r);
                             setBusyId(null);
                           }}
-                          title="Ask the Spark whether this run has finished"
+                          title={t("Ask the Spark whether this run has finished")}
                         >
                           {busyId === r.id ? "Checking…" : "Refresh status"}
                         </button>
@@ -137,7 +139,7 @@ export function History({ sparkId, sparkName, runs, error, followedId, viewedId,
           );
         })}
       </ul>
-      {picked.length === 1 ? <p className="te-faint">Select one more run to compare.</p> : null}
+      {picked.length === 1 ? <p className="te-faint">{t("Select one more run to compare.")}</p> : null}
       {pair ? <ComparePanel key={`${pair[0].id}:${pair[1].id}`} sparkId={sparkId} a={pair[0]} b={pair[1]} /> : null}
     </div>
   );
@@ -145,6 +147,7 @@ export function History({ sparkId, sparkName, runs, error, followedId, viewedId,
 
 /** Two runs side by side: deltas, categories and changed scenarios (or changed metrics for other result types). */
 function ComparePanel({ sparkId, a, b }: { sparkId: string; a: ToolEvalRun; b: ToolEvalRun }) {
+  useI18n();
   const [swapped, setSwapped] = useState(false);
   const ref = useRef<HTMLElement>(null);
   // Picking the second run opens the comparison: bring it into view.
@@ -162,12 +165,12 @@ function ComparePanel({ sparkId, a, b }: { sparkId: string; a: ToolEvalRun; b: T
   const generic = !tool && ra.result && rb.result ? compareGeneric(ra.result, rb.result) : null;
 
   return (
-    <section ref={ref} className="panel te-card te-compare" aria-label="Run comparison">
+    <section ref={ref} className="panel te-card te-compare" aria-label={t("Run comparison")}>
       <div className="te-card__head">
-        <h2>Compare</h2>
+        <h2>{t("Compare")}</h2>
       </div>
       {caveats.length ? (
-        <Notice tone="warn" title="These runs are not directly comparable">
+        <Notice tone="warn" title={t("These runs are not directly comparable")}>
           <ul className="te-list">
             {caveats.map((c) => (
               <li key={c}>{c}</li>
@@ -176,17 +179,17 @@ function ComparePanel({ sparkId, a, b }: { sparkId: string; a: ToolEvalRun; b: T
           Differences like these can explain a change in score on their own.
         </Notice>
       ) : (
-        <p className="te-ok">Same model, endpoint and options: a fair comparison.</p>
+        <p className="te-ok">{t("Same model, endpoint and options: a fair comparison.")}</p>
       )}
       {loading ? <Skeleton lines={4} /> : null}
-      {error ? <Notice tone="bad" title="A result could not be loaded">{error}</Notice> : null}
+      {error ? <Notice tone="bad" title={t("A result could not be loaded")}>{error}</Notice> : null}
       {tool ? <SideBySide a={tool.a} b={tool.b} runA={swapped ? b : a} runB={swapped ? a : b} onSwap={() => setSwapped((v) => !v)} /> : null}
       {generic ? (
         generic.changed.length ? (
           <div className="te-tablewrap">
             <table className="te-table">
               <thead>
-                <tr><th scope="col">Metric</th><th scope="col" className="is-num">A</th><th scope="col" className="is-num">B</th><th scope="col" className="is-num">Change</th></tr>
+                <tr><th scope="col">{t("Metric")}</th><th scope="col" className="is-num">A</th><th scope="col" className="is-num">B</th><th scope="col" className="is-num">{t("Change")}</th></tr>
               </thead>
               <tbody>
                 {generic.changed.map((m) => (
@@ -199,13 +202,13 @@ function ComparePanel({ sparkId, a, b }: { sparkId: string; a: ToolEvalRun; b: T
                 ))}
               </tbody>
             </table>
-            <p className="te-faint">{generic.same} numbers are identical.</p>
+            <p className="te-faint">{generic.same} {t("numbers are identical.")}</p>
           </div>
         ) : (
-          <p className="te-empty">No numbers differ between these runs.</p>
+          <p className="te-empty">{t("No numbers differ between these runs.")}</p>
         )
       ) : null}
-      {!loading && !error && !tool && !generic ? <p className="te-empty">Nothing to compare yet.</p> : null}
+      {!loading && !error && !tool && !generic ? <p className="te-empty">{t("Nothing to compare yet.")}</p> : null}
     </section>
   );
 }

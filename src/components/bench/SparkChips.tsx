@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { createContext, useContext, type ReactNode } from "react";
 import type { SparkSnapshot } from "../../api/types";
 import { isWorkerSpark } from "../../api/sparkRole";
@@ -22,6 +23,7 @@ interface SparkChipsProps {
 
 /** One chip per Spark, with a status dot; the chosen one is highlighted. */
 export function SparkChips({ sparks, activeId, onSelect, extra, ariaLabel = "Spark to benchmark" }: SparkChipsProps) {
+  useI18n();
   return (
     <div className="bench-runon__chips" role="group" aria-label={ariaLabel}>
       {sparks.map((s) => (
@@ -35,7 +37,7 @@ export function SparkChips({ sparks, activeId, onSelect, extra, ariaLabel = "Spa
         >
           <i className={`sdot ${s.online ? "" : "sdot--warn"}`} aria-hidden />
           {s.name}
-          {isWorkerSpark(s) ? <small className="bench-runon__tag">worker</small> : null}
+          {isWorkerSpark(s) ? <small className="bench-runon__tag">{t("worker")}</small> : null}
         </button>
       ))}
       {extra}

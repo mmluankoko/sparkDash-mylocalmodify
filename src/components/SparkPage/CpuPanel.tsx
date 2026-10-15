@@ -58,7 +58,7 @@ export function CpuPanel({ cpu, hardware, sparkId, temperatureUnit, className }:
 
   return (
     <Panel
-      title="CPU"
+      title={t("CPU")}
       hint={
         socPackage
           ? "ACPI package zone (TSOC on GB10). This is the SoC, not a CPU die and not the GPU junction temperature from nvidia-smi."

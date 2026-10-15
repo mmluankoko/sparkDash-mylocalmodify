@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useState } from "react";
 import { BoltIcon } from "../ui/icons";
 
@@ -38,6 +39,7 @@ function isIOS(): boolean {
 type BannerKind = "none" | "native" | "ios";
 
 export function InstallPrompt() {
+  useI18n();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [kind, setKind] = useState<BannerKind>("none");
   const [busy, setBusy] = useState(false);
@@ -136,7 +138,7 @@ export function InstallPrompt() {
   return (
     <div
       role="dialog"
-      aria-label="Install sparkDash"
+      aria-label={t("Install sparkDash")}
       className="fixed inset-x-3 bottom-[76px] z-50 mx-auto flex max-w-md items-center gap-3 rounded-xl border p-3 shadow-lg sm:inset-x-auto sm:bottom-4 sm:left-4"
       style={{
         background: "var(--color-surface-elevated)",
@@ -171,15 +173,15 @@ export function InstallPrompt() {
             Install sparkDash on your iPhone
           </span>
           <span className="mt-0.5 block text-xs" style={{ color: "var(--color-muted)" }}>
-            Tap the <strong>Share</strong> icon <span aria-hidden>⬆︎</span> in Safari, then{" "}
-            <strong>Add to Home Screen</strong>.
+            Tap the <strong>{t("Share")}</strong> {t("icon")} <span aria-hidden>⬆︎</span> {t("in Safari, then")}{" "}
+            <strong>{t("Add to Home Screen")}</strong>.
           </span>
         </div>
       )}
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Dismiss"
+        aria-label={t("Dismiss")}
         className="shrink-0 rounded-md px-1.5 py-1 text-sm"
         style={{ color: "var(--color-muted)" }}
       >

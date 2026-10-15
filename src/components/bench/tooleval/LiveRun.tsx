@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ToolEvalRun } from "../../../api/types";
 import { Tag } from "../../ui/Tag";
@@ -36,6 +37,7 @@ const CHIP: Record<string, "good" | "warn" | "bad" | "neutral"> = { pass: "good"
 
 /** Progress of the run being followed: counters, current scenario, per-scenario list, raw output, and the stop controls. */
 export function LiveRun({ followed, polling, pollError, actionError, scenarioMode, onStop, onStopWatching, onAttach, onRefresh, onDismiss, onViewResult }: LiveRunProps) {
+  useI18n();
   const { run, job, progress, lines, events, partial, noLive } = followed;
   const jobRunning = job?.status === "running";
   const running = run.status === "running" && (jobRunning || (polling && !job));
@@ -96,7 +98,7 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
   })();
 
   return (
-    <section className="panel te-card te-live" aria-label="Run progress">
+    <section className="panel te-card te-live" aria-label={t("Run progress")}>
       <div className="te-card__head">
         <div>
           <div className="eyebrow">{finished ? "Last run" : "Run in progress"}</div>
@@ -107,11 +109,11 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
         </div>
         <div className="te-live__tags">
           <Tag tone={statusTone(run.status)}>{statusLabel(run.status, jobRunning)}</Tag>
-          {p?.model || run.model ? <Tag tone="neutral" title="Model">{p?.model ?? run.model}</Tag> : null}
+          {p?.model || run.model ? <Tag tone="neutral" title={t("Model")}>{p?.model ?? run.model}</Tag> : null}
         </div>
       </div>
 
-      <div className="te-progress" role="group" aria-label="Progress">
+      <div className="te-progress" role="group" aria-label={t("Progress")}>
         <div
           className={`te-bar ${pct == null && running ? "is-indeterminate" : ""}`}
           role="progressbar"
@@ -123,20 +125,20 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
           <i className={err || run.status === "failed" ? "is-bad" : undefined} style={pct != null ? { width: `${pct}%` } : finished ? { width: "100%" } : undefined} />
         </div>
         <div className="te-progress__meta" aria-live="polite">
-          <span>{total ? <><b className="mono">{done}</b> / {total} scenarios</> : phaseText}</span>
+          <span>{total ? <><b className="mono">{done}</b> / {total} {t("scenarios")}</> : phaseText}</span>
           <span className="te-faint">
-            {fmtDuration(elapsed)} elapsed{eta != null ? ` · about ${fmtDuration(eta)} left` : ""}
+            {fmtDuration(elapsed)} {t("elapsed")}{eta != null ? ` · about ${fmtDuration(eta)} left` : ""}
           </span>
         </div>
       </div>
 
       {scenarioMode && p ? (
         <div className="te-counters">
-          <span className="te-counter-chip is-pass"><b>{p.counts.pass}</b> pass</span>
-          <span className="te-counter-chip is-partial"><b>{p.counts.partial}</b> partial</span>
-          <span className="te-counter-chip is-fail"><b>{p.counts.fail}</b> fail</span>
-          {p.counts.other ? <span className="te-counter-chip"><b>{p.counts.other}</b> other</span> : null}
-          <span className="te-faint te-counters__pts">{p.points} points</span>
+          <span className="te-counter-chip is-pass"><b>{p.counts.pass}</b> {t("pass")}</span>
+          <span className="te-counter-chip is-partial"><b>{p.counts.partial}</b> {t("partial")}</span>
+          <span className="te-counter-chip is-fail"><b>{p.counts.fail}</b> {t("fail")}</span>
+          {p.counts.other ? <span className="te-counter-chip"><b>{p.counts.other}</b> {t("other")}</span> : null}
+          <span className="te-faint te-counters__pts">{p.points} {t("points")}</span>
         </div>
       ) : null}
 
@@ -155,7 +157,7 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
       ) : null}
 
       {notes.length ? (
-        <Notice tone="info" title="Good to know">
+        <Notice tone="info" title={t("Good to know")}>
           {notes.map((n) => (
             <p key={n.key}>{n.text}</p>
           ))}
@@ -167,15 +169,15 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
           {err ? explainErrorCode(err.code, err.message) : errLines.length ? errLines.map((l) => l.text).join(" / ") : "Open the raw output below for details."}
         </Notice>
       ) : null}
-      {run.status === "stopped" ? <Notice tone="warn" title="The run was stopped">It stopped before finishing, so there may be no result.</Notice> : null}
+      {run.status === "stopped" ? <Notice tone="warn" title={t("The run was stopped")}>{t("It stopped before finishing, so there may be no result.")}</Notice> : null}
       {job?.status === "detached" || (lostWatch && job) ? (
         <Notice
           tone="warn"
-          title="Lost the live view"
+          title={t("Lost the live view")}
           actions={
             <>
-              <button type="button" className="btn btn--sm" onClick={() => onAttach(run)}>Re-attach</button>
-              <button type="button" className="btn btn--sm btn--ghost" onClick={() => onRefresh(run)}>Check status</button>
+              <button type="button" className="btn btn--sm" onClick={() => onAttach(run)}>{t("Re-attach")}</button>
+              <button type="button" className="btn btn--sm btn--ghost" onClick={() => onRefresh(run)}>{t("Check status")}</button>
             </>
           }
         >
@@ -188,15 +190,15 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
           title={noLive ? "Not watching this run" : "Run is detached"}
           actions={
             <>
-              <button type="button" className="btn btn--sm" onClick={() => onAttach(run)}>Watch again</button>
-              <button type="button" className="btn btn--sm btn--ghost" onClick={() => onRefresh(run)}>Check status</button>
+              <button type="button" className="btn btn--sm" onClick={() => onAttach(run)}>{t("Watch again")}</button>
+              <button type="button" className="btn btn--sm btn--ghost" onClick={() => onRefresh(run)}>{t("Check status")}</button>
             </>
           }
         >
           The run continues on the Spark. Watch it again to see its progress, or check whether it has finished.
         </Notice>
       ) : null}
-      {pollError ? <Notice tone="warn" title="Connection to sparkDash lost, retrying…">{pollError}</Notice> : null}
+      {pollError ? <Notice tone="warn" title={t("Connection to sparkDash lost, retrying…")}>{pollError}</Notice> : null}
       {actionError ? <Notice tone="bad">{actionError}</Notice> : null}
 
       {scenarioMode && p && p.scenarios.length ? (
@@ -206,7 +208,7 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
             listRef.current = el;
           }}
           className={`te-scn-list${running ? " is-live" : ""}`}
-          aria-label="Scenarios so far"
+          aria-label={t("Scenarios so far")}
           onScroll={(e) => {
             const el = e.currentTarget;
             pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
@@ -223,7 +225,7 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
         </ul>
       ) : null}
       {!scenarioMode && events.length ? (
-        <ul className="te-events" aria-label="Recent activity">
+        <ul className="te-events" aria-label={t("Recent activity")}>
           {events.slice(-6).map((e) => (
             <li key={e.seq}>
               <span className="mono">{e.event}</span>
@@ -237,7 +239,7 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
         {running ? (
           confirmStop ? (
             <>
-              <span className="te-confirm-text">Stop this run on the Spark? Partial results are lost.</span>
+              <span className="te-confirm-text">{t("Stop this run on the Spark? Partial results are lost.")}</span>
               <button
                 type="button"
                 className="btn btn--danger"
@@ -249,28 +251,28 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
               >
                 {stopping ? "Stopping…" : "Yes, stop it"}
               </button>
-              <button type="button" className="btn" onClick={() => setConfirmStop(false)}>Keep running</button>
+              <button type="button" className="btn" onClick={() => setConfirmStop(false)}>{t("Keep running")}</button>
             </>
           ) : (
             <>
-              <button type="button" className="btn btn--danger" onClick={() => setConfirmStop(true)}>Stop run</button>
-              <button type="button" className="btn btn--ghost" onClick={onStopWatching} title="The run keeps going on the Spark; you can watch it again from the history.">
+              <button type="button" className="btn btn--danger" onClick={() => setConfirmStop(true)}>{t("Stop run")}</button>
+              <button type="button" className="btn btn--ghost" onClick={onStopWatching} title={t("The run keeps going on the Spark; you can watch it again from the history.")}>
                 Stop watching
               </button>
             </>
           )
         ) : null}
-        {finished && run.status === "completed" ? <button type="button" className="btn btn--primary" onClick={() => onViewResult(run)}>View result</button> : null}
-        {finished ? <button type="button" className="btn btn--ghost" onClick={onDismiss}>Dismiss</button> : null}
+        {finished && run.status === "completed" ? <button type="button" className="btn btn--primary" onClick={() => onViewResult(run)}>{t("View result")}</button> : null}
+        {finished ? <button type="button" className="btn btn--ghost" onClick={onDismiss}>{t("Dismiss")}</button> : null}
         <button type="button" className="btn btn--ghost te-actions__end" aria-expanded={showTerm} onClick={() => setShowTerm((s) => !s)}>
           {showTerm ? "Hide raw output" : `Raw output (${lines.length})`}
         </button>
       </div>
-      {running ? <p className="te-faint">Stop watching leaves the run going on the Spark; it will show up under History and can be re-attached.</p> : null}
+      {running ? <p className="te-faint">{t("Stop watching leaves the run going on the Spark; it will show up under History and can be re-attached.")}</p> : null}
       {showTerm ? (
         <div className="te-live__term">
           <div className="te-json__bar">
-            <span className="te-faint">stderr lines are dimmed. Messages about features the server lacks (an HTTP 400, “rejected”) are the tool probing it, not a failure.</span>
+            <span className="te-faint">{t("stderr lines are dimmed. Messages about features the server lacks (an HTTP 400, “rejected”) are the tool probing it, not a failure.")}</span>
             <CopyButton text={() => linesText(lines, partial)} label="Copy output" />
           </div>
           <RunTerminal lines={lines} partial={partial} running={running} />

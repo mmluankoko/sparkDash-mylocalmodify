@@ -105,14 +105,14 @@ function GpuDeviceRow({
         <Tag tone={chip.tone}>{chip.label}</Tag>
       </div>
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span className="text-muted">Usage</span>
+        <span className="text-muted">{t("Usage")}</span>
         <div className="flex items-center gap-2">
           <Sparkline data={usageHistory} color="var(--color-accent)" width={84} height={16} />
           <span className="font-tabular text-text">{d.metricAvailability?.usage === false ? "—" : `${d.usage}%`}</span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span className="text-muted">Temperature</span>
+        <span className="text-muted">{t("Temperature")}</span>
         <div className="flex items-center gap-2">
           <Sparkline data={tempHistory} color={tempColor} width={84} height={16} />
           <span className="font-tabular" style={{ color: tempColor }}>{tempLabel}</span>
@@ -127,7 +127,7 @@ function GpuDeviceRow({
       {breakdown ? (
         <VramBreakdownBar label="VRAM" breakdown={breakdown} showLegend />
       ) : d.metricAvailability?.vramUsed === false || d.metricAvailability?.vramTotal === false ? (
-        <div className="flex justify-between text-xs"><span className="text-muted">VRAM</span><span className="font-tabular text-text">—</span></div>
+        <div className="flex justify-between text-xs"><span className="text-muted">{t("VRAM")}</span><span className="font-tabular text-text">—</span></div>
       ) : d.vram.total > 0 ? (
         <MetricBar
           label="VRAM"
@@ -137,7 +137,7 @@ function GpuDeviceRow({
         />
       ) : (
         <div className="flex justify-between text-xs">
-          <span className="text-muted">VRAM</span>
+          <span className="text-muted">{t("VRAM")}</span>
           <span className="font-tabular text-text">
             {d.vram.used > 0 ? `${formatMb(d.vram.used)} used` : "—"}
           </span>
@@ -197,7 +197,7 @@ export function GpuPanel({
       className={`panel-gpu ${className ?? ""}`}
       bodyClassName="sp-stack"
       actions={
-        <div className="seg" role="group" aria-label="Chart window">
+        <div className="seg" role="group" aria-label={t("Chart window")}>
           {GPU_CHART_WINDOWS.map((w) => (
             <button
               key={w.id}
@@ -223,7 +223,7 @@ export function GpuPanel({
           className="sp-gpu-top__ring"
         />
         <div className="sp-stat">
-          <span className="eyebrow">Temperature</span>
+          <span className="eyebrow">{t("Temperature")}</span>
           <div className="big-num">
             {temperatureAvailable ? displayTemp : "—"}
             {temperatureAvailable ? <small>{tempUnit}</small> : null}
@@ -237,18 +237,18 @@ export function GpuPanel({
             {metrics?.powerDraw === false ? null : <small>{metrics?.powerLimit === false ? "W" : powerLimit > 0 ? `/ ${powerLimit} W` : "W"}</small>}
           </div>
           {systemDraw != null && systemDraw > 0 ? (
-            <span className="sp-stat__sub mono">System ≈ {systemDraw} W</span>
+            <span className="sp-stat__sub mono">{t("System ≈")} {systemDraw} W</span>
           ) : null}
         </div>
         <div className="sp-stat" title={th?.detail ?? undefined}>
-          <span className="eyebrow">SM clock</span>
+          <span className="eyebrow">{t("SM clock")}</span>
           <div className="big-num">
             {clock.value}
             <small>{clock.unit}</small>
           </div>
           <Tag tone={throttle.tone}>{t(throttle.label)}</Tag>
           {th?.clockCapMHz != null ? (
-            <span className="sp-stat__sub mono" title="Locked with nvidia-smi -lgc">
+            <span className="sp-stat__sub mono" title={t("Locked with nvidia-smi -lgc")}>
               cap {th.clockCapMHz} MHz
             </span>
           ) : null}
@@ -258,9 +258,9 @@ export function GpuPanel({
       <GpuHistoryChart sparkId={sparkId} gpu={gpu} windowMs={windowMs} />
       {!multiGpu && (
         <div className="legend">
-          <span className="c-accent">GPU utilization %</span>
+          <span className="c-accent">{t("GPU utilization %")}</span>
           <span className="c-violet">{t("Power % of limit")}</span>
-          <span className="c-info">Temperature °C</span>
+          <span className="c-info">{t("Temperature °C")}</span>
         </div>
       )}
 
@@ -286,7 +286,7 @@ export function GpuPanel({
       {gpu && !hideMemory && (
         <div className="sp-section">
           {!vramAvailable ? (
-            <div className="sp-stat"><span className="eyebrow">VRAM</span><span className="mono">—</span></div>
+            <div className="sp-stat"><span className="eyebrow">{t("VRAM")}</span><span className="mono">—</span></div>
           ) : breakdown ? (
             <>
               <VramBreakdownBar
@@ -301,7 +301,7 @@ export function GpuPanel({
                 showLegend
               />
               <div className="sp-row">
-                <span className="text-muted">Available</span>
+                <span className="text-muted">{t("Available")}</span>
                 <span className={`mono ${headroomTextClass(breakdown.tone)}`}>
                   {formatMb(breakdown.freeMB)}
                 </span>
@@ -318,14 +318,14 @@ export function GpuPanel({
               />
               {gpu.vram.available > 0 && (
                 <div className="sp-row">
-                  <span className="text-muted">Available</span>
+                  <span className="text-muted">{t("Available")}</span>
                   <span className="mono text-text">{formatMb(gpu.vram.available)}</span>
                 </div>
               )}
             </>
           ) : (
             <div className="sp-row">
-              <span className="text-muted">VRAM</span>
+              <span className="text-muted">{t("VRAM")}</span>
               <span className="mono text-text">{vramUsed > 0 ? `${formatMb(vramUsed)} used` : "—"}</span>
             </div>
           )}
@@ -335,9 +335,9 @@ export function GpuPanel({
       {(gpu?.nvErrNoMemory ?? 0) > 0 && (
         <div
           className="sp-row"
-          title="NVRM kernel NV_ERR_NO_MEMORY lines since boot (journal). GPU memory allocation failures under pressure."
+          title={t("NVRM kernel NV_ERR_NO_MEMORY lines since boot (journal). GPU memory allocation failures under pressure.")}
         >
-          <span className="text-muted">GPU memory allocation errors since boot</span>
+          <span className="text-muted">{t("GPU memory allocation errors since boot")}</span>
           <span className="mono font-semibold text-danger">{gpu?.nvErrNoMemory}</span>
         </div>
       )}
@@ -361,9 +361,9 @@ export function GpuProcessTable({
     <table className="sp-table">
       <thead>
         <tr>
-          <th>PID</th>
-          <th>Process</th>
-          <th className="r">Memory</th>
+          <th>{t("PID")}</th>
+          <th>{t("Process")}</th>
+          <th className="r">{t("Memory")}</th>
         </tr>
       </thead>
       <tbody>

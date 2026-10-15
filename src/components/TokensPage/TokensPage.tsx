@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { fetchTokenHistory, resetTokenTotals } from "../../api/client";
 import { ClearMenu, type ClearChoice } from "../ui/ClearMenu";
@@ -57,6 +58,7 @@ interface Loaded {
 }
 
 export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[]; onSelectSpark?: (id: string) => void }) {
+  useI18n();
   const [range, setRange] = useState<RangeKey>("7d");
   const [groupBy, setGroupBy] = useState<GroupBy>("type");
   const [data, setData] = useState<Loaded | null>(null);
@@ -199,11 +201,11 @@ export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[];
     <div className="tk">
       <header className="page-head">
         <div>
-          <h1>Token totals</h1>
-          <p className="page-head__sub">What your Sparks generated and read, by type, model and endpoint, built from the counters sparkDash polls from each inference engine.</p>
+          <h1>{t("Token totals")}</h1>
+          <p className="page-head__sub">{t("What your Sparks generated and read, by type, model and endpoint, built from the counters sparkDash polls from each inference engine.")}</p>
         </div>
         <div className="page-head__tools">
-          <div className="seg" role="group" aria-label="Time range">
+          <div className="seg" role="group" aria-label={t("Time range")}>
             {RANGES.map((r) => (
               <button key={r.key} type="button" className={r.key === range ? "is-on" : undefined} aria-pressed={r.key === range} onClick={() => setRange(r.key)}>
                 {r.label}
@@ -260,8 +262,8 @@ export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[];
                   </p>
                 </div>
                 <div className="tk-card__tools">
-                  <span className="eyebrow">Group by</span>
-                  <div className="seg" role="group" aria-label="Group chart by">
+                  <span className="eyebrow">{t("Group by")}</span>
+                  <div className="seg" role="group" aria-label={t("Group chart by")}>
                     {GROUPS.map((g) => (
                       <button key={g.key} type="button" className={g.key === groupBy ? "is-on" : undefined} aria-pressed={g.key === groupBy} onClick={() => setGroupBy(g.key)}>
                         {g.label}
@@ -300,7 +302,7 @@ export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[];
                   ))}
                 </ul>
               ) : (
-                <p className="tk-card__sub">Insights appear once there is traffic in {spec.phrase}.</p>
+                <p className="tk-card__sub">{t("Insights appear once there is traffic in")} {spec.phrase}.</p>
               )}
             </section>
           </div>
@@ -314,7 +316,7 @@ export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[];
                       By model
                     </h2>
                     <p className="tk-card__sub">
-                      {view.models.length} model{view.models.length === 1 ? "" : "s"} in {spec.phrase}. Click a column to sort.
+                      {view.models.length} {t("model")}{view.models.length === 1 ? "" : "s"} {t("in")} {spec.phrase}. Click a column to sort.
                     </p>
                   </div>
                 </div>
@@ -327,7 +329,7 @@ export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[];
                     <h2 id="tk-eps-title" className="tk-card__title">
                       By Spark and endpoint
                     </h2>
-                    <p className="tk-card__sub">One row per Spark and inference port. Select a Spark to open it.</p>
+                    <p className="tk-card__sub">{t("One row per Spark and inference port. Select a Spark to open it.")}</p>
                   </div>
                 </div>
                 <EndpointTable rows={view.endpoints} sparkName={sparkName} knownSpark={knownSpark} onSelectSpark={onSelectSpark} />
@@ -335,7 +337,7 @@ export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[];
             </>
           ) : (
             <section className="panel tk-note" role="status">
-              <b>No token traffic in {spec.phrase}.</b>
+              <b>{t("No token traffic in")} {spec.phrase}.</b>
               <span>
                 {view.hasRetainedHistory
                   ? " Try a longer range."
@@ -350,7 +352,7 @@ export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[];
             </h2>
             <ul>
               <li>
-                Daily buckets are <b>UTC days</b>; hourly buckets are UTC hours shown in the time zone from Settings (browser default).
+                Daily buckets are <b>{t("UTC days")}</b>; hourly buckets are UTC hours shown in the time zone from Settings (browser default).
                 {data?.history.firstDay ? (
                   <>
                     {" "}
@@ -358,20 +360,20 @@ export function TokensPage({ sparks, onSelectSpark }: { sparks: SparkSnapshot[];
                   </>
                 ) : null}
               </li>
-              <li>Counters that go backwards (an engine restart) are re-seeded from the new value, so a restart never inflates totals. Tokens served right before a restart can be missed.</li>
+              <li>{t("Counters that go backwards (an engine restart) are re-seeded from the new value, so a restart never inflates totals. Tokens served right before a restart can be missed.")}</li>
               <li>
-                Hourly history is kept for {data?.history.retention.hours ?? 72} hours and daily history for {data?.history.retention.days ?? 35} days. The hourly view only has data from when
+                Hourly history is kept for {data?.history.retention.hours ?? 72} {t("hours and daily history for")} {data?.history.retention.days ?? 35} days. The hourly view only has data from when
                 it was first recorded.
               </li>
               <li>
-                <b>All time</b> is the lifetime total since tracking began{data?.lifetime ? "" : " (unavailable right now, so the retained days are summed instead)"}; its chart shows the retained daily
+                <b>{t("All time")}</b> {t("is the lifetime total since tracking began")}{data?.lifetime ? "" : " (unavailable right now, so the retained days are summed instead)"}; its chart shows the retained daily
                 buckets.
               </li>
               <li>
                 Generated = tokens the model wrote. Prompt = tokens it read. Cached prefill is the part of the prompt served from the prefix cache; computed prefill is the rest. Engines that do not report cache
                 hits count as zero cached.
               </li>
-              {view.w.prevKeys.length === 0 && spec.count != null ? <li>No change-vs-previous figures are shown because the previous {spec.phrase.replace("the last ", "")} were not fully tracked.</li> : null}
+              {view.w.prevKeys.length === 0 && spec.count != null ? <li>{t("No change-vs-previous figures are shown because the previous")} {spec.phrase.replace("the last ", "")} {t("were not fully tracked.")}</li> : null}
             </ul>
           </section>
         </>
@@ -405,6 +407,7 @@ function Tile({ label, value, unit, sub, delta, title }: { label: string; value:
 }
 
 function Tiles({ s, cmp, spec }: { s: Summary; cmp: Comparison | null; spec: (typeof RANGES)[number] }) {
+  useI18n();
   const per = spec.unit === "hour" ? "hour" : "day";
   const prevWord = `prev. ${spec.phrase.replace("the last ", "")}`;
   const ratio = s.genPerPrompt != null && s.generated > 0 ? s.prompt / s.generated : null;
@@ -429,7 +432,7 @@ function Tiles({ s, cmp, spec }: { s: Summary; cmp: Comparison | null; spec: (ty
         label="Cache hit rate"
         value={s.cacheRate == null ? "—" : fmtPct(s.cacheRate)}
         sub={s.cacheRate == null ? "Needs prompt data" : s.cached > 0 ? `The prefix cache saved ${fmt(s.cached)} prefill tokens` : "The prefix cache saved nothing"}
-        delta={cmp?.cachePoints != null ? <span className={`tk-delta ${Math.abs(cmp.cachePoints) < 0.5 ? "" : cmp.cachePoints > 0 ? "is-up" : "is-down"}`}>{cmp.cachePoints >= 0 ? "+" : "−"}{Math.abs(cmp.cachePoints).toFixed(1)} pts vs {prevWord}</span> : null}
+        delta={cmp?.cachePoints != null ? <span className={`tk-delta ${Math.abs(cmp.cachePoints) < 0.5 ? "" : cmp.cachePoints > 0 ? "is-up" : "is-down"}`}>{cmp.cachePoints >= 0 ? "+" : "−"}{Math.abs(cmp.cachePoints).toFixed(1)} {t("pts vs")} {prevWord}</span> : null}
       />
       <Tile
         label="Output : input"

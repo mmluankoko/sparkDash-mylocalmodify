@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useState } from "react";
 import type { RoceDevice, RoceMetrics } from "../../api/types";
 import { Panel } from "../ui/Panel";
@@ -44,6 +45,7 @@ function linkTone(d: RoceDevice): "good" | "warn" | "bad" | "neutral" {
 }
 
 function PortRow({ d }: { d: RoceDevice }) {
+  useI18n();
   const pfc = pfcLabel(d);
   const lossRising = d.loss.rising.length > 0;
   const speed = d.speedMbps != null ? `${d.speedMbps / 1000} Gb/s` : d.rateGbps != null ? `${d.rateGbps} Gb/s` : null;
@@ -59,27 +61,27 @@ function PortRow({ d }: { d: RoceDevice }) {
         <span className="sp-chips">
           <Tag tone={linkTone(d)} title={d.physState ?? undefined}>{d.state ?? "unknown"}</Tag>
           {speed && <Tag>{speed}</Tag>}
-          {d.mtu != null && <Tag title="MTU">MTU {d.mtu}</Tag>}
+          {d.mtu != null && <Tag title={t("MTU")}>{t("MTU")} {d.mtu}</Tag>}
         </span>
       </div>
       <div className="sp-roce-port__rates mono">
         <span><span className="text-accent">↓</span> {d.rxBps == null ? "—" : formatBytesPerSec(Math.round(d.rxBps))}</span>
         <span><span className="text-accent">↑</span> {d.txBps == null ? "—" : formatBytesPerSec(Math.round(d.txBps))}</span>
-        <span title="Frames dropped or in error on this interface">
-          {n(d.rxErrors)} err · {n(d.rxDropped)} drop
+        <span title={t("Frames dropped or in error on this interface")}>
+          {n(d.rxErrors)} {t("err ·")} {n(d.rxDropped)} drop
         </span>
       </div>
       <div className="sp-chips sp-roce-port__qos">
-        {pfc && <Tag tone={pfc.tone} title="Priority flow control (mlnx_qos)">{pfc.text}</Tag>}
-        {d.qos?.trust && <Tag title="QoS trust mode">trust {d.qos.trust}</Tag>}
+        {pfc && <Tag tone={pfc.tone} title={t("Priority flow control (mlnx_qos)")}>{pfc.text}</Tag>}
+        {d.qos?.trust && <Tag title={t("QoS trust mode")}>{t("trust")} {d.qos.trust}</Tag>}
         {d.flowControl && (d.flowControl.rx || d.flowControl.tx) && (
-          <Tag title="Global pause (ethtool -a)">pause {d.flowControl.rx ? "rx" : ""}{d.flowControl.rx && d.flowControl.tx ? "/" : ""}{d.flowControl.tx ? "tx" : ""}</Tag>
+          <Tag title={t("Global pause (ethtool -a)")}>{t("pause")} {d.flowControl.rx ? "rx" : ""}{d.flowControl.rx && d.flowControl.tx ? "/" : ""}{d.flowControl.tx ? "tx" : ""}</Tag>
         )}
-        {lossRising && <Tag tone="warn" title={d.loss.rising.join(", ")}>loss rising</Tag>}
+        {lossRising && <Tag tone="warn" title={d.loss.rising.join(", ")}>{t("loss rising")}</Tag>}
       </div>
       {dscp && <div className="sp-muted mono sp-roce-port__dscp">{dscp}</div>}
       <details className="sp-roce-port__more">
-        <summary>RDMA counters</summary>
+        <summary>{t("RDMA counters")}</summary>
         <table className="sp-roce-table">
           <tbody>
             {ROCE_COUNTER_ROWS.filter((r) => d.counters[r.key] != null).map((r) => {
@@ -136,6 +138,7 @@ export function roceSummary(devices: RoceDevice[]): { text: string; tone: "good"
 
 /** RoCE / RDMA ports of a unit (shown only when it has RDMA devices). Collapsed by default. */
 export function RocePanel({ roce, className }: { roce: RoceMetrics | null | undefined; className?: string }) {
+  useI18n();
   const [open, setOpen] = useState(readOpen);
   if (!roce || roce.devices.length === 0) return null;
   // Ports that never came up are not noise worth a row, but keep them reachable.
@@ -154,7 +157,7 @@ export function RocePanel({ roce, className }: { roce: RoceMetrics | null | unde
   };
   return (
     <Panel
-      title="RoCE / RDMA"
+      title={t("RoCE / RDMA")}
       accent
       icon={<NetworkIcon />}
       className={`panel-roce ${className ?? ""}`}
@@ -182,7 +185,7 @@ export function RocePanel({ roce, className }: { roce: RoceMetrics | null | unde
           ))}
           {idle.length > 0 && (
             <p className="sp-muted sp-roce-idle">
-              {idle.length} port{idle.length === 1 ? "" : "s"} not connected: {idle.map((d) => d.netdev ?? d.name).join(", ")}
+              {idle.length} {t("port")}{idle.length === 1 ? "" : "s"} {t("not connected:")} {idle.map((d) => d.netdev ?? d.name).join(", ")}
             </p>
           )}
         </div>

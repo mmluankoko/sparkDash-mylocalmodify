@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { SparkSnapshot, ToolEvalRun, ToolEvalRunRequest } from "../../../api/types";
 import "../../../styles/dialogs.css";
@@ -34,11 +35,13 @@ const SCENARIO_TYPES = new Set(["tool-eval", "context-pressure"]);
 
 /** One component serves all seven Tool Eval page types: setup, configure, run, results and history. */
 export function ToolEvalBenchPage({ type, spark }: { type: string; spark: SparkSnapshot | null }) {
-  if (!spark) return <p className="te-empty te-empty--big">Add a Spark to run Tool Eval Bench.</p>;
+  useI18n();
+  if (!spark) return <p className="te-empty te-empty--big">{t("Add a Spark to run Tool Eval Bench.")}</p>;
   return <ToolEvalBench key={`${spark.id}:${type}`} type={type} spark={spark} />;
 }
 
 function ToolEvalBench({ type, spark }: { type: string; spark: SparkSnapshot }) {
+  useI18n();
   const { spec, error: specError, retry: retrySpec } = useToolEvalSpec();
   const status = useToolEvalStatus(spark.id);
   const [state, setState] = useState<FormState>(() => loadState(type) ?? defaultSimpleState(type));
@@ -144,11 +147,11 @@ function ToolEvalBench({ type, spark }: { type: string; spark: SparkSnapshot }) 
 
   return (
     <div className="te" ref={rootRef}>
-      {!spark.online ? <Notice tone="warn" title={`${spark.name} is offline`}>The tool runs on the Spark, so runs and checks need it online. You can still configure and review history.</Notice> : null}
+      {!spark.online ? <Notice tone="warn" title={`${spark.name} is offline`}>{t("The tool runs on the Spark, so runs and checks need it online. You can still configure and review history.")}</Notice> : null}
       {runner.elsewhere ? (
-        <Notice tone="info" title="Another Tool Eval Bench run is in progress on this Spark">
-          It belongs to the {benchTypeById(runner.elsewhere.type)?.label ?? runner.elsewhere.type ?? "other"} page, so it is not shown here.{" "}
-          <a href={idToPath(benchId(benchTypeById(runner.elsewhere.type)?.id ?? "tool-eval"))}>Open that page</a>
+        <Notice tone="info" title={t("Another Tool Eval Bench run is in progress on this Spark")}>
+          It belongs to the {benchTypeById(runner.elsewhere.type)?.label ?? runner.elsewhere.type ?? "other"} {t("page, so it is not shown here.")}{" "}
+          <a href={idToPath(benchId(benchTypeById(runner.elsewhere.type)?.id ?? "tool-eval"))}>{t("Open that page")}</a>
         </Notice>
       ) : null}
       <SetupCard spark={spark} spec={spec} status={status.status} loading={status.loading} error={status.error} reload={status.reload} busy={followedRunning} />
@@ -166,7 +169,7 @@ function ToolEvalBench({ type, spark }: { type: string; spark: SparkSnapshot }) 
           ]}
         />
         {showStrip ? (
-          <button type="button" className="te-strip" onClick={() => setTab("run")} aria-label="Run in progress, show progress">
+          <button type="button" className="te-strip" onClick={() => setTab("run")} aria-label={t("Run in progress, show progress")}>
             <span className="te-strip__dot" aria-hidden />
             <span>
               Run in progress{progress?.total ? ` · ${progress.done}/${progress.total}` : ""}
@@ -198,19 +201,19 @@ function ToolEvalBench({ type, spark }: { type: string; spark: SparkSnapshot }) 
             />
           ) : null}
           {runner.listError && !runner.runs ? (
-            <Notice tone="warn" title="Could not read this Spark's runs" actions={<button type="button" className="btn btn--sm" onClick={() => void runner.reloadRuns()}>Retry</button>}>
+            <Notice tone="warn" title={t("Could not read this Spark's runs")} actions={<button type="button" className="btn btn--sm" onClick={() => void runner.reloadRuns()}>{t("Retry")}</button>}>
               {runner.listError}
             </Notice>
           ) : null}
           {specError ? (
-            <Notice tone="bad" title="Could not load the option list" actions={<button type="button" className="btn btn--sm" onClick={retrySpec}>Retry</button>}>
+            <Notice tone="bad" title={t("Could not load the option list")} actions={<button type="button" className="btn btn--sm" onClick={retrySpec}>{t("Retry")}</button>}>
               {specError}
             </Notice>
           ) : !spec ? (
             <Skeleton lines={8} className="te-card te-card--pad" />
           ) : (
             <div className={view === "simple" ? "te-layout te-layout--even" : "te-layout"}>
-              <section className="panel te-card te-card--form" aria-label="Configuration">
+              <section className="panel te-card te-card--form" aria-label={t("Configuration")}>
                 <div className="te-viewbar">
                   <Tabs
                     prefix={`${uid}-view`}
@@ -271,8 +274,8 @@ function ToolEvalBench({ type, spark }: { type: string; spark: SparkSnapshot }) 
             </section>
           ) : (
             <div className="te-empty te-empty--big">
-              <b>No result to show yet</b>
-              <p>Finish a run, or open one from the history.</p>
+              <b>{t("No result to show yet")}</b>
+              <p>{t("Finish a run, or open one from the history.")}</p>
               <button type="button" className="btn" onClick={() => setTab("run")}>
                 Configure a run
               </button>

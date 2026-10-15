@@ -175,7 +175,7 @@ export function VramBreakdownBar({ label, breakdown: b, showLegend = false }: Vr
         className="absolute left-0 right-0 top-full z-20 mt-1 space-y-0.5 rounded-md border border-border bg-surface-elevated px-3 py-2 text-left text-[11px] font-normal leading-snug text-text shadow-lg"
       >
         <div className="pb-0.5 text-muted">
-          {pool} · {formatMb(b.usedMB)} of {formatMb(b.totalMB)} used
+          {pool} · {formatMb(b.usedMB)} {t("of")} {formatMb(b.totalMB)} used
         </div>
         {b.engine && (
           <>

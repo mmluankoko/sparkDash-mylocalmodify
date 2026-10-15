@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import "../../styles/dialogs.css";
@@ -204,6 +205,7 @@ function buildShareText(
 }
 
 function CategoryTable({ job }: { job: QualityBenchJob }) {
+  useI18n();
   const rows = QUALITY_CATEGORIES.filter((c) => job.results.categories?.[c]);
   if (!rows.length) return null;
   return (
@@ -211,10 +213,10 @@ function CategoryTable({ job }: { job: QualityBenchJob }) {
       <table className="q-cat-table">
         <thead>
           <tr>
-            <th>Category</th>
-            <th className="is-num">Score</th>
+            <th>{t("Category")}</th>
+            <th className="is-num">{t("Score")}</th>
             <th className="is-num">%</th>
-            <th>Notes</th>
+            <th>{t("Notes")}</th>
           </tr>
         </thead>
         <tbody>
@@ -257,6 +259,7 @@ function ScoreCard({
   compareJob: QualityBenchJob | null;
   compareRows: QualityCompareRow[];
 }) {
+  useI18n();
   const overall = job.results.overallPct;
   // Overall means over different category sets are not comparable: use the shared categories.
   const shared = compareJob ? sharedOverallDelta(job, compareJob) : null;
@@ -293,7 +296,7 @@ function ScoreCard({
         )}
         {!compareJob && (
           <span className="q-score__hint">
-            Mean of {Object.keys(job.results.categories ?? {}).length} category scores · {(job.results.items?.length ?? 0).toLocaleString()} items
+            Mean of {Object.keys(job.results.categories ?? {}).length} {t("category scores ·")} {(job.results.items?.length ?? 0).toLocaleString()} items
           </span>
         )}
       </div>
@@ -324,17 +327,18 @@ function CategoryBars({
   compareJob: QualityBenchJob | null;
   compareRows: QualityCompareRow[];
 }) {
+  useI18n();
   const cats = QUALITY_CATEGORIES.filter((c) => job.results.categories?.[c]);
   if (!cats.length) return null;
   const rowByCat = new Map(compareRows.map((r) => [r.category, r]));
   return (
     <div className="q-main">
       <div className="q-main__head">
-        <h3 className="bench-sheet__section-title">Score by category</h3>
+        <h3 className="bench-sheet__section-title">{t("Score by category")}</h3>
         {compareJob && (
           <div className="legend">
-            <span className="q-leg-a">Run A</span>
-            <span className="q-leg-b">Run B</span>
+            <span className="q-leg-a">{t("Run A")}</span>
+            <span className="q-leg-b">{t("Run B")}</span>
           </div>
         )}
       </div>
@@ -388,6 +392,7 @@ function CategoryBars({
 }
 
 function DisagreementTable({ job, compareJob }: { job: QualityBenchJob; compareJob: QualityBenchJob }) {
+  useI18n();
   const rows = useMemo(() => disagreements(job, compareJob), [job, compareJob]);
   const paired = useMemo(() => {
     const ok = new Set((compareJob.results?.items ?? []).filter((it) => !it.error).map((it) => it.id));
@@ -401,25 +406,25 @@ function DisagreementTable({ job, compareJob }: { job: QualityBenchJob; compareJ
         <h3 className="bench-sheet__section-title">
           Items where the runs disagree{" "}
           <span className="q-muted">
-            · {rows.length} of {paired}
+            · {rows.length} {t("of")} {paired}
           </span>
         </h3>
         <span className="tag">
-          A only {onlyA} · B only {onlyB}
+          A only {onlyA} {t("· B only")} {onlyB}
         </span>
       </div>
       {rows.length === 0 ? (
-        <p className="bench-sheet__hint">Both runs passed and failed the same items.</p>
+        <p className="bench-sheet__hint">{t("Both runs passed and failed the same items.")}</p>
       ) : (
         <div className="q-table-wrap">
           <table className="q-table">
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Category</th>
-                <th>Run A</th>
-                <th>Run B</th>
-                <th>Run A detail</th>
+                <th>{t("Item")}</th>
+                <th>{t("Category")}</th>
+                <th>{t("Run A")}</th>
+                <th>{t("Run B")}</th>
+                <th>{t("Run A detail")}</th>
               </tr>
             </thead>
             <tbody>
@@ -441,6 +446,7 @@ function DisagreementTable({ job, compareJob }: { job: QualityBenchJob; compareJ
 }
 
 function ItemTable({ job }: { job: QualityBenchJob }) {
+  useI18n();
   const [filter, setFilter] = useState<QualityCategory | "all" | "failed">("all");
   const items = job.results.items ?? [];
   const shown = items.filter((it) =>
@@ -474,9 +480,9 @@ function ItemTable({ job }: { job: QualityBenchJob }) {
           <table className="w-full border-collapse text-[11px]">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-wide text-muted">
-                <th className="py-1 pr-2 font-medium">Id</th>
-                <th className="py-1 pr-2 font-medium">Ok</th>
-                <th className="py-1 font-medium">Reply</th>
+                <th className="py-1 pr-2 font-medium">{t("Id")}</th>
+                <th className="py-1 pr-2 font-medium">{t("Ok")}</th>
+                <th className="py-1 font-medium">{t("Reply")}</th>
               </tr>
             </thead>
             <tbody>
@@ -523,6 +529,7 @@ export function QualityBenchDialog({
   posture = null,
   onSwitchBench,
 }: QualityBenchDialogProps) {
+  useI18n();
   const isPage = variant === "page";
   const open = isPage || openProp;
   const [categories, setCategories] = useState<QualityCategory[]>([...QUALITY_DEFAULT_CATEGORIES]);
@@ -836,8 +843,8 @@ export function QualityBenchDialog({
               <div className="bench-field">
                 <div className="bench-field__head">
                   <div className="qsel-head">
-                    <h3 className="bench-sheet__section-title">Categories</h3>
-                    <div className="qsel-bulk" role="group" aria-label="Select categories">
+                    <h3 className="bench-sheet__section-title">{t("Categories")}</h3>
+                    <div className="qsel-bulk" role="group" aria-label={t("Select categories")}>
                       <button
                         type="button"
                         className="qsel-bulk__btn"
@@ -860,7 +867,7 @@ export function QualityBenchDialog({
                     Fixed, seeded suite at temperature 0 — the same items every run, so runs pair item by item.
                   </p>
                 </div>
-                <div className="qsel" role="group" aria-label="Categories">
+                <div className="qsel" role="group" aria-label={t("Categories")}>
                   {QUALITY_CATEGORIES.map((c) => {
                     const on = categories.includes(c);
                     const items = c === "long" ? longSizes.length * (Number(longItems) || 0) : CATEGORY_ITEMS[c];
@@ -880,12 +887,12 @@ export function QualityBenchDialog({
                           <span className="qsel-card__body">
                             <span className="qsel-card__name">
                               {QUALITY_CATEGORY_LABELS[c]}
-                              {!QUALITY_DEFAULT_CATEGORIES.includes(c) ? <em>optional</em> : null}
+                              {!QUALITY_DEFAULT_CATEGORIES.includes(c) ? <em>{t("optional")}</em> : null}
                             </span>
                             <span className="qsel-card__hint">{CATEGORY_HINTS[c]}</span>
                             <span className="qsel-card__meta">
                               {c === "long" ? `${Number(longItems) || 0} per size` : `${items} items`}
-                              {THINKING_CATEGORIES.includes(c) ? <small>thinking on</small> : null}
+                              {THINKING_CATEGORIES.includes(c) ? <small>{t("thinking on")}</small> : null}
                             </span>
                           </span>
                         </button>
@@ -905,30 +912,30 @@ export function QualityBenchDialog({
                 {infoFor ? (
                   <div className="q-info" id="q-info-panel" ref={infoRef} role="region" aria-label={`How ${QUALITY_CATEGORY_LABELS[infoFor]} works`}>
                     <div className="q-info__head">
-                      <b>{QUALITY_CATEGORY_LABELS[infoFor]}: how it works</b>
+                      <b>{QUALITY_CATEGORY_LABELS[infoFor]}{t(": how it works")}</b>
                       <button type="button" className="btn btn--sm btn--ghost" onClick={() => setInfoFor(null)}>
                         Close
                       </button>
                     </div>
                     <dl className="q-info__grid">
                       <div>
-                        <dt>What it measures</dt>
+                        <dt>{t("What it measures")}</dt>
                         <dd>{QUALITY_CATEGORY_INFO[infoFor].measures}</dd>
                       </div>
                       <div>
-                        <dt>What it sends</dt>
+                        <dt>{t("What it sends")}</dt>
                         <dd>{QUALITY_CATEGORY_INFO[infoFor].how}</dd>
                       </div>
                       <div>
-                        <dt>How it is scored</dt>
+                        <dt>{t("How it is scored")}</dt>
                         <dd>{QUALITY_CATEGORY_INFO[infoFor].scoring}</dd>
                       </div>
                       <div>
-                        <dt>Settings and cost</dt>
+                        <dt>{t("Settings and cost")}</dt>
                         <dd>{QUALITY_CATEGORY_INFO[infoFor].settings}</dd>
                       </div>
                       <div className="q-info__wide">
-                        <dt>Example (the shape of the real prompts)</dt>
+                        <dt>{t("Example (the shape of the real prompts)")}</dt>
                         <dd className="q-info__example">{QUALITY_CATEGORY_INFO[infoFor].example}</dd>
                       </div>
                     </dl>
@@ -939,14 +946,14 @@ export function QualityBenchDialog({
               {categories.includes("long") && (
                 <div className="bench-field">
                   <div className="bench-field__head">
-                    <h3 className="bench-sheet__section-title">Long-context sizes</h3>
+                    <h3 className="bench-sheet__section-title">{t("Long-context sizes")}</h3>
                     <p className="bench-sheet__hint">
                       {contextLength != null && contextLength > 0
                         ? `Model context ${formatContextSize(contextLength)} — larger sizes are disabled.`
                         : "Large sizes can take many minutes per item."}
                     </p>
                   </div>
-                  <div className="bench-conc-grid" role="group" aria-label="Long-context sizes">
+                  <div className="bench-conc-grid" role="group" aria-label={t("Long-context sizes")}>
                     {QUALITY_LONG_SIZES.map((n: number) => (
                       <button
                         key={n}
@@ -978,7 +985,7 @@ export function QualityBenchDialog({
 
               <div className="qrun">
                 <div className="qrun__sum">
-                  <b>{categories.length} selected</b>
+                  <b>{categories.length} {t("selected")}</b>
                   <span>
                     about{" "}
                     {categories
@@ -988,7 +995,7 @@ export function QualityBenchDialog({
                   </span>
                 </div>
                 <label className="qrun__field">
-                  <span>Concurrency</span>
+                  <span>{t("Concurrency")}</span>
                   <input
                     type="number"
                     min={1}
@@ -998,17 +1005,17 @@ export function QualityBenchDialog({
                     disabled={starting || isRunning}
                     onChange={(e) => setConcurrency(e.target.value)}
                     className="bench-input"
-                    title="How many questions are sent to the model at the same time"
+                    title={t("How many questions are sent to the model at the same time")}
                   />
                 </label>
                 <label className="qrun__field qrun__field--grow">
-                  <span>Run label</span>
+                  <span>{t("Run label")}</span>
                   <input
                     type="text"
                     value={label}
                     maxLength={QUALITY_LABEL_MAX}
                     disabled={starting || isRunning}
-                    placeholder="e.g. fp4 KV"
+                    placeholder={t("e.g. fp4 KV")}
                     onChange={(e) => setLabel(e.target.value)}
                     className="bench-input bench-input--wide"
                   />
@@ -1039,7 +1046,7 @@ export function QualityBenchDialog({
                 <div
                   className="bench-progress__track"
                   role="progressbar"
-                  aria-label="Quality benchmark progress"
+                  aria-label={t("Quality benchmark progress")}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={Math.min(100, progressPct)}
@@ -1072,9 +1079,9 @@ export function QualityBenchDialog({
 
               {hasItems && compareChoices.length > 0 && (
                 <label className="q-pick">
-                  <span>Compare with</span>
+                  <span>{t("Compare with")}</span>
                   <select value={compareId} onChange={(e) => setCompareId(e.target.value)}>
-                    <option value="">— pick a previous run —</option>
+                    <option value="">{t("— pick a previous run —")}</option>
                     {compareChoices.map((h) => (
                       <option key={h.benchId} value={h.benchId}>
                         {runLabel(h)}
@@ -1094,7 +1101,7 @@ export function QualityBenchDialog({
                     </div>
                     {cmp && !comparable.ok && <p className="bench-sheet__error">{comparable.reason}</p>}
                     {cmp && comparable.ok && compareRows.length === 0 && (
-                      <p className="bench-sheet__hint">No shared items between these runs.</p>
+                      <p className="bench-sheet__hint">{t("No shared items between these runs.")}</p>
                     )}
                     {cmp && compareRows.length > 0 && <DisagreementTable job={job} compareJob={cmp} />}
                   </>
@@ -1111,7 +1118,7 @@ export function QualityBenchDialog({
               {hasItems && <ItemTable job={job} />}
 
               <p className="bench-legend">
-                <strong>Score</strong> — items passed. <strong>p</strong> — exact McNemar test on items only one
+                <strong>{t("Score")}</strong> {t("— items passed.")} <strong>p</strong> — exact McNemar test on items only one
                 run got right; p ≥ 0.05 means the difference is within noise. Items with a request error or timeout
                 are not scored and are left out of the comparison.
               </p>
@@ -1146,17 +1153,17 @@ export function QualityBenchDialog({
         stacked
         config={
           <>
-            {loadingLast && !job && <p className="bench-sheet__hint">Loading last results…</p>}
+            {loadingLast && !job && <p className="bench-sheet__hint">{t("Loading last results…")}</p>}
             {configNode}
           </>
         }
         runBar={null}
       >
         {error && <p className="bench-sheet__error">{error}</p>}
-        {isRunning && <PageCard title="Progress">{progressNode}</PageCard>}
+        {isRunning && <PageCard title={t("Progress")}>{progressNode}</PageCard>}
         {showResults && (
           <PageCard
-            title="Results"
+            title={t("Results")}
             tools={
               <>
                 {copyButton}
@@ -1164,7 +1171,7 @@ export function QualityBenchDialog({
                   type="button"
                   className="btn btn--sm btn--ghost"
                   onClick={() => void handleClear()}
-                  title="Clear saved quality runs for this port"
+                  title={t("Clear saved quality runs for this port")}
                 >
                   Clear history
                 </button>
@@ -1175,7 +1182,7 @@ export function QualityBenchDialog({
           </PageCard>
         )}
         {!job && !loadingLast && (
-          <PageEmpty title="No runs yet">
+          <PageEmpty title={t("No runs yet")}>
             Pick the categories to score, give the run a label (for example the quantisation or KV-cache format) and
             run. The suite is fixed and seeded, so any two runs can be compared item by item.
           </PageEmpty>
@@ -1202,7 +1209,7 @@ export function QualityBenchDialog({
       <button
         type="button"
         className="bench-overlay__scrim"
-        aria-label="Close dialog"
+        aria-label={t("Close dialog")}
         onClick={() => {
           if (!isRunning) onClose();
         }}
@@ -1221,13 +1228,13 @@ export function QualityBenchDialog({
             </p>
           </div>
           <BenchSwitcher active="quality" onSwitch={onSwitchBench} disabled={isRunning || starting} />
-          <button type="button" className="bench-sheet__close" onClick={onClose} aria-label="Close">
+          <button type="button" className="bench-sheet__close" onClick={onClose} aria-label={t("Close")}>
             <XIcon className="h-4 w-4" />
           </button>
         </header>
 
         <div className="bench-sheet__body">
-          {loadingLast && !job && <p className="bench-sheet__hint">Loading last results…</p>}
+          {loadingLast && !job && <p className="bench-sheet__hint">{t("Loading last results…")}</p>}
 
           {configNode}
 
@@ -1249,7 +1256,7 @@ export function QualityBenchDialog({
                 type="button"
                 className="bench-btn bench-btn--ghost"
                 onClick={() => void handleClear()}
-                title="Clear saved quality runs for this port"
+                title={t("Clear saved quality runs for this port")}
               >
                 Clear
               </button>

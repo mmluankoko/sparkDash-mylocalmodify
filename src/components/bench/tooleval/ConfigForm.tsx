@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useMemo, useState } from "react";
 import type { SparkSnapshot, ToolEvalArgSpec, ToolEvalSpec } from "../../../api/types";
 import { Field } from "./Fields";
@@ -22,6 +23,7 @@ const isSet = (v: FieldValue | undefined) => v !== undefined && v !== "" && v !=
 
 /** The form generated from the option spec: page-relevant groups, presets, and an "all options" disclosure. */
 export function ConfigForm({ spec, type, spark, state, onChange, apiKey, onApiKey, fieldErrors, formErrors, disabled }: ConfigFormProps) {
+  useI18n();
   const cfg = typeConfig(type);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const presets = presetsFor(type);
@@ -52,8 +54,8 @@ export function ConfigForm({ spec, type, spark, state, onChange, apiKey, onApiKe
   return (
     <div className="te-form">
       <div className="te-form__bar">
-        <div className="te-presets" role="group" aria-label="Presets">
-          <span className="eyebrow">Presets</span>
+        <div className="te-presets" role="group" aria-label={t("Presets")}>
+          <span className="eyebrow">{t("Presets")}</span>
           {presets.map((p) => (
             <button
               key={p.id}
@@ -73,7 +75,7 @@ export function ConfigForm({ spec, type, spark, state, onChange, apiKey, onApiKe
           ))}
         </div>
         <div className="te-form__tools">
-          <span className="te-faint">{countSet(state)} option(s) set</span>
+          <span className="te-faint">{countSet(state)} {t("option(s) set")}</span>
           <button
             type="button"
             className="btn btn--sm btn--ghost"
@@ -101,7 +103,7 @@ export function ConfigForm({ spec, type, spark, state, onChange, apiKey, onApiKe
 
       {type === "accuracy" ? (
         <fieldset className="te-suites">
-          <legend className="field-label">Suites to run</legend>
+          <legend className="field-label">{t("Suites to run")}</legend>
           <div className="te-suites__row">
             {SUITES.map((s) => {
               const on = state.suites.includes(s.id);
@@ -121,7 +123,7 @@ export function ConfigForm({ spec, type, spark, state, onChange, apiKey, onApiKe
               );
             })}
           </div>
-          <p className="field-hint">Each ticked suite is sent as its own --…-only flag; combining several runs them one after another.</p>
+          <p className="field-hint">{t("Each ticked suite is sent as its own --…-only flag; combining several runs them one after another.")}</p>
         </fieldset>
       ) : null}
 
@@ -149,7 +151,7 @@ export function ConfigForm({ spec, type, spark, state, onChange, apiKey, onApiKe
                       </option>
                     ))}
                   </select>
-                  <p className="field-hint">Used when the base URL is empty; also decides which saved API key is used.</p>
+                  <p className="field-hint">{t("Used when the base URL is empty; also decides which saved API key is used.")}</p>
                 </div>
               ) : null}
               {fields.map((f) => (
@@ -180,10 +182,10 @@ export function ConfigForm({ spec, type, spark, state, onChange, apiKey, onApiKe
 
       <details className="te-group te-group--adv" open={advancedSet > 0 || undefined}>
         <summary>
-          <span className="te-group__title">Advanced / all options</span>
-          <span className="te-group__meta">{advanced.length} more option(s){advancedSet ? ` · ${advancedSet} set` : ""}</span>
+          <span className="te-group__title">{t("Advanced / all options")}</span>
+          <span className="te-group__meta">{advanced.length} {t("more option(s)")}{advancedSet ? ` · ${advancedSet} set` : ""}</span>
         </summary>
-        <p className="te-group__help">Every other option of tool-eval-bench, so nothing is out of reach. Options this page sets for you are left out.</p>
+        <p className="te-group__help">{t("Every other option of tool-eval-bench, so nothing is out of reach. Options this page sets for you are left out.")}</p>
         {advancedByGroup.map((g) => (
           <fieldset key={g.id} className="te-subgroup">
             <legend>{g.label}</legend>
@@ -200,8 +202,8 @@ export function ConfigForm({ spec, type, spark, state, onChange, apiKey, onApiKe
         <label className="field-label" htmlFor="te-f-extra">
           Additional arguments
         </label>
-        <input id="te-f-extra" type="text" className="te-mono-input" value={state.extraArgs} onChange={(e) => onChange({ ...state, extraArgs: e.target.value })} placeholder="--some-new-flag value" autoComplete="off" spellCheck={false} disabled={disabled} />
-        <p className="field-hint">Free-form flags passed through as separate arguments (no shell). Handy for options newer than this form. Flags that sparkDash controls (--json, --probe, …) are refused.</p>
+        <input id="te-f-extra" type="text" className="te-mono-input" value={state.extraArgs} onChange={(e) => onChange({ ...state, extraArgs: e.target.value })} placeholder={t("--some-new-flag value")} autoComplete="off" spellCheck={false} disabled={disabled} />
+        <p className="field-hint">{t("Free-form flags passed through as separate arguments (no shell). Handy for options newer than this form. Flags that sparkDash controls (--json, --probe, …) are refused.")}</p>
       </div>
     </div>
   );

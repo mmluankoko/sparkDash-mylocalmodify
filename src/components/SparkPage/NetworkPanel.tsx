@@ -132,7 +132,7 @@ export function NetworkPanel({
         <>
           <div className="sp-decode">
             <div className="sp-metric">
-              <span className="eyebrow">Download</span>
+              <span className="eyebrow">{t("Download")}</span>
               <div className="big-num sp-big-md">
                 {rxFmt.value}
                 <small>{rxFmt.unit}</small>
@@ -140,7 +140,7 @@ export function NetworkPanel({
               <TrendLine data={rxHistory} height={36} color="var(--color-success)" />
             </div>
             <div className="sp-metric">
-              <span className="eyebrow">Upload</span>
+              <span className="eyebrow">{t("Upload")}</span>
               <div className="big-num sp-big-md">
                 {txFmt.value}
                 <small>{txFmt.unit}</small>
@@ -153,7 +153,7 @@ export function NetworkPanel({
               <span className="text-muted">{t("Primary")}</span>
               <span className="sp-chips">
                 <span className="mono text-text">{primaryVisible}</span>
-                {linkSpeed != null && <Tag>{linkSpeed} Mbps</Tag>}
+                {linkSpeed != null && <Tag>{linkSpeed} {t("Mbps")}</Tag>}
               </span>
             </div>
           )}

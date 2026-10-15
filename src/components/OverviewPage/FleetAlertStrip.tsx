@@ -67,7 +67,7 @@ export function FleetAlertStrip({
   }, [alerts]);
   if (alerts.length === 0) return null;
   return (
-    <section className="ov-alerts" aria-label="Active fleet exceptions">
+    <section className="ov-alerts" aria-label={t("Active fleet exceptions")}>
       {alerts.map((alert) => {
         const mins = Math.max(0, Math.floor((now - (firstSeen.current.get(alert.key) ?? now)) / 60_000));
         return (

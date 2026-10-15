@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { AppLink } from "../ui/AppLink";
 import { activeTimeZone } from "../../shared/timeZone";
 import { ACTIVITY_ID, idToPath } from "../../constants";
@@ -14,14 +15,15 @@ interface ActivityFeedProps {
 
 /** Compact fleet timeline. Renders card contents only (no outer chrome). */
 export function ActivityFeed({ limit = 8, sparkId, onSelectSpark, onViewAll }: ActivityFeedProps) {
+  useI18n();
   const { events, loading, error } = useActivityEvents({ sparkId });
   const now = Date.now();
   const shown = events.slice(0, limit);
 
   return (
-    <section className="activity-feed" aria-label="Recent activity">
+    <section className="activity-feed" aria-label={t("Recent activity")}>
       <header className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-text-strong">Recent activity</h3>
+        <h3 className="text-sm font-semibold text-text-strong">{t("Recent activity")}</h3>
         <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
           <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
           live
@@ -29,7 +31,7 @@ export function ActivityFeed({ limit = 8, sparkId, onSelectSpark, onViewAll }: A
       </header>
 
       {loading && shown.length === 0 ? (
-        <p className="py-2 text-xs text-muted">Loading…</p>
+        <p className="py-2 text-xs text-muted">{t("Loading…")}</p>
       ) : shown.length === 0 ? (
         <p className="py-2 text-xs text-muted">
           {error

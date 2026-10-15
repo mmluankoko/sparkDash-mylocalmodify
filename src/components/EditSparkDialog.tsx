@@ -317,12 +317,12 @@ export function EditSparkDialog({
         </div>
 
         <div className="modal-sheet__body">
-          {loading && <p className="text-xs text-muted">Loading…</p>}
+          {loading && <p className="text-xs text-muted">{t("Loading…")}</p>}
 
           {config && !loading && (
             <div className="space-y-3">
               <div>
-                <label className="field-label">Unit type</label>
+                <label className="field-label">{t("Unit type")}</label>
                 <select
                   value={unitTypeOf(config)}
                   onChange={(e) => update(unitTypePatch(e.target.value as UnitType, config))}
@@ -334,7 +334,7 @@ export function EditSparkDialog({
               </div>
 
               <div>
-                <label className="field-label">Name</label>
+                <label className="field-label">{t("Name")}</label>
                 <input
                   type="text"
                   value={config.name}
@@ -367,7 +367,7 @@ export function EditSparkDialog({
 
               {config.kind !== "host" && (
                 <div>
-                  <label className="field-label">CX7 IP (optional)</label>
+                  <label className="field-label">{t("CX7 IP (optional)")}</label>
                   <input
                     type="text"
                     value={config.cx7Ip || ""}
@@ -412,7 +412,7 @@ export function EditSparkDialog({
 
               <div>
                 <label className="field-label field-label--row">
-                  <span>Role</span>
+                  <span>{t("Role")}</span>
                   <span
                     className="inline-flex shrink-0 cursor-help text-muted hover:text-text"
                     title={t("Head always monitors the local LLM. Standalone can opt in/out. Workers have no local API — the LLM card is hidden and ports are not probed.")}
@@ -519,8 +519,8 @@ export function EditSparkDialog({
                   <span>{t("Hermes Agent")}</span>
                   <span
                     className="inline-flex shrink-0 cursor-help text-muted hover:text-text"
-                    title='Hermes Agent CLI is installed on this machine (nousresearch/hermes-agent). When enabled, sparkDash checks for updates (hermes update --check) and can run “hermes update” for you via SSH with one click.'
-                    aria-label='Hermes Agent CLI is installed on this machine; enable update monitoring and one-click updates.'
+                    title={t("Hermes Agent CLI is installed on this machine (nousresearch/hermes-agent). When enabled, sparkDash checks for updates (hermes update --check) and can run “hermes update” for you via SSH with one click.")}
+                    aria-label={t("Hermes Agent CLI is installed on this machine; enable update monitoring and one-click updates.")}
                   >
                     <InfoIcon className="h-3.5 w-3.5" />
                   </span>
@@ -528,7 +528,7 @@ export function EditSparkDialog({
                 <p className="field-hint">
                   Checks for updates in the background (10 min) and adds an "Update Hermes" button
                   that runs{" "}
-                  <code className="rounded bg-surface-elevated px-1">hermes update</code> on this
+                  <code className="rounded bg-surface-elevated px-1">{t("hermes update")}</code> on this
                   machine via SSH.
                 </p>
 
@@ -540,7 +540,7 @@ export function EditSparkDialog({
                       onChange={(e) => update({ tailscaleMonitoring: e.target.checked })}
                     
                     />
-                    <span>Tailnet monitoring</span>
+                    <span>{t("Tailnet monitoring")}</span>
                     <span
                       className="inline-flex shrink-0 cursor-help text-muted hover:text-text"
                       title={t("When enabled, run `tailscale status --json` on this host and show a Tailnet card. Catches a unit that is healthy on the LAN but has fallen off its tailnet. Requires the tailscale CLI. Default off.")}
@@ -563,7 +563,7 @@ export function EditSparkDialog({
                       type="text"
                       value={config.workerLabel || ""}
                       onChange={(e) => update({ workerLabel: e.target.value || null })}
-                      placeholder="e.g. DeepSeek V4 Flash"
+                      placeholder={t("e.g. DeepSeek V4 Flash")}
                     />
                     <p className="field-hint">
                       Shown on the overview card. Leave blank to show “distributed”.
@@ -571,12 +571,12 @@ export function EditSparkDialog({
                   </div>
 
                   <div>
-                    <label className="field-label">Head Spark</label>
+                    <label className="field-label">{t("Head Spark")}</label>
                     <select
                       value={config.workerHeadId || ""}
                       onChange={(e) => update({ workerHeadId: e.target.value || null })}
                     >
-                      <option value="">None</option>
+                      <option value="">{t("None")}</option>
                       {config.workerHeadId &&
                         !allSparks.some((s) => s.id === config.workerHeadId) && (
                           <option value={config.workerHeadId}>
@@ -606,7 +606,7 @@ export function EditSparkDialog({
               {!config.isLocal && (
                 <>
                   <div>
-                    <label className="field-label">SSH User</label>
+                    <label className="field-label">{t("SSH User")}</label>
                     <input
                       type="text"
                       value={config.ssh.user}
@@ -632,17 +632,17 @@ export function EditSparkDialog({
                         });
                       }}
                     />
-                    <p className="field-hint">Default 22. Use this when sshd listens elsewhere.</p>
+                    <p className="field-hint">{t("Default 22. Use this when sshd listens elsewhere.")}</p>
                   </div>
 
                   <div>
-                    <label className="field-label">SSH Auth</label>
+                    <label className="field-label">{t("SSH Auth")}</label>
                     <select
                       value={config.ssh.auth}
                       onChange={(e) => updateSsh({ auth: e.target.value as "key" | "pass" })}
                     >
-                      <option value="key">Key</option>
-                      <option value="pass">Password</option>
+                      <option value="key">{t("Key")}</option>
+                      <option value="pass">{t("Password")}</option>
                     </select>
                     {config.ssh.auth === "key" && (
                       <p className="field-hint">

@@ -226,7 +226,7 @@ function LlmLaunchers({
               value={hostDraft}
               onChange={(e) => setHostDraft(e.target.value)}
               onBlur={applyHostBlur}
-              placeholder="https://name.tailxxxxx.ts.net/v1/models"
+              placeholder={t("https://name.tailxxxxx.ts.net/v1/models")}
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
@@ -569,7 +569,7 @@ export function LlmPanel({
           {available && backend && (
             <>
               {llm?.via === "ssh-tunnel" && (
-                <Tag title="This engine's port is not reachable from the dashboard, so it is read through an SSH tunnel to the unit">
+                <Tag title={t("This engine's port is not reachable from the dashboard, so it is read through an SSH tunnel to the unit")}>
                   via SSH
                 </Tag>
               )}
@@ -586,7 +586,7 @@ export function LlmPanel({
               className="btn btn--sm btn--danger"
             >
               <span aria-hidden>×</span>
-              <span>Remove</span>
+              <span>{t("Remove")}</span>
             </button>
           )}
           <button
@@ -636,11 +636,11 @@ export function LlmPanel({
               className="sp-input"
             />
           </label>
-          <div className="sp-btns" role="group" aria-label="Server presets">
-            <span className="eyebrow">Presets:</span>
+          <div className="sp-btns" role="group" aria-label={t("Server presets")}>
+            <span className="eyebrow">{t("Presets:")}</span>
             <button
               type="button"
-              title="Fill LM Studio's default port (1234)"
+              title={t("Fill LM Studio's default port (1234)")}
               onClick={() => setPortDraft("1234")}
               className="btn btn--sm"
             >
@@ -648,7 +648,7 @@ export function LlmPanel({
             </button>
             <button
               type="button"
-              title="Fill Ollama's default port (11434)"
+              title={t("Fill Ollama's default port (11434)")}
               onClick={() => setPortDraft("11434")}
               className="btn btn--sm"
             >
@@ -656,7 +656,7 @@ export function LlmPanel({
             </button>
             <button
               type="button"
-              title="Fill TensorFold's default port (8888)"
+              title={t("Fill TensorFold's default port (8888)")}
               onClick={() => setPortDraft("8888")}
               className="btn btn--sm"
             >
@@ -664,7 +664,7 @@ export function LlmPanel({
             </button>
           </div>
           <label className="sp-field">
-            <span className="eyebrow">API key (optional)</span>
+            <span className="eyebrow">{t("API key (optional)")}</span>
             <input
               type="password"
               autoComplete="new-password"
@@ -700,7 +700,7 @@ export function LlmPanel({
               Clear saved API key
             </label>
           )}
-          {portInvalid && <p className="sp-error">Enter an integer between 1 and 65535</p>}
+          {portInvalid && <p className="sp-error">{t("Enter an integer between 1 and 65535")}</p>}
           {saveError && <p className="sp-error">{saveError}</p>}
           <div className="sp-btns sp-btns--end">
             <button
@@ -751,7 +751,7 @@ export function LlmPanel({
         <div className="sp-stack">
           <div className="sp-model">
             <div className="eyebrow">
-              <span>Model</span>
+              <span>{t("Model")}</span>
               {contextLabel && <span>{contextLabel}</span>}
             </div>
             <span title={llm?.modelId ?? undefined}><ModelNameText id={llm?.modelId ?? null} /></span>
@@ -762,13 +762,13 @@ export function LlmPanel({
 
           <div className="sp-decode">
             <div className="sp-metric">
-              <span className="eyebrow">Decode</span>
+              <span className="eyebrow">{t("Decode")}</span>
               <div className="big-num sp-big-lg">
                 {fmtTps(generationTps)}
-                <small>tok/s</small>
+                <small>{t("tok/s")}</small>
               </div>
               <TrendLine data={genHistory} height={44} color="var(--color-accent)" />
-              {genAvg != null && <span className="sp-avg mono">avg {fmtAvg(genAvg)}</span>}
+              {genAvg != null && <span className="sp-avg mono">{t("avg")} {fmtAvg(genAvg)}</span>}
               {idleNote && (
                 <span className="sp-avg" data-llm-idle>
                   {idleNote}
@@ -777,51 +777,51 @@ export function LlmPanel({
             </div>
             <div
               className="sp-metric"
-              title="Prompt tokens/sec taken in during the last poll window — cache-served + computed. Opening a saved chat in the UI does not hit the GPU; send (or regenerate) so the history is sent as the prompt. Cached prefill does little GPU work; uncached prefill is what builds KV cache."
+              title={t("Prompt tokens/sec taken in during the last poll window — cache-served + computed. Opening a saved chat in the UI does not hit the GPU; send (or regenerate) so the history is sent as the prompt. Cached prefill does little GPU work; uncached prefill is what builds KV cache.")}
             >
-              <span className="eyebrow">Prefill</span>
+              <span className="eyebrow">{t("Prefill")}</span>
               <div className="big-num sp-big-lg">
                 {llm?.prefillActive && prefillTps <= 0 ? (
                   <>
                     <span className="ov-tps__dots" aria-hidden />
-                    <small title="A prompt is being processed. The engine reports its speed only when the request finishes.">prefilling</small>
+                    <small title={t("A prompt is being processed. The engine reports its speed only when the request finishes.")}>{t("prefilling")}</small>
                   </>
                 ) : (
                   <>
                     {fmtTps(prefillTps)}
-                    <small>tok/s</small>
+                    <small>{t("tok/s")}</small>
                   </>
                 )}
               </div>
               <TrendLine data={prefillHistory} height={44} color="var(--color-info)" />
-              {prefillAvg != null && <span className="sp-avg mono">avg {fmtAvg(prefillAvg)}</span>}
+              {prefillAvg != null && <span className="sp-avg mono">{t("avg")} {fmtAvg(prefillAvg)}</span>}
             </div>
           </div>
           {showPrefillSplit && (
             <div className="sp-decode sp-decode--split">
               <div
                 className="sp-metric"
-                title="Prefill tokens served from prefix cache (little GPU work). High values mean prompt reuse, not a faster cold prefill."
+                title={t("Prefill tokens served from prefix cache (little GPU work). High values mean prompt reuse, not a faster cold prefill.")}
               >
-                <span className="eyebrow">Cached prefill</span>
+                <span className="eyebrow">{t("Cached prefill")}</span>
                 <div className="big-num sp-big-md">
                   {fmtTps(cachedPrefillTps)}
-                  <small>tok/s</small>
+                  <small>{t("tok/s")}</small>
                 </div>
                 <TrendLine data={cachedPrefillHistory} height={30} color="var(--color-muted)" />
-                {cachedPrefillAvg != null && <span className="sp-avg mono">avg {fmtAvg(cachedPrefillAvg)}</span>}
+                {cachedPrefillAvg != null && <span className="sp-avg mono">{t("avg")} {fmtAvg(cachedPrefillAvg)}</span>}
               </div>
               <div
                 className="sp-metric"
-                title="Uncached (computed) prefill — tokens that actually build KV cache on the GPU."
+                title={t("Uncached (computed) prefill — tokens that actually build KV cache on the GPU.")}
               >
-                <span className="eyebrow">Uncached prefill</span>
+                <span className="eyebrow">{t("Uncached prefill")}</span>
                 <div className="big-num sp-big-md">
                   {fmtTps(uncachedPrefillTps)}
-                  <small>tok/s</small>
+                  <small>{t("tok/s")}</small>
                 </div>
                 <TrendLine data={uncachedPrefillHistory} height={30} color="var(--color-violet)" />
-                {uncachedPrefillAvg != null && <span className="sp-avg mono">avg {fmtAvg(uncachedPrefillAvg)}</span>}
+                {uncachedPrefillAvg != null && <span className="sp-avg mono">{t("avg")} {fmtAvg(uncachedPrefillAvg)}</span>}
               </div>
             </div>
           )}
@@ -857,11 +857,11 @@ export function LlmPanel({
                     ? `${llm?.slotsActive} running`
                     : "—"}
               </b>
-              <span>Slots</span>
+              <span>{t("Slots")}</span>
             </div>
             <div className="sp-tile">
               <b>{llm?.contextLength ? llm.contextLength.toLocaleString() : "—"}</b>
-              <span>Context</span>
+              <span>{t("Context")}</span>
             </div>
             <div className="sp-tile">
               {(() => {
@@ -873,7 +873,7 @@ export function LlmPanel({
                 );
               })()}
               <div className="sp-tile__label">
-                <span>Engine</span>
+                <span>{t("Engine")}</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -885,7 +885,7 @@ export function LlmPanel({
                   onMouseEnter={clearEngineInfoTimer}
                   onMouseLeave={startEngineInfoTimer}
                   className="relative cursor-pointer opacity-60 hover:opacity-100"
-                  aria-label="Engine state info"
+                  aria-label={t("Engine state info")}
                 >
                   <InfoIcon className="h-2.5 w-2.5" />
                   {engineInfoOpen && (

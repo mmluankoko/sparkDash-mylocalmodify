@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import type { ReactNode } from "react";
 import "../../../styles/benchpages.css";
 import type { HistoryRow } from "./historyRows";
@@ -15,10 +16,11 @@ export function PageLayout({
   stacked?: boolean;
   children: ReactNode;
 }) {
+  useI18n();
   return (
     <div className={`bp-grid${stacked ? " bp-grid--stacked" : ""}`}>
-      <section className="panel bp-config" aria-label="Run configuration">
-        <div className="eyebrow">Configuration</div>
+      <section className="panel bp-config" aria-label={t("Run configuration")}>
+        <div className="eyebrow">{t("Configuration")}</div>
         {config}
         {runBar ? <div className="bp-runbar">{runBar}</div> : null}
       </section>
@@ -93,16 +95,17 @@ export function HistoryTable({
   /** A run is in flight, so opening another would replace its live view. */
   busy: boolean;
 }) {
+  useI18n();
   return (
     <div className="bp-table-wrap">
       <table className="bp-table">
         <thead>
           <tr>
-            <th>Date</th>
+            <th>{t("Date")}</th>
             <th>{labelHeader}</th>
-            <th className="bp-model">Model</th>
-            <th className="bp-num">Result</th>
-            <th aria-label="Actions" />
+            <th className="bp-model">{t("Model")}</th>
+            <th className="bp-num">{t("Result")}</th>
+            <th aria-label={t("Actions")} />
           </tr>
         </thead>
         <tbody>

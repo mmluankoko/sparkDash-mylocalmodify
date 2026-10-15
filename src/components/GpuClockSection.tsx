@@ -1,3 +1,4 @@
+import { t, useI18n } from "../i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchGpuClock, resetGpuClock, setGpuClock } from "../api/client";
 import type { GpuClockStatus } from "../api/types";
@@ -17,6 +18,7 @@ function serviceMax(status: Ready): number | null {
  * saved connection settings: it is not part of the Save button.
  */
 export function GpuClockSection({ sparkId }: { sparkId: string }) {
+  useI18n();
   const [status, setStatus] = useState<GpuClockStatus | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [maxInput, setMaxInput] = useState("");
@@ -66,7 +68,7 @@ export function GpuClockSection({ sparkId }: { sparkId: string }) {
   if (!status) {
     return (
       <div className="gpu-clock">
-        <span className="field-label">GPU clock cap</span>
+        <span className="field-label">{t("GPU clock cap")}</span>
         <p className={`field-hint${loadError ? " is-warn" : ""}`} role="status">
           {loadError ?? "Reading the unit…"}
         </p>
@@ -76,7 +78,7 @@ export function GpuClockSection({ sparkId }: { sparkId: string }) {
   if (!status.supported) {
     return (
       <div className="gpu-clock">
-        <span className="field-label">GPU clock cap</span>
+        <span className="field-label">{t("GPU clock cap")}</span>
         <p className="field-hint">{status.reason || "Not available on this unit."}</p>
       </div>
     );
@@ -126,11 +128,11 @@ export function GpuClockSection({ sparkId }: { sparkId: string }) {
       <p className="gpu-clock__now" data-testid="gpu-clock-now">
         {status.capMHz != null ? (
           <>
-            Capped at <b>{status.capMHz} MHz</b>
+            Capped at <b>{status.capMHz} {t("MHz")}</b>
             {hwMax != null ? ` (GPU maximum ${hwMax} MHz)` : ""}
           </>
         ) : (
-          <>No cap in effect{hwMax != null ? ` (GPU maximum ${hwMax} MHz)` : ""}</>
+          <>{t("No cap in effect")}{hwMax != null ? ` (GPU maximum ${hwMax} MHz)` : ""}</>
         )}
         {status.service.installed
           ? ` · boot service ${status.service.enabled === "enabled" ? "enabled" : status.service.enabled || "installed"}${
@@ -150,7 +152,7 @@ export function GpuClockSection({ sparkId }: { sparkId: string }) {
           onChange={(e) => setMaxInput(e.target.value)}
           disabled={busy || sudoMissing}
         />
-        <span className="gpu-clock__unit">MHz max</span>
+        <span className="gpu-clock__unit">{t("MHz max")}</span>
         <button type="button" className="btn btn--sm" onClick={apply} disabled={busy || !valid || sudoMissing}>
           {busy ? "Working…" : "Apply"}
         </button>
@@ -169,11 +171,11 @@ export function GpuClockSection({ sparkId }: { sparkId: string }) {
       </label>
       {sudoMissing ? (
         <p className="field-hint is-warn">
-          The user that runs the change needs passwordless sudo on this unit (<code>NOPASSWD: ALL</code>) to change the clock. Nothing was changed.
+          The user that runs the change needs passwordless sudo on this unit (<code>{t("NOPASSWD: ALL")}</code>) to change the clock. Nothing was changed.
         </p>
       ) : (
         <p className="field-hint">
-          Runs <code>nvidia-smi -lgc 0,MAX</code>{status.sudo === "root" ? " as root on this machine" : " through sudo"}, using the
+          Runs <code>{t("nvidia-smi -lgc 0,MAX")}</code>{status.sudo === "root" ? " as root on this machine" : " through sudo"}, using the
           saved connection settings. Applies at once; it is not part of Save.
         </p>
       )}
@@ -182,7 +184,7 @@ export function GpuClockSection({ sparkId }: { sparkId: string }) {
           Enter a whole number from {MIN_CAP_MHZ}{hwMax != null ? ` to ${hwMax}` : ""}.
         </p>
       )}
-      {loadError && <p className="field-hint is-warn" role="status">Could not refresh: {loadError}</p>}
+      {loadError && <p className="field-hint is-warn" role="status">{t("Could not refresh:")} {loadError}</p>}
       {message && (
         <p className={`field-hint ${message.ok ? "is-ok" : "is-warn"}`} role="status">
           {message.text}

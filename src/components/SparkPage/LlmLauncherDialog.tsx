@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useModalPresence } from "../../hooks/useModalPresence";
@@ -31,6 +32,7 @@ export function validateLauncherForm(form: { name: string; dir: string; port: st
 }
 
 export function LlmLauncherDialog({ open, sparkId, sparkName, launcher, onClose, onSaved }: LlmLauncherDialogProps) {
+  useI18n();
   const titleId = useId();
   const { mounted, visible } = useModalPresence(open);
   const trapRef = useFocusTrap(mounted);
@@ -121,34 +123,34 @@ export function LlmLauncherDialog({ open, sparkId, sparkName, launcher, onClose,
               those scripts as the SSH user and shows their output here.
             </p>
             <div className="field">
-              <label htmlFor={`${titleId}-name`}>Name (required)</label>
+              <label htmlFor={`${titleId}-name`}>{t("Name (required)")}</label>
               <input
                 id={`${titleId}-name`}
                 type="text"
                 value={form.name}
                 onChange={(e) => set({ name: e.target.value })}
-                placeholder="GLM 5.3 EXL3"
+                placeholder={t("GLM 5.3 EXL3")}
                 autoComplete="off"
                 autoFocus
               />
             </div>
             <div className="field">
-              <label htmlFor={`${titleId}-dir`}>Directory on {sparkName} (required)</label>
+              <label htmlFor={`${titleId}-dir`}>{t("Directory on")} {sparkName} {t("(required)")}</label>
               <input
                 id={`${titleId}-dir`}
                 type="text"
                 className="field-input--mono"
                 value={form.dir}
                 onChange={(e) => set({ dir: e.target.value })}
-                placeholder="/home/you/llms/glm-5.3"
+                placeholder={t("/home/you/llms/glm-5.3")}
                 autoComplete="off"
                 spellCheck={false}
               />
-              <p className="field-hint">An absolute path, or one starting with ~/. No spaces.</p>
+              <p className="field-hint">{t("An absolute path, or one starting with ~/. No spaces.")}</p>
             </div>
             <div className="field-row">
               <div className="field">
-                <label htmlFor={`${titleId}-start`}>Start script</label>
+                <label htmlFor={`${titleId}-start`}>{t("Start script")}</label>
                 <input
                   id={`${titleId}-start`}
                   type="text"
@@ -159,7 +161,7 @@ export function LlmLauncherDialog({ open, sparkId, sparkName, launcher, onClose,
                 />
               </div>
               <div className="field">
-                <label htmlFor={`${titleId}-stop`}>Stop script</label>
+                <label htmlFor={`${titleId}-stop`}>{t("Stop script")}</label>
                 <input
                   id={`${titleId}-stop`}
                   type="text"
@@ -170,7 +172,7 @@ export function LlmLauncherDialog({ open, sparkId, sparkName, launcher, onClose,
                 />
               </div>
               <div className="field field--port">
-                <label htmlFor={`${titleId}-port`}>Port</label>
+                <label htmlFor={`${titleId}-port`}>{t("Port")}</label>
                 <input
                   id={`${titleId}-port`}
                   type="number"
@@ -185,13 +187,13 @@ export function LlmLauncherDialog({ open, sparkId, sparkName, launcher, onClose,
               The port is optional. When set, the model shows as &ldquo;serving&rdquo; once the dashboard sees an LLM answering there.
             </p>
             <div className="field">
-              <label htmlFor={`${titleId}-notes`}>Notes</label>
+              <label htmlFor={`${titleId}-notes`}>{t("Notes")}</label>
               <input
                 id={`${titleId}-notes`}
                 type="text"
                 value={form.notes}
                 onChange={(e) => set({ notes: e.target.value })}
-                placeholder="Optional, e.g. 2-node cluster, needs ~100 GB"
+                placeholder={t("Optional, e.g. 2-node cluster, needs ~100 GB")}
                 autoComplete="off"
               />
             </div>

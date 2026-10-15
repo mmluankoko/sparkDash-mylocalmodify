@@ -111,11 +111,11 @@ export function FleetEnergyCard({
           />
         ))}
       </div>
-      <div className="ov-axis mono"><span>24h ago</span><span>12h</span><span>now</span></div>
+      <div className="ov-axis mono"><span>{t("24h ago")}</span><span>12h</span><span>{t("now")}</span></div>
       <dl className="ov-stats">
-        <div><dt>Current</dt><dd className="mono">{number(data?.currentWatts30s ?? null, 0)} W</dd></div>
-        <div><dt>31 days</dt><dd className="mono">{number(data?.energy31dKwh ?? null)} kWh</dd></div>
-        <div><dt>Efficiency</dt><dd className="mono">{significant(data?.whPerOutputToken24h ?? null)} Wh/token</dd></div>
+        <div><dt>{t("Current")}</dt><dd className="mono">{number(data?.currentWatts30s ?? null, 0)} W</dd></div>
+        <div><dt>{t("31 days")}</dt><dd className="mono">{number(data?.energy31dKwh ?? null)} {t("kWh")}</dd></div>
+        <div><dt>{t("Efficiency")}</dt><dd className="mono">{significant(data?.whPerOutputToken24h ?? null)} {t("Wh/token")}</dd></div>
       </dl>
     </section>
   );

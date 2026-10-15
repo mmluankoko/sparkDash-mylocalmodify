@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../i18n";
 import { useEffect, useMemo, useRef } from "react";
 import "../../styles/terminal.css";
 
@@ -30,6 +31,7 @@ export function LiveTerminal({
   className = "",
   emptyText = "Waiting for output…",
 }: LiveTerminalProps) {
+  useI18n();
   const ref = useRef<HTMLPreElement>(null);
   const stick = useRef(true);
   const shown = lines.length > maxVisible ? lines.slice(lines.length - maxVisible) : lines;
@@ -48,13 +50,13 @@ export function LiveTerminal({
       tabIndex={0}
       role="log"
       aria-live="off"
-      aria-label="Command output"
+      aria-label={t("Command output")}
       onScroll={(e) => {
         const el = e.currentTarget;
         stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 28;
       }}
     >
-      {hidden > 0 ? <span className="live-term__note">… {hidden.toLocaleString()} earlier lines hidden (copy gets everything)</span> : null}
+      {hidden > 0 ? <span className="live-term__note">… {hidden.toLocaleString()} {t("earlier lines hidden (copy gets everything)")}</span> : null}
       {text || (running ? emptyText : "No output.")}
       {running ? <span className="live-term__cursor" aria-hidden /> : null}
     </pre>

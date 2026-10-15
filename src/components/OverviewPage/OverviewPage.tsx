@@ -222,7 +222,7 @@ export function OverviewPage({
           <div className="ov-meta">
             {t("{0} Spark{1}", sparks.length, sparks.length === 1 ? "" : "s")}
             <span className="tag tag--good">{onlineCount}/{visibleSparks.length} {t("online")}</span>
-            {memTotalMb > 0 ? <span>{formatMb(memTotalMb)} unified memory</span> : null}
+            {memTotalMb > 0 ? <span>{formatMb(memTotalMb)} {t("unified memory")}</span> : null}
             {hiddenWorkerCount > 0 ? <span>{t("{0} worker{1} hidden", hiddenWorkerCount, hiddenWorkerCount === 1 ? "" : "s")}</span> : null}
           </div>
         </div>
@@ -257,7 +257,7 @@ export function OverviewPage({
                   type="button"
                   onClick={() => void handleUpdateAllHermes()}
                   disabled={batchLoading}
-                  title="Run `hermes update` on every Spark with Hermes Agent enabled"
+                  title={t("Run `hermes update` on every Spark with Hermes Agent enabled")}
                   className={`btn ${hermesPendingUpdateCount > 0 ? "ov-btn--pending" : ""}`}
                 >
                   <RotateIcon className="h-3.5 w-3.5" />
@@ -277,7 +277,7 @@ export function OverviewPage({
                   type="button"
                   onClick={() => void handleWakeAll()}
                   disabled={batchLoading}
-                  title="Wake dedicated GPU hosts that have a MAC configured. DGX Spark has no Wake-on-LAN."
+                  title={t("Wake dedicated GPU hosts that have a MAC configured. DGX Spark has no Wake-on-LAN.")}
                   className="btn"
                 >
                   <PowerOnIcon className="h-3.5 w-3.5" />
@@ -293,24 +293,24 @@ export function OverviewPage({
       <FleetAlertStrip sparks={sparks} onSelect={onSelectSpark} showExceptions={showFleetExceptions} temperatureUnit={temperatureUnit} />
 
       {showOverviewSearch ? (
-        <div className="ov-search" role="search" aria-label="Filter fleet units">
+        <div className="ov-search" role="search" aria-label={t("Filter fleet units")}>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search up to 12 units"
-            aria-label="Search units by name"
+            placeholder={t("Search up to 12 units")}
+            aria-label={t("Search units by name")}
             className="ov-input"
           />
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-            aria-label="Filter units by status"
+            aria-label={t("Filter units by status")}
             className="ov-input ov-input--select"
           >
-            <option value="all">All status</option>
-            <option value="online">Online</option>
-            <option value="offline">Offline</option>
-            <option value="issues">Issues</option>
+            <option value="all">{t("All status")}</option>
+            <option value="online">{t("Online")}</option>
+            <option value="offline">{t("Offline")}</option>
+            <option value="issues">{t("Issues")}</option>
           </select>
         </div>
       ) : null}
@@ -318,7 +318,7 @@ export function OverviewPage({
       <div className="ov-grid">
         <div className="ov-sparks" data-count={visibleSparks.length}>
           {visibleSparks.length === 0 && (
-            <p className="panel ov-empty">No units match the current search and status filters.</p>
+            <p className="panel ov-empty">{t("No units match the current search and status filters.")}</p>
           )}
           {visibleSparks.map((spark) => {
             const ctx = cardContext.get(spark.id);
@@ -341,7 +341,7 @@ export function OverviewPage({
           {showFleetEnergy ? <FleetEnergyCard nodeCount={sparks.length} nodeNames={Object.fromEntries(sparks.map((s) => [s.id, s.name]))} onOpenDetails={onNavigate ? () => onNavigate(ENERGY_ID) : undefined} /> : null}
           {showLlmTokenTotals ? <FleetTokenTotals onOpenDetails={onNavigate ? () => onNavigate(TOKENS_ID) : undefined} /> : null}
           {showActivityFeed ? (
-            <section className="panel ov-card" aria-label="Recent activity">
+            <section className="panel ov-card" aria-label={t("Recent activity")}>
               <ActivityFeed limit={6} onSelectSpark={onSelectSpark} onViewAll={onNavigate ? () => onNavigate(ACTIVITY_ID) : undefined} />
             </section>
           ) : null}

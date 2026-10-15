@@ -1,3 +1,4 @@
+import { t, useI18n } from "../../../i18n";
 import { useMemo, useState } from "react";
 import type { ToolEvalRun } from "../../../api/types";
 import { Tag } from "../../ui/Tag";
@@ -25,9 +26,10 @@ function Delta({ a, b, higherIsBetter = true, suffix = "", digits }: { a: number
 const count = (n: NormToolResult, v: number) => (n.scenarios.length ? v : "–");
 
 function RunHead({ side, run, n, other }: { side: "A" | "B"; run: ToolEvalRun; n: NormToolResult; other: NormToolResult }) {
+  useI18n();
   return (
     <div className={`te-sbs__head te-sbs__head--${side.toLowerCase()}`}>
-      <span className="eyebrow">Run {side}</span>
+      <span className="eyebrow">{t("Run")} {side}</span>
       <b className="te-sbs__title">{run.label || fmtDate(run.startedAt)}</b>
       <span className="te-faint">{run.label ? `${fmtDate(run.startedAt)} · ` : ""}{run.model ?? n.model ?? "auto model"}</span>
       <div className="te-sbs__score">
@@ -35,9 +37,9 @@ function RunHead({ side, run, n, other }: { side: "A" | "B"; run: ToolEvalRun; n
         {side === "B" ? <Delta a={other.score} b={n.score} digits={deltaDigits(other.score, n.score)} /> : null}
       </div>
       <div className="te-sbs__counts mono">
-        <span className="is-pass">{count(n, n.counts.pass)} pass</span>
-        <span className="is-partial">{count(n, n.counts.partial)} partial</span>
-        <span className="is-fail">{count(n, n.counts.fail)} fail</span>
+        <span className="is-pass">{count(n, n.counts.pass)} {t("pass")}</span>
+        <span className="is-partial">{count(n, n.counts.partial)} {t("partial")}</span>
+        <span className="is-fail">{count(n, n.counts.fail)} {t("fail")}</span>
       </div>
     </div>
   );
@@ -45,6 +47,7 @@ function RunHead({ side, run, n, other }: { side: "A" | "B"; run: ToolEvalRun; n
 
 /** Two tool-call results next to each other: scores, category bars and a scenario-by-scenario table. */
 export function SideBySide({ a, b, runA, runB, onSwap }: { a: NormToolResult; b: NormToolResult; runA: ToolEvalRun; runB: ToolEvalRun; onSwap: () => void }) {
+  useI18n();
   const [onlyDiff, setOnlyDiff] = useState(true);
   // One comparison, shared with the tests: the same row kinds and deltas everywhere.
   const cmp = useMemo(() => compareToolResults(a, b), [a, b]);
@@ -59,14 +62,14 @@ export function SideBySide({ a, b, runA, runB, onSwap }: { a: NormToolResult; b:
       <div className="te-sbs__top">
         <RunHead side="A" run={runA} n={a} other={b} />
         <div className="te-sbs__mid">
-          <button type="button" className="btn btn--sm btn--ghost" onClick={onSwap} title="Swap A and B">
+          <button type="button" className="btn btn--sm btn--ghost" onClick={onSwap} title={t("Swap A and B")}>
             ⇄ Swap
           </button>
         </div>
         <RunHead side="B" run={runB} n={b} other={a} />
       </div>
 
-      <h3>Metrics</h3>
+      <h3>{t("Metrics")}</h3>
       <div className="te-sbs__metrics">
         {cmp.headline
           .filter((m) => m.label !== "Score" && m.label !== "Partial")
@@ -84,7 +87,7 @@ export function SideBySide({ a, b, runA, runB, onSwap }: { a: NormToolResult; b:
 
       {cats.length ? (
         <>
-          <h3>Categories</h3>
+          <h3>{t("Categories")}</h3>
           <div className="te-sbs__cats">
             {cats.map((c) => (
               <div key={c.id} className="te-sbs__cat">
@@ -110,7 +113,7 @@ export function SideBySide({ a, b, runA, runB, onSwap }: { a: NormToolResult; b:
         <>
       <div className="te-sbs__scn-head">
         <h3>
-          Scenarios <span className="te-faint">({nDiff} differ of {rows.length})</span>
+          Scenarios <span className="te-faint">({nDiff} {t("differ of")} {rows.length})</span>
         </h3>
         <label className="te-sbs__toggle">
           <input type="checkbox" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} />
@@ -122,9 +125,9 @@ export function SideBySide({ a, b, runA, runB, onSwap }: { a: NormToolResult; b:
           <table className="te-table te-sbs__table">
             <thead>
               <tr>
-                <th scope="col">Scenario</th>
-                <th scope="col">Run A</th>
-                <th scope="col">Run B</th>
+                <th scope="col">{t("Scenario")}</th>
+                <th scope="col">{t("Run A")}</th>
+                <th scope="col">{t("Run B")}</th>
               </tr>
             </thead>
             <tbody>
@@ -133,15 +136,15 @@ export function SideBySide({ a, b, runA, runB, onSwap }: { a: NormToolResult; b:
                   <th scope="row">
                     <span className="mono">{r.id}</span> <span className="te-faint">{r.title ?? ""}</span>
                   </th>
-                  <td>{r.from ? <Tag tone={TONE[r.from]}>{LABEL[r.from]}</Tag> : <span className="te-faint">not run</span>}</td>
-                  <td>{r.to ? <Tag tone={TONE[r.to]}>{LABEL[r.to]}</Tag> : <span className="te-faint">not run</span>}</td>
+                  <td>{r.from ? <Tag tone={TONE[r.from]}>{LABEL[r.from]}</Tag> : <span className="te-faint">{t("not run")}</span>}</td>
+                  <td>{r.to ? <Tag tone={TONE[r.to]}>{LABEL[r.to]}</Tag> : <span className="te-faint">{t("not run")}</span>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : (
-        <p className="te-empty">Every scenario ended with the same status in both runs.</p>
+        <p className="te-empty">{t("Every scenario ended with the same status in both runs.")}</p>
       )}
         </>
       ) : null}

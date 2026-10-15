@@ -30,7 +30,7 @@ export function TailscalePanel({ tailscale, className }: TailscalePanelProps) {
 
   return (
     <Panel
-      title="Tailnet"
+      title={t("Tailnet")}
       accent={offTailnet}
       icon={<NetworkIcon />}
       className={className}
