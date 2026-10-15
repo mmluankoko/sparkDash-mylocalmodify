@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { SparkSnapshot, WsSnapshot } from "../api/types";
 import { ingestSnapshots } from "./metricsStore";
-import { OVERVIEW_ID, LLM_ID, COMFY_ID, LLMCTL_ID, initialActiveId } from "../constants";
+import { initialActiveId } from "../constants";
 import { fetchAuthStatus, getToken, onTokenChange, reportAuthRequired } from "../api/authToken";
 
 const RECONNECT_DELAY = 2000;
@@ -86,14 +86,9 @@ export function useSnapshot() {
             Number.isFinite(msg.refreshInterval) ? Number(msg.refreshInterval) : null
           );
           setSnapshotError(null);
-          // Default to the Overview tab; keep the current selection if it
-          // is still valid (Overview is always valid).
-          setActiveId((prev) => {
-            // Virtual tabs (Overview, fleet LLM/Comfy/control) are always valid.
-            if (prev === OVERVIEW_ID || prev === LLM_ID || prev === COMFY_ID || prev === LLMCTL_ID) return prev;
-            if (prev && msg.sparks.some((s) => s.id === prev)) return prev;
-            return OVERVIEW_ID;
-          });
+          // Stale-selection handling lives in App (isStaleSparkId): page ids
+          // (Overview, Tokens, LLM, ComfyUI, LLM control, …) always stay valid,
+          // and a Spark id that left the fleet is replaced in place there.
         } else {
           setSnapshotError("The server sent an invalid telemetry payload.");
         }
