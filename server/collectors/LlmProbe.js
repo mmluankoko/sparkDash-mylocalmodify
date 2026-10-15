@@ -103,7 +103,7 @@ export class LlmProbe {
     this._openTunnel = openSshLlmTunnel;
 
     // State
-    this.backendType = null; // 'vllm' | 'llama.cpp' | 'sglang' | 'lmstudio' | 'ollama' | 'ds4' | 'exl3' | 'q27' | 'tensorfold' | 'freetoken' | null
+    this.backendType = null; // 'vllm' | 'llama.cpp' | 'sglang' | 'lmstudio' | 'ollama' | 'ds4' | 'exl3' | 'q27' | 'atlas' | 'tensorfold' | 'freetoken' | null
     this.serverIsOpenAI = null; // true = OpenAI-compatible
     /** Whether /v1/models (or /slots) answered without credentials. null = unknown. */
     this.authOpen = null;
@@ -694,6 +694,13 @@ export class LlmProbe {
     );
   }
 
+  /** True when Prometheus /metrics exposes atlas-series (GLM Atlas engine). */
+  static _metricsLookLikeAtlas(body) {
+    return /(?:^|\n)atlas_(?:decoded_tokens_total|generation_tokens_total|prompt_tokens_total)(?:\{|\s)/m.test(
+      String(body || "")
+    );
+  }
+
   // ─── OpenAI-compatible path (vLLM/sglang/ds4) ────────────
   async _probeOpenAICompatible() {
     const now = Date.now();
@@ -866,6 +873,7 @@ export class LlmProbe {
       this.backendType === "vllm" ||
       this.backendType === "ds4" ||
       this.backendType === "q27" ||
+      this.backendType === "atlas" ||
       this.backendType === "sglang";
     if (wantsPrometheus) {
       try {
@@ -878,6 +886,12 @@ export class LlmProbe {
           ) {
             this.backendType = "ds4";
             this._applyDs4Metrics(txt, dtSec);
+          } else if (
+            this.backendType === "atlas" ||
+            LlmProbe._metricsLookLikeAtlas(txt)
+          ) {
+            this.backendType = "atlas";
+            this._applyAtlasMetrics(txt, dtSec);
           } else if (
             this.backendType === "q27" ||
             LlmProbe._metricsLookLikeQ27(txt)
@@ -1017,6 +1031,84 @@ export class LlmProbe {
     this.requestsWaiting = null;
     this.ttftP95Seconds = null;
     this.ttftSeconds = null;
+    this.preemptionsTotal = null;
+    this.e2eP95Seconds = null;
+    this.itlP95Seconds = null;
+  }
+
+  /**
+   * Apply GLM Atlas engine Prometheus /metrics (atlas_* series).
+   *
+   * Live tok/s from counter diffs (same convention as vLLM/ds4) so idle → 0.
+   * Prefill counts computed prompt tokens: the cached share (tokens reused from
+   * the prefix cache) is subtracted so a fully cached prompt does not show as
+   * prefill work. TTFT comes from the histogram sum/count deltas (live mean)
+   * and the bucket interpolation (p95). No KV-pool or waiting-queue series.
+   * @param {string} txt
+   * @param {number} dtSec
+   */
+  _applyAtlasMetrics(txt, dtSec) {
+    const decoded = this._getPromMetric(txt, "atlas_decoded_tokens_total");
+    const promptTokens = this._getPromMetric(txt, "atlas_prompt_tokens_total");
+    const cachedTotal = this._getPromMetric(txt, "atlas_prefix_cache_hit_tokens_total");
+
+    if (decoded != null && promptTokens != null) {
+      const deltaIn = promptTokens - this.lastTokenCounts.input;
+      const deltaOut = decoded - this.lastTokenCounts.output;
+      this.lastTokenCounts.input = promptTokens;
+      this.lastTokenCounts.output = decoded;
+      this.totalOutputTokens = decoded;
+      this.totalPromptTokens = promptTokens;
+      if (cachedTotal != null) this.totalCachedTokens = cachedTotal;
+
+      if (dtSec > 0 && dtSec < 10) {
+        this.generationTps = Math.max(0, Math.round((deltaOut / dtSec) * 100) / 100);
+        const deltaCached =
+          cachedTotal != null && this.lastCachedTokens != null
+            ? Math.max(0, cachedTotal - this.lastCachedTokens)
+            : 0;
+        const computedIn = Math.max(0, deltaIn - deltaCached);
+        this.prefillTps = Math.max(0, Math.round((computedIn / dtSec) * 100) / 100);
+      }
+      if (cachedTotal != null) this.lastCachedTokens = cachedTotal;
+    }
+
+    const running = this._getPromMetric(txt, "atlas_requests_active");
+    this.requestsRunning = running;
+    if (running != null) this.slotsActive = Math.round(running);
+
+    const hitRate = this._getPromMetric(txt, "atlas_prefix_cache_hit_rate");
+    this.prefixCacheHitRate = hitRate != null ? Math.round(hitRate * 10000) / 10000 : null;
+
+    // Live mean TTFT over the last poll window from histogram sum/count deltas.
+    const ttftSum = this._getPromMetric(txt, "atlas_time_to_first_token_seconds_sum");
+    const ttftCount = this._getPromMetric(txt, "atlas_time_to_first_token_seconds_count");
+    if (ttftCount != null) {
+      const deltaSum =
+        ttftSum != null && this.lastTtftSum != null ? ttftSum - this.lastTtftSum : null;
+      const deltaCount = this.lastTtftCount != null ? ttftCount - this.lastTtftCount : null;
+      this.ttftSeconds =
+        deltaSum != null && deltaCount != null && deltaCount > 0 && deltaSum >= 0
+          ? Math.round((deltaSum / deltaCount) * 1000) / 1000
+          : null;
+      this.lastTtftCount = ttftCount;
+    } else {
+      this.ttftSeconds = null;
+    }
+    if (ttftSum != null) this.lastTtftSum = ttftSum;
+
+    const ttftHist = this._parseHistogram(
+      txt,
+      "atlas_time_to_first_token_seconds",
+      "atlas_time_to_first_token_seconds_count"
+    );
+    const ttftP95 = this._histogramQuantile(ttftHist.buckets, ttftHist.total, 0.95);
+    this.ttftP95Seconds = ttftP95 == null ? null : Math.round(ttftP95 * 1000) / 1000;
+
+    // Clear tiles that are vLLM-specific (no atlas equivalent yet)
+    this.kvCacheUsage = null;
+    this._clearKvPool();
+    this.requestsWaiting = null;
     this.preemptionsTotal = null;
     this.e2eP95Seconds = null;
     this.itlP95Seconds = null;

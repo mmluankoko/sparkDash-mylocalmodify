@@ -14,6 +14,7 @@ export const BACKEND_LABELS = Object.freeze({
   ds4: "ds4",
   exl3: "EXL3",
   q27: "q27",
+  atlas: "Atlas",
   tensorfold: "TensorFold",
   freetoken: "FreeToken",
 });
