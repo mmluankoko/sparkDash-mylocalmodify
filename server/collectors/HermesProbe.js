@@ -27,6 +27,7 @@
  */
 import fs from "fs";
 import path from "path";
+import { scrubbedChildEnv } from "../llmlaunch/childEnv.js";
 import { execFile } from "child_process";
 import { HOST_PATHS, HERMES_UPDATE_TIMEOUT_MS } from "../config.js";
 import { sshExec } from "./ssh.js";
@@ -76,11 +77,31 @@ export function parseHostPasswd(passwdText, user) {
  * @param {number} opts.currentUid  uid of the current process
  * @param {string|undefined} opts.user  configured host user (spark.ssh.user)
  * @param {string} opts.cmd  command script to run
+ * @param {boolean} [opts.requireDrop]  opt-in (LLM launchers): never fall back to
+ *   running as the current/root user. Throws when the configured user cannot be
+ *   resolved from passwd, is uid 0, or (for a non-root process) is not the
+ *   process's own uid. Hermes callers leave this off and keep the old fallback.
  */
-export function chooseLocalInvocation({ mntNs, passwdText, currentUid, user, cmd }) {
+export function chooseLocalInvocation({ mntNs, passwdText, currentUid, user, cmd, requireDrop = false }) {
   const hasNs = Boolean(mntNs);
   const isRoot = Number.isInteger(currentUid) && currentUid === 0;
   const ident = parseHostPasswd(passwdText, user);
+
+  if (requireDrop) {
+    if (!ident) {
+      throw new Error(
+        `Refusing to run as the dashboard user: cannot resolve SSH user ${user ? `"${user}"` : "(not set)"} in the host passwd file. Set the Spark's SSH user.`
+      );
+    }
+    if (ident.uid === 0) throw new Error("Refusing to run launcher scripts as root; configure a non-root SSH user.");
+    if (!isRoot) {
+      if (currentUid !== ident.uid) {
+        throw new Error(`Cannot switch to user "${user}" (uid ${ident.uid}) from uid ${currentUid}; refusing to run as the wrong user.`);
+      }
+      // Already the right unprivileged user: run in place, no drop needed.
+      return { file: "sh", args: ["-c", cmd], repair: null };
+    }
+  }
 
   if (ident && isRoot) {
     const fullCmd = `export HOME='${ident.home}'; ${cmd}`;
@@ -291,7 +312,7 @@ export class HermesProbe {
       execFile(
         file,
         args,
-        { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 },
+        { env: scrubbedChildEnv(), timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 },
         (err, stdout) => {
           if (err) {
             return reject(new Error(String(stdout || "").trim() || err.message));

@@ -6,31 +6,26 @@ import { idleLabel, isLlmIdle } from "../../shared/llmIdle";
 
 const NOW = 1_800_000_000_000;
 
-function sparkWithRates(generationTps: number, prefillTps: number) {
+function sparkWithRates(generationTps: number, prefillTps: number, lastActiveAt: number | null) {
   const spark = makeSpark();
-  Object.assign(spark.metrics.llm[0], { generationTps, prefillTps });
+  Object.assign(spark.metrics.llm[0], { generationTps, prefillTps, lastActiveAt });
   return spark;
 }
 
-/** The fleet LLM card is the last overview card. */
-function llmCard(container: HTMLElement): HTMLElement {
-  const cards = container.querySelectorAll(".overview-card");
-  return cards[cards.length - 1] as HTMLElement;
-}
-
-describe("Overview LLM card", () => {
+describe("Overview LLM footer", () => {
   it("shows both rates, zeros included, while the endpoint is idle", () => {
-    const { container } = render(<OverviewPage sparks={[sparkWithRates(0, 0)]} />);
-    const card = llmCard(container);
-    expect(card.textContent).toContain("fixture-model");
-    expect(card.textContent).toContain("0");
+    const { container } = render(<OverviewPage sparks={[sparkWithRates(0, 0, NOW - 60_000)]} />);
+    const text = container.textContent ?? "";
+    expect(text).toMatch(/Decode0\.0tok\/s/);
+    expect(text).toMatch(/Prefill0tok\/s/);
+    expect(container.textContent).not.toContain("Idle");
   });
 
   it("shows the live rates while it is serving", () => {
-    const { container } = render(<OverviewPage sparks={[sparkWithRates(20, 350)]} />);
-    const card = llmCard(container);
-    expect(card.textContent).toContain("20");
-    expect(card.textContent).toContain("350");
+    const { container } = render(<OverviewPage sparks={[sparkWithRates(20, 350, NOW)]} />);
+    const text = container.textContent ?? "";
+    expect(text).toMatch(/Decode20\.0tok\/s/);
+    expect(text).toMatch(/Prefill350tok\/s/);
   });
 });
 
@@ -40,6 +35,11 @@ describe("llm idle helpers", () => {
     expect(isLlmIdle({ generationTps: Number.NaN, prefillTps: 0 })).toBe(true);
     expect(isLlmIdle({ generationTps: 0.2, prefillTps: 0 })).toBe(false);
     expect(isLlmIdle({ generationTps: 0, prefillTps: 1 })).toBe(false);
+  });
+
+  it("is not idle while a prompt is prefilling, even with both rates at 0 (#202)", () => {
+    expect(isLlmIdle({ generationTps: 0, prefillTps: 0, prefillActive: true })).toBe(false);
+    expect(isLlmIdle({ generationTps: 0, prefillTps: 0, prefillActive: false })).toBe(true);
   });
 
   it("labels the idle state", () => {

@@ -113,30 +113,28 @@ export function LlmTrendChart({
   const hasData = genWin.length > 1 || prefillWin.length > 1;
 
   return (
-    <div className="border-t border-border pt-3 space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] uppercase tracking-wide text-muted">
-          {t("tok/s history")}</span>
-        <span className="text-[10px] text-muted">{historyLabel()}</span>
+    <div className="sp-section">
+      <div className="sp-section__head">
+        <span className="eyebrow">{t("tok/s history")}</span>
+        <span className="sp-muted">{historyLabel()}</span>
       </div>
       {!hasData ? (
-        <p className="text-[10px] text-muted">{t("No samples yet.")}</p>
+        <p className="sp-muted">{t("No samples yet.")}</p>
       ) : (
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           preserveAspectRatio="none"
-          className="block w-full"
-          style={{ height: 64 }}
+          className="sp-trend-svg"
           role="img"
           aria-label={t("Generation and prefill tokens per second over the last 30 minutes")}
         >
           {prefillPts.map((points, index) => (
             <g key={`prefill-${index}`}>
-              <path d={areaPath(points)} fill="var(--color-text)" opacity={0.1} />
+              <path d={areaPath(points)} fill="var(--color-info)" opacity={0.12} />
               <polyline
                 points={points}
                 fill="none"
-                stroke="var(--color-text)"
+                stroke="var(--color-info)"
                 strokeWidth="1.5"
                 vectorEffect="non-scaling-stroke"
                 strokeLinejoin="round"
@@ -160,22 +158,22 @@ export function LlmTrendChart({
           ))}
         </svg>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[10px] text-muted">
+      <div className="sp-trend-foot">
         <span>
           {t("Gen avg")}{" "}
-          <span className="font-tabular text-xs text-accent">{fmt(genAvg)}</span>
+          <span className="mono text-accent">{fmt(genAvg)}</span>
         </span>
         <span>
           {t("Prefill avg")}{" "}
-          <span className="font-tabular text-xs text-text">{fmt(prefillAvg)}</span>
+          <span className="mono text-text">{fmt(prefillAvg)}</span>
         </span>
         <span>
           {t("TTFT avg")}{" "}
-          <span className="font-tabular text-xs text-muted">
+          <span className="mono">
             {ttftAvg != null ? `${ttftAvg.toFixed(3)}s` : "—"}
           </span>
         </span>
-        <span className="text-[9px]">{t("avg over busy samples only")}</span>
+        <span>{t("avg over busy samples only")}</span>
       </div>
     </div>
   );

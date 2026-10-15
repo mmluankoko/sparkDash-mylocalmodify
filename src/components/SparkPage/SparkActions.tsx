@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { t, useI18n } from "../../i18n";
 import type { SparkSnapshot } from "../../api/types";
+import { shutdownSpark, wakeSpark } from "../../api/client";
+import { ConfirmShutdownDialog } from "../ConfirmShutdownDialog";
 import { openHermesUpdateDialog } from "../../hooks/useHermesUpdateDialog";
-import { EditIcon, RotateIcon } from "../ui/icons";
+import { EditIcon, PowerOffIcon, PowerOnIcon, RotateIcon } from "../ui/icons";
 
 interface SparkActionsProps {
   spark: SparkSnapshot;
@@ -11,12 +14,41 @@ interface SparkActionsProps {
 }
 
 /**
- * Update Hermes / Edit action cluster. Power actions (Shutdown / Wake) were
- * removed by product decision. Rendered twice: inline in the SparkHeader
- * (desktop) and as a standalone row just above "Resources" on mobile.
+ * Work a shutdown would interrupt, from signals already in the snapshot:
+ * in-flight LLM requests, a running ComfyUI job, a Hermes update.
+ */
+export function shutdownWarnings(spark: SparkSnapshot): string[] {
+  const out: string[] = [];
+  const ports = spark.llmPorts ?? [];
+  (spark.metrics.llm ?? []).forEach((l, i) => {
+    if (!l?.available) return;
+    const running = Math.round(l.requestsRunning ?? 0);
+    const waiting = Math.round(l.requestsWaiting ?? 0);
+    const busy = running + waiting > 0 ? running + waiting : (l.slotsActive ?? 0) > 0 ? (l.slotsActive ?? 0) : 0;
+    if (busy > 0) {
+      const port = ports[i];
+      out.push(`${busy} in-flight LLM request${busy === 1 ? "" : "s"}${port != null ? ` on :${port}` : ""}`);
+    }
+  });
+  const job = spark.metrics.comfy?.activeJob;
+  if (job) out.push(`Running ComfyUI job${job.title ? `: ${job.title}` : ""}`);
+  if (spark.hermes?.status === "running") out.push("A Hermes update is in progress");
+  return out;
+}
+
+/**
+ * Update Hermes / Edit / Power action cluster.
+ * Rendered twice: inline in the SparkHeader (desktop) and as a standalone row
+ * just above "Resources" on mobile. Owning the shutdown dialog + transient
+ * power message here keeps the two placements in sync.
  */
 export function SparkActions({ spark, onEdit, className }: SparkActionsProps) {
   useI18n();
+  const online = spark.online;
+  const [powerLoading, setPowerLoading] = useState(false);
+  const [powerMsg, setPowerMsg] = useState<{ text: string; tone: "ok" | "err" } | null>(null);
+  const [shutdownOpen, setShutdownOpen] = useState(false);
+
   const hermes = spark.hermes;
   const hermesRunning = hermes?.status === "running";
 
@@ -28,62 +60,141 @@ export function SparkActions({ spark, onEdit, className }: SparkActionsProps) {
     });
   }
 
+  async function handleShutdown() {
+    setPowerLoading(true);
+    setPowerMsg(null);
+    try {
+      const res = await shutdownSpark(spark.id);
+      setPowerMsg({ text: res.message || "Shutdown initiated", tone: "ok" });
+    } catch (err: unknown) {
+      setPowerMsg({
+        text: err instanceof Error ? err.message : "Shutdown failed",
+        tone: "err",
+      });
+    } finally {
+      setPowerLoading(false);
+      setTimeout(() => setPowerMsg(null), 5000);
+    }
+  }
+
+  async function handleWake() {
+    setPowerLoading(true);
+    setPowerMsg(null);
+    try {
+      const res = await wakeSpark(spark.id);
+      setPowerMsg({ text: res.message || "Wake packet sent", tone: "ok" });
+    } catch (err: unknown) {
+      setPowerMsg({
+        text: err instanceof Error ? err.message : "Wake failed",
+        tone: "err",
+      });
+    } finally {
+      setPowerLoading(false);
+      setTimeout(() => setPowerMsg(null), 5000);
+    }
+  }
+
   return (
-    <div className={className}>
-      {hermesRunning && (
-        <span
-          className="flex items-center gap-1.5 text-[11px] text-warning"
-          title={t("Running `hermes update` on this machine via SSH — this can take a few minutes.")}
-        >
-          <RotateIcon className="h-3 w-3" />
-          {t("Hermes updating…")}</span>
-      )}
-      {!hermesRunning && hermes?.monitoring && hermes.status === "error" && (
-        <span
-          className="max-w-[16rem] truncate text-[11px] text-danger"
-          title={hermes.error || t("Hermes update failed")}
-        >
-          {t("Hermes update failed")}</span>
-      )}
-      {!hermesRunning && hermes?.monitoring && hermes.installed !== false && (
-        <button
-          type="button"
-          onClick={() => void handleHermesUpdate()}
-          title={
-            hermes.updateAvailable === true
-              ? t("Run \"hermes update\" on this machine via SSH{0}", hermes.behindCommits ? ` (${hermes.behindCommits} commits behind)` : "")
-              : t("Open Hermes Agent update status and run updates on this machine via SSH")
-          }
-          className={`flex items-center gap-1.5 rounded-md border bg-surface-elevated px-3 py-1.5 text-[11px] transition-colors ${
-            hermes.updateAvailable === true
-              ? "border-warning/40 text-warning hover:bg-warning/15"
-              : "border-border text-muted hover:bg-surface-hover hover:text-text"
-          }`}
-        >
-          <RotateIcon className="h-3 w-3" />
-          {t("Update Hermes")}{hermes.updateAvailable === true && (
-            <span
-              className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 text-[9px] font-bold leading-none text-white"
-              title={
-                hermes.behindCommits != null
-                  ? t("{0} commit{1} behind", hermes.behindCommits, hermes.behindCommits === 1 ? "" : "s")
-                  : t("Update available")
-              }
-            >
-              {hermes.behindCommits != null ? hermes.behindCommits : "!"}
-            </span>
-          )}
-        </button>
-      )}
-      {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          className="flex items-center gap-1.5 rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-[11px] text-muted hover:bg-surface-hover hover:text-text transition-colors"
-        >
-          <EditIcon className="h-3 w-3" />
-          {t("Edit")}</button>
-      )}
-    </div>
+    <>
+      <div className={className}>
+        {powerMsg && (
+          <span className={`sp-flash ${powerMsg.tone === "ok" ? "text-success" : "text-danger"}`}>
+            {powerMsg.text}
+          </span>
+        )}
+        {hermesRunning && (
+          <span
+            className="sp-flash text-warning"
+            title={t("Running `hermes update` on this machine via SSH — this can take a few minutes.")}
+          >
+            <RotateIcon className="h-3.5 w-3.5 animate-spin" />
+            {t("Hermes updating…")}
+          </span>
+        )}
+        {!hermesRunning && hermes?.monitoring && hermes.status === "error" && (
+          <span
+            className="sp-flash max-w-[16rem] truncate text-danger"
+            title={hermes.error || t("Hermes update failed")}
+          >
+            {t("Hermes update failed")}
+          </span>
+        )}
+        {!hermesRunning && hermes?.monitoring && hermes.installed !== false && (
+          <button
+            type="button"
+            onClick={() => void handleHermesUpdate()}
+            disabled={powerLoading}
+            title={
+              hermes.updateAvailable === true
+                ? t("Run \"hermes update\" on this machine via SSH{0}", hermes.behindCommits ? ` (${hermes.behindCommits} commits behind)` : "")
+                : t("Open Hermes Agent update status and run updates on this machine via SSH")
+            }
+            className={`btn ${hermes.updateAvailable === true ? "btn--warn" : ""}`}
+          >
+            <RotateIcon className="h-3.5 w-3.5" />
+            {t("Update Hermes")}
+            {hermes.version && <span className="sp-btn-sub mono">v{hermes.version.replace(/^v/i, "")}</span>}
+            {hermes.updateAvailable === true && (
+              <span
+                className="sp-badge"
+                title={
+                  hermes.behindCommits != null
+                    ? t("{0} commit{1} behind", hermes.behindCommits, hermes.behindCommits === 1 ? "" : "s")
+                    : t("Update available")
+                }
+              >
+                {hermes.behindCommits != null ? hermes.behindCommits : "!"}
+              </span>
+            )}
+          </button>
+        )}
+        {onEdit && (
+          <button type="button" onClick={onEdit} className="btn">
+            <EditIcon className="h-3.5 w-3.5" />
+            {t("Edit")}
+          </button>
+        )}
+        {online ? (
+          <button
+            type="button"
+            onClick={() => setShutdownOpen(true)}
+            disabled={powerLoading}
+            title={t("Graceful shutdown (requires /usr/local/bin/spark-shutdown on the host)")}
+            className="btn btn--danger"
+          >
+            <PowerOffIcon className="h-3.5 w-3.5" />
+            {t("Shut down")}
+          </button>
+        ) : spark.kind === "host" ? (
+          <button
+            type="button"
+            onClick={() => void handleWake()}
+            disabled={powerLoading}
+            title={t("Wake-on-LAN (set MAC address in Edit Spark)")}
+            className="btn"
+          >
+            <PowerOnIcon className="h-3.5 w-3.5" />
+            {t("Wake")}
+          </button>
+        ) : (
+          <span
+            className="sp-muted"
+            title={t("DGX Spark does not wake from a magic packet. The onboard NIC has no Wake-on-LAN.")}
+          >
+            {t("No Wake-on-LAN")}
+          </span>
+        )}
+      </div>
+
+      <ConfirmShutdownDialog
+        open={shutdownOpen}
+        onClose={() => setShutdownOpen(false)}
+        onConfirm={handleShutdown}
+        title={t("Shut down {0}", spark.name)}
+        description={t("Gracefully shut down {0}? This will stop all containers and power off the node.", spark.name)}
+        confirmLabel={t("Shut down")}
+        warnings={shutdownWarnings(spark)}
+      />
+    </>
   );
 }

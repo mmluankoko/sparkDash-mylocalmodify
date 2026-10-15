@@ -55,21 +55,18 @@ export function LlmTokenTotals({ sparkId, llmPort }: { sparkId: string; llmPort:
   if (rows.length === 0 && range === "all") return null;
 
   return (
-    <div className="border-t border-border pt-3 space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
+    <div className="sp-section">
+      <div className="sp-section__head">
         <span className="min-w-0" title={t(LEDGER_TITLE)}>
-          <span className="block text-[10px] uppercase tracking-wide text-muted">
-            {t("Total tokens by model")}
-          </span>
-          <span className="block text-[10px] text-muted">{t(LEDGER_HINT)}</span>
+          <span className="eyebrow block">{t("Total tokens by model")}</span>
+          <span className="sp-muted block">{t(LEDGER_HINT)}</span>
         </span>
         <div className="flex items-center gap-2">
           <select
             value={range}
             onChange={(e) => setRange(e.target.value as LlmTokenRange)}
             aria-label={t("Token totals time range")}
-            className="rounded border border-border bg-surface-elevated text-text"
-            style={{ height: "20px", padding: "0 4px", fontSize: "9px", width: "auto" }}
+            className="sp-select"
           >
             {RANGE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -77,7 +74,7 @@ export function LlmTokenTotals({ sparkId, llmPort }: { sparkId: string; llmPort:
               </option>
             ))}
           </select>
-          <span className="shrink-0 whitespace-nowrap text-[10px] text-muted">
+          <span className="sp-tok-cols">
             <span className="inline-block w-14 text-right">{t("Cached")}</span>
 
             <span className="inline-block w-14 text-right">{t("Prefill")}</span>
@@ -86,9 +83,9 @@ export function LlmTokenTotals({ sparkId, llmPort }: { sparkId: string; llmPort:
           </span>
         </div>
       </div>
-      <div className="space-y-1">
+      <div className="sp-tok-rows">
         {rows.length === 0 ? (
-          <p className="text-[11px] text-muted">{t("No tokens recorded in this period.")}</p>
+          <p className="sp-muted">{t("No tokens recorded in this period.")}</p>
         ) : (
           rows.map((row) => {
           const seen = formatSince(row.lastSeenAt);

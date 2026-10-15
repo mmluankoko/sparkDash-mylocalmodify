@@ -66,12 +66,85 @@ test("probe: tensorfold CUDA {ok:true} health → labeled, 0 tok/s, no crash", a
   assert.equal(snap.prefillTps, 0);
 });
 
+test("_applyTensorFoldHealth: open requests do not count queued work as occupied slots", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  probe._applyTensorFoldHealth({
+    ok: true, busy: true, requests_running: 10,
+    streams: { decoding: 8, prefilling: 0, max: 8, filling: 0, paused: 0 },
+  }, 2);
+  assert.equal(probe.slotsActive, 8);
+  assert.equal(probe.slotsTotal, 8);
+  assert.equal(probe.requestsRunning, 8);
+  assert.equal(probe.requestsWaiting, null); // Not an inferred queue of 10 - 8.
+});
+
+test("_applyTensorFoldHealth: paused lanes occupy slots and filling aliases prefilling", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  for (const prefill of [{ prefilling: 2, filling: 2 }, { filling: 2 }, { prefilling: null, filling: 2 }]) {
+    probe._applyTensorFoldHealth({ requests_running: 10,
+      streams: { decoding: 3, paused: 1, max: 8, ...prefill } }, 2);
+    assert.equal(probe.slotsActive, 6);
+    assert.equal(probe.requestsRunning, 6);
+    assert.equal(probe.prefillActive, true);
+  }
+});
+
+test("_applyTensorFoldHealth: missing counts remain unknown, measured idle stays zero", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  for (const health of [null, {}, { requests_running: null },
+    { requests_running: 10, streams: { max: 8, decoding: null, prefilling: null, filling: null, paused: null } }]) {
+    probe._applyTensorFoldHealth(health, 2);
+    assert.equal(probe.requestsRunning, null);
+    assert.equal(probe.slotsActive, null);
+    assert.equal(probe.requestsWaiting, null);
+  }
+  probe._applyTensorFoldHealth({ requests_running: 10,
+    streams: { max: 8, decoding: 0, prefilling: 0, filling: 2, paused: 0 } }, 2);
+  assert.equal(probe.slotsActive, 0); // Measured prefilling=0 wins over its alias.
+  assert.equal(probe.requestsRunning, 0);
+});
+
+test("_applyTensorFoldLive: connections do not overwrite measured idle streams", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  probe._applyTensorFoldHealth({ streams: { max: 8, decoding: 0, prefilling: 0 } }, 2);
+  probe._applyTensorFoldLive({ live: { connections: 10, waiting: 2 } });
+  assert.equal(probe.requestsRunning, 0);
+  assert.equal(probe.slotsActive, 0);
+  assert.equal(probe.requestsWaiting, 2);
+});
+
+test("_applyTensorFoldLive: missing queue stays unknown, explicit queue values survive", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  for (const waiting of [undefined, null, 0, 2]) {
+    probe._applyTensorFoldHealth({}, 2);
+    probe._applyTensorFoldLive({ live: { connections: 1, waiting } });
+    assert.equal(probe.requestsWaiting, waiting == null ? null : waiting);
+    assert.equal(probe.requestsRunning, 1);
+  }
+});
+
+test("_applyTensorFoldMetrics: scheduler gauges override health/live without inferring queue", async () => {
+  for (const waiting of [0, 2]) {
+    const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+    probe._applyTensorFoldHealth({ requests_running: 10, streams: { decoding: 8, max: 8 } }, 2);
+    probe._applyTensorFoldLive({ live: { connections: 10, waiting: 3 } });
+    probe._fetch = async () => ({ ok: true, text: async () =>
+      `tensorfold:requests_running 7\ntensorfold:requests_waiting ${waiting}` });
+    await probe._applyTensorFoldMetrics();
+    assert.equal(probe.requestsRunning, 7);
+    assert.equal(probe.slotsActive, 7);
+    assert.equal(probe.slotsTotal, 8);
+    assert.equal(probe.requestsWaiting, waiting);
+  }
+});
+
 test("_applyTensorFoldHealth: counter diffs → tok/s; idle → 0", () => {
   const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
   probe._applyTensorFoldHealth(
     { ok: true, busy: true, backend: "tensorfold", prompt_tokens_total: 100, completion_tokens_total: 50 },
     2
   );
+  assert.equal(probe.generationTps, 0);
   probe._applyTensorFoldHealth(
     { ok: true, busy: true, backend: "tensorfold", prompt_tokens_total: 100, completion_tokens_total: 150 },
     2
@@ -104,6 +177,72 @@ test("_applyTensorFoldHealth: 0.5.0 health maps cached_tokens_total", () => {
   probe._applyTensorFoldHealth({ ok: true }, 2);
   assert.equal(probe.totalCachedTokens, 640);
   assert.equal(probe.totalPromptTokens, 1000);
+});
+
+test("_applyTensorFoldHealth: prefill tok/s uses prefill time, not the poll window", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  const base = {
+    ok: true,
+    busy: true,
+    backend: "tensorfold",
+    prompt_tokens_total: 0,
+    completion_tokens_total: 0,
+    prefill_seconds_total: 0,
+    requests_running: 0,
+  };
+  probe._applyTensorFoldHealth(base, 2);
+  probe._applyTensorFoldHealth(
+    {
+      ...base,
+      prompt_tokens_total: 1000,
+      completion_tokens_total: 10,
+      prefill_seconds_total: 0.25,
+      requests_running: 2,
+    },
+    2
+  );
+  assert.equal(probe.prefillTps, 4000);
+  assert.equal(probe.generationTps, 5);
+  assert.equal(probe.requestsRunning, 2);
+  assert.equal(probe.slotsActive, 2);
+});
+
+test("_applyTensorFoldHealth: prefix-cache hits do not inflate prefill tok/s (real totals from a CUDA unit)", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  const health = (over) => ({
+    ok: true,
+    busy: false,
+    backend: "tensorfold",
+    requests_running: 0,
+    prompt_tokens_total: 2_684_155,
+    completion_tokens_total: 58_903,
+    prefill_seconds_total: 450.1822,
+    cached_tokens_total: 1_560_000,
+    ...over,
+  });
+  probe._applyTensorFoldHealth(health(), 2); // baseline
+  // An agent turn: 56,180 prompt tokens in, 53,504 of them cache hits, 1.1455 s of prefill.
+  probe._applyTensorFoldHealth(
+    health({ prompt_tokens_total: 2_740_335, prefill_seconds_total: 451.3277, cached_tokens_total: 1_613_504 }),
+    2
+  );
+  // Computed tokens only: (56,180 - 53,504) / 1.1455 s, not 56,180 / 1.1455 s = 49,000.
+  assert.ok(Math.abs(probe.prefillTps - 2336.1) < 1, `prefillTps ${probe.prefillTps}`);
+
+  // A fully cached prompt computes nothing: no absurd rate, the last real one is held.
+  probe._applyTensorFoldHealth(
+    health({ prompt_tokens_total: 2_800_000, prefill_seconds_total: 451.4, cached_tokens_total: 1_673_169 }),
+    2
+  );
+  assert.ok(probe.prefillTps < 3000, `prefillTps ${probe.prefillTps}`);
+});
+
+test("_applyTensorFoldHealth: without a cached total (older builds) the whole prompt is the best available basis", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  const base = { ok: true, backend: "tensorfold", prompt_tokens_total: 0, completion_tokens_total: 0, prefill_seconds_total: 0, requests_running: 0 };
+  probe._applyTensorFoldHealth(base, 2);
+  probe._applyTensorFoldHealth({ ...base, prompt_tokens_total: 1000, prefill_seconds_total: 0.5 }, 2);
+  assert.equal(probe.prefillTps, 2000);
 });
 
 test("_applyTensorFoldHealth: MLX health sizes the slot tile; null health is safe", () => {
@@ -164,6 +303,56 @@ test("_applyTensorFoldHealth: CUDA 0.6.0 streams size the slot tile and count bu
   assert.equal(probe.slotsActive, 0);
 });
 
+test("probe: newer TensorFold (live rates in /health, totals on /metrics) → real tok/s and totals", async () => {
+  const probe = new LlmProbe({ lanIp: "10.0.0.1" }, 8888);
+  const health = {
+    status: "ok",
+    max_batch_size: 4,
+    live: { connections: 1, waiting: 0, decode_tokens_per_second: 33.5, prefill_tokens_per_second: 410.25 },
+  };
+  const metrics = [
+    "# TYPE tensorfold:requests_running gauge",
+    "tensorfold:requests_running 1",
+    "tensorfold:requests_waiting 0",
+    "tensorfold:prompt_tokens_total 2412",
+    "tensorfold:generation_tokens_total 7077",
+    "tensorfold:mtp_drafted_total 5000",
+    "tensorfold:mtp_accepted_total 3500",
+  ].join("\n");
+  probe._fetch = async (url) => {
+    const u = String(url);
+    if (u.endsWith("/slots")) return notFound();
+    if (u.endsWith("/v1/models")) return jsonRes(CUDA_MODELS);
+    if (u.endsWith("/health")) return jsonRes(health);
+    if (u.endsWith("/metrics")) return { ok: true, status: 200, text: async () => metrics, json: async () => ({}) };
+    return notFound();
+  };
+  const snap = await probe.probe();
+  assert.equal(snap.backend, "tensorfold");
+  assert.equal(snap.generationTps, 33.5);
+  assert.equal(snap.prefillTps, 410.25);
+  assert.equal(snap.totalOutputTokens, 7077);
+  assert.equal(snap.totalPromptTokens, 2412);
+  assert.equal(snap.requestsRunning, 1);
+  assert.equal(snap.requestsWaiting, 0);
+  assert.equal(snap.mtpAcceptanceRate, 0.7);
+});
+
+test("probe: TensorFold with cumulative counters in /health does not touch /metrics", async () => {
+  const probe = new LlmProbe({ lanIp: "10.0.0.1" }, 8888);
+  const seen = [];
+  probe._fetch = async (url) => {
+    const u = String(url);
+    seen.push(u);
+    if (u.endsWith("/slots")) return notFound();
+    if (u.endsWith("/v1/models")) return jsonRes(CUDA_MODELS);
+    if (u.endsWith("/health")) return jsonRes({ prompt_tokens_total: 10, completion_tokens_total: 20, busy: false });
+    return notFound();
+  };
+  await probe.probe();
+  assert.equal(seen.some((u) => u.endsWith("/metrics")), false);
+});
+
 test("_applyTensorFoldHealth: CUDA 0.6.0 KV pool tokens give the KV fill", () => {
   const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
   // spark-1, TensorFold 0.6.0 CUDA, idle with 32 kept prompts.
@@ -207,4 +396,24 @@ test("probe: tensorfold snapshot carries kvCacheUsage and null pool sizes", asyn
   assert.equal(snap.kvCacheUsage, 0.0549);
   assert.equal(snap.kvCacheGb, null);
   assert.equal(snap.weightsGb, null);
+});
+
+test("_applyTensorFoldHealth: prefillActive follows streams.prefilling and the last finished rate is held", () => {
+  const probe = new LlmProbe({ lanIp: "127.0.0.1" }, 8888);
+  const h = (prompt, sec, prefilling) => ({
+    prompt_tokens_total: prompt,
+    completion_tokens_total: 10,
+    prefill_seconds_total: sec,
+    streams: { prefilling, decoding: 0, max: 8 },
+  });
+  probe._applyTensorFoldHealth(h(1000, 10, 0), 2); // seeds
+  probe._applyTensorFoldHealth(h(3000, 12, 0), 2); // 2000 tokens in 2 s
+  assert.equal(probe.prefillTps, 1000);
+  assert.equal(probe.prefillActive, false);
+  probe._applyTensorFoldHealth(h(3000, 12, 1), 2); // a new long prefill: totals do not move
+  assert.equal(probe.prefillActive, true);
+  assert.equal(probe.prefillTps, 1000); // held, not 0
+  probe._tensorfoldLastPrefill.at -= 60_000;
+  probe._applyTensorFoldHealth(h(3000, 12, 1), 2);
+  assert.equal(probe.prefillTps, 0);
 });

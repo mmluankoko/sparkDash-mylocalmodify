@@ -1,6 +1,8 @@
 import { t, useI18n } from "../../i18n";
 import type { SparkSnapshot } from "../../api/types";
 import { resolveSparkRole } from "../../api/sparkRole";
+import { backendLabel } from "../../shared/llmBackends.js";
+import { Tag } from "../ui/Tag";
 import { SparkActions } from "./SparkActions";
 
 interface SparkHeaderProps {
@@ -25,111 +27,97 @@ export function SparkHeader({ spark, onEdit }: SparkHeaderProps) {
   const { hardware } = spark;
   const online = spark.online;
   const hermes = spark.hermes;
+  const role = resolveSparkRole(spark);
+  const roleText = role === "head" ? "Head" : role === "worker" ? "Worker" : "Standalone";
+  const roleTitle =
+    role === "head"
+      ? "Cluster head — local LLM API"
+      : role === "worker"
+        ? "Distributed LLM worker — no local model; LLM card is hidden"
+        : spark.llmMonitoring === false
+          ? "Standalone — LLM monitoring off"
+          : "Standalone — local LLM API";
+  // Manual override first, then derived head-model mirror.
+  const workerLabel =
+    role === "worker" ? spark.workerLabel?.trim() || spark.workerDerivedLabel?.trim() || null : null;
+  const backend = backendLabel(spark.metrics.llm?.find((l) => l.available)?.backend ?? null);
+  const tailscaleIp = spark.metrics.tailscale?.tailscaleIp ?? null;
+  const hw = [
+    hardware.gpuChip ? `${hardware.device} · ${hardware.gpuChip}` : hardware.device,
+    hardware.totalMemoryGB != null ? `${Math.round(hardware.totalMemoryGB)} GB` : null,
+  ].filter(Boolean);
 
   return (
-    <div
-      className="spark-header panel flex flex-wrap items-center gap-x-4 gap-y-2"
-      style={{ padding: "var(--density-panel-pad)", ...(online ? {} : { opacity: 0.6 }) }}
-    >
-      <div className="flex items-center gap-2.5">
-        <span
-          className={`h-2 w-2 shrink-0 rounded-full ${online ? "bg-success dot-glow-success" : "bg-danger"}`}
-          title={online ? t("Online") : spark.offlineReason ? `${t("Offline")} — ${spark.offlineReason}` : t("Offline")}
-        />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="truncate text-base font-semibold text-text-strong">{spark.name}</h2>
-            {(() => {
-              const role = resolveSparkRole(spark);
-              const text =
-                role === "head" ? t("Head") : role === "worker" ? t("Worker") : t("Standalone");
-              const title =
-                role === "head"
-                  ? t("Cluster head — local LLM API")
-                  : role === "worker"
-                    ? t("Distributed LLM worker — no local model; LLM card is hidden")
-                    : spark.llmMonitoring === false
-                      ? t("Standalone — LLM monitoring off")
-                      : t("Standalone — local LLM API");
-              // Manual override first, then derived head-model mirror.
-              const workerLabel =
-                role === "worker"
-                  ? spark.workerLabel?.trim() || spark.workerDerivedLabel?.trim() || null
-                  : null;
-              return (
-                <>
-                  <span
-                    className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent"
-                    title={title}
-                  >
-                    {text}
-                  </span>
-                  {workerLabel && (
-                    <span
-                      className="max-w-[14rem] truncate rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent"
-                      title={workerLabel}
-                    >
-                      {workerLabel}
-                    </span>
-                  )}
-                </>
-              );
-            })()}
+    <header className={`sp-header ${online ? "" : "is-offline"}`}>
+      <div className="sp-header__id">
+        <div className="sp-header__title">
+          <span
+            className={`sdot ${online ? "" : "sdot--bad"}`}
+            title={online ? t("Online") : spark.offlineReason ? `${t("Offline")} — ${spark.offlineReason}` : t("Offline")}
+          />
+          <h2>{spark.name}</h2>
+          <div className="sp-tags">
+            <Tag className="tag--role" tone="acc" title={t(roleTitle)}>
+              {t(roleText)}
+            </Tag>
+            {workerLabel && (
+              <Tag tone="acc" title={workerLabel} className="sp-tag-clip">
+                {workerLabel}
+              </Tag>
+            )}
+            {spark.isLocal && <Tag title={t("This dashboard runs on this machine")}>local</Tag>}
+            {online && backend && <Tag tone="info">{backend}</Tag>}
             {!online && spark.offlineReason && (
-              <span
-                className="max-w-[20rem] shrink-0 truncate rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-medium text-danger"
-                title={`Offline — ${spark.offlineReason}`}
-              >
+              <Tag tone="bad" className="sp-tag-clip" title={`Offline — ${spark.offlineReason}`}>
                 {spark.offlineReason}
-              </span>
+              </Tag>
             )}
             {online && spark.uptime != null && (
-              <span
-                className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 font-tabular text-[10px] font-medium text-accent"
-                title={t("Uptime: {0}", formatUptime(spark.uptime))}
-              >
-                {formatUptime(spark.uptime)}
-              </span>
+              <Tag title={t("Uptime: {0}", formatUptime(spark.uptime))}>{t("up {0}", formatUptime(spark.uptime))}</Tag>
             )}
             {hermes?.monitoring && hermes.installed && hermes.version && (
-              <span
-                className="shrink-0 rounded bg-accent/15 px-1.5 py-0.5 font-tabular text-[10px] font-medium text-accent"
-                title={t("Hermes Agent {0} installed on this machine", hermes.version)}
-              >
+              <Tag tone="acc" title={t("Hermes Agent {0} installed on this machine", hermes.version)}>
                 Hermes
-              </span>
+              </Tag>
             )}
             {hermes?.monitoring && hermes.installed === false && hermes.checkedAt != null && (
-              <span
-                className="shrink-0 rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-medium text-danger"
+              <Tag
+                tone="bad"
                 title={t("The `hermes` binary was not found on this machine (check the install path or Edit Spark).")}
               >
-                {t("Hermes not found")}</span>
+                {t("Hermes not found")}
+              </Tag>
             )}
-            {hermes?.monitoring &&
-              hermes.error &&
-              hermes.status === "idle" && (
-                <span
-                  className="max-w-[16rem] shrink-0 truncate rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-medium text-danger"
-                  title={t("Update check failed — it will retry automatically: {0}", hermes.error)}
-                >
-                  {t("Update check failed")}</span>
-              )}
+            {hermes?.monitoring && hermes.error && hermes.status === "idle" && (
+              <Tag
+                tone="bad"
+                className="sp-tag-clip"
+                title={t("Update check failed — it will retry automatically: {0}", hermes.error)}
+              >
+                {t("Update check failed")}
+              </Tag>
+            )}
           </div>
-          <p className="truncate text-xs text-muted">
-            {hardware.gpuChip
-              ? `${hardware.device} · ${hardware.gpuChip}`
-              : hardware.device}
-          </p>
         </div>
+        <p className="sp-header__meta">
+          {spark.lanIp && <span className="mono">{spark.lanIp}</span>}
+          {tailscaleIp && (
+            <>
+              {spark.lanIp && <span className="sp-sep">·</span>}
+              <span className="mono">{tailscaleIp}</span> <span>(tailscale)</span>
+            </>
+          )}
+          {(spark.lanIp || tailscaleIp) && hw.length > 0 && <span className="sp-sep">·</span>}
+          <span>{hw.join(", ")}</span>
+        </p>
       </div>
 
-      {/* Desktop action cluster (hidden on mobile; mobile renders its own row above Resources) */}
+      {/* Desktop action cluster (hidden on mobile; mobile renders its own row below the header) */}
       <SparkActions
         spark={spark}
         onEdit={onEdit}
-        className="ml-auto hidden flex-wrap items-center justify-end gap-2 sm:flex"
+        className="sp-header__actions hidden sm:flex"
       />
-    </div>
+    </header>
   );
 }

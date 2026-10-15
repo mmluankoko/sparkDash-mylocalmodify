@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { SparkSnapshot, WsSnapshot } from "../api/types";
 import { ingestSnapshots } from "./metricsStore";
-import { OVERVIEW_ID, LLM_ID, COMFY_ID, LLMCTL_ID } from "../constants";
+import { OVERVIEW_ID, LLM_ID, COMFY_ID, LLMCTL_ID, initialActiveId } from "../constants";
 import { fetchAuthStatus, getToken, onTokenChange, reportAuthRequired } from "../api/authToken";
 
 const RECONNECT_DELAY = 2000;
@@ -23,7 +23,7 @@ export function useSnapshot() {
   const [snapshotGeneratedAt, setSnapshotGeneratedAt] = useState<number | null>(null);
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(OVERVIEW_ID);
+  const [activeId, setActiveId] = useState<string | null>(initialActiveId);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   /** When false, onclose must not schedule reconnect (unmount / intentional close). */

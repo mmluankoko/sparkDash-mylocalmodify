@@ -15,14 +15,13 @@ interface StoragePanelProps {
   onStoragePollModeChange?: (disabled: boolean) => void;
 }
 
-function MetricBar({ value, max }: { value: number; max: number }) {
-  useI18n();
+function UsageBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  const barColor = pct > 85 ? "bg-danger" : pct > 60 ? "bg-warning" : "bg-accent";
+  const barColor = pct > 85 ? "bg-danger" : pct > 60 ? "bg-warning" : "bg-info";
   return (
-    <div className="h-1.5 overflow-hidden rounded-full bg-border">
+    <div className="sp-bar">
       <div
-        className={`metric-bar-fill h-full rounded-full transition-[width] duration-300 ease-out ${barColor}`}
+        className={`metric-bar-fill sp-bar__fill ${barColor}`}
         style={{ ["--bar-pct" as string]: `${pct}%` }}
       />
     </div>
@@ -35,17 +34,9 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
-        checked ? "bg-accent" : "bg-border"
-      }`}
+      className={`sp-toggle ${checked ? "is-on" : ""}`}
       aria-pressed={checked}
-    >
-      <span
-        className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-3.5" : "translate-x-0.5"
-        }`}
-      />
-    </button>
+    />
   );
 }
 
@@ -67,9 +58,7 @@ function SettingsButton({
       title={active ? t("Done") : t("{0} settings", label)}
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:bg-surface-hover disabled:opacity-50 ${
-        active ? "bg-surface-elevated text-text" : ""
-      }`}
+      className={`btn btn--sm btn--ghost ${active ? "is-on" : ""}`}
     >
       <GearIcon />
       <span>{active ? t("Done") : t("Settings")}</span>
@@ -122,21 +111,29 @@ export function StoragePanel({
     (d) => !d.disabled && !disabledDevices.includes(d.device) && !disabledDevices.includes(d.label)
   );
 
+  const totalRead = visibleDisks.reduce((a, d) => a + (d.readSpeed || 0), 0);
+  const totalWrite = visibleDisks.reduce((a, d) => a + (d.writeSpeed || 0), 0);
+
   return (
     <Panel
       title={t("Storage")}
-      accent
       icon={<DiskIcon />}
       className="panel-storage"
+      bodyClassName="sp-stack"
       actions={
-        <div className="flex items-center gap-1">
+        <div className="sp-actions">
+          {!showSettings && visibleDisks.length > 0 && (
+            <span className="mono sp-muted sp-nowrap sp-actions__lead" title="Combined disk throughput">
+              r {formatBytesPerSec(totalRead)} · w {formatBytesPerSec(totalWrite)}
+            </span>
+          )}
           <button
             type="button"
             onClick={handleRefresh}
             disabled={refreshing}
             title={t("Refresh storage")}
             aria-label={t("Refresh storage")}
-            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:bg-surface-hover disabled:opacity-50"
+            className="btn btn--sm btn--ghost"
           >
             <RotateIcon className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} />
             <span>{refreshing ? t("Refreshing…") : t("Refresh")}</span>
@@ -151,10 +148,10 @@ export function StoragePanel({
       }
     >
       {showSettings ? (
-        <div className="space-y-2">
-          <p className="mb-1 text-[10px] text-muted">{t("Toggle devices on/off:")}</p>
+        <div className="sp-stack">
+          <p className="sp-hint">{t("Toggle devices on/off:")}</p>
           {storage.length === 0 ? (
-            <p className="text-xs text-muted">{t("No disks discovered")}</p>
+            <p className="sp-muted">{t("No disks discovered")}</p>
           ) : (
             storage.map((disk) => {
               const isDisabled =
@@ -164,11 +161,11 @@ export function StoragePanel({
               return (
                 <div
                   key={`${disk.device}:${disk.label}`}
-                  className="flex items-center justify-between rounded-md border border-border bg-surface-elevated px-3 py-2"
+                  className="sp-list-row"
                 >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-xs text-text">{disk.device}</span>
-                    <span className="shrink-0 text-[10px] text-muted">({disk.label})</span>
+                  <div className="sp-list-row__main">
+                    <span className="sp-clip">{disk.device}</span>
+                    <span className="sp-muted">({disk.label})</span>
                   </div>
                   <Toggle checked={!isDisabled} onChange={(v) => handleToggle(disk.device, !v)} />
                 </div>
@@ -176,8 +173,8 @@ export function StoragePanel({
             })
           )}
 
-          <div className="border-t border-border pt-2">
-            <label className="flex items-center justify-between text-xs text-muted">
+          <div className="sp-section">
+            <label className="sp-row">
               <span>{t("Auto-refresh")}</span>
               <Toggle
                 checked={!storagePollDisabled}
@@ -187,7 +184,7 @@ export function StoragePanel({
                 }}
               />
             </label>
-            <p className="mt-0.5 text-[10px] text-muted">
+            <p className="sp-hint">
               {storagePollDisabled
                 ? t("Refresh manually using the button above")
                 : t("Updates every few seconds")}
@@ -197,35 +194,30 @@ export function StoragePanel({
       ) : (
         <>
           {visibleDisks.length === 0 ? (
-            <p className="text-xs text-muted">{t("No mounted disks")}</p>
+            <p className="sp-muted">{t("No mounted disks")}</p>
           ) : (
-            <div className="space-y-3.5">
+            <div className="sp-stack">
               {visibleDisks.map((disk) => {
-                const pct = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
                 return (
-                  <div key={`${disk.device}:${disk.label}`} className="space-y-1.5">
-                    <div className="flex items-baseline justify-between">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-xs text-text">{disk.label}</span>
-                        <span className="shrink-0 font-tabular text-xs text-muted">{disk.device}</span>
-                      </div>
-                      <span className="shrink-0 font-tabular text-xs text-text-strong">{pct}%</span>
-                    </div>
-                    <MetricBar value={disk.used} max={disk.total} />
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-tabular text-muted">
+                  <div key={`${disk.device}:${disk.label}`}>
+                    <div className="sp-lbl">
+                      <span className="sp-clip">
+                        {disk.label} · {disk.device}
+                      </span>
+                      <b>
                         {formatGb(disk.used)} / {formatGb(disk.total)}
-                      </span>
-                      <span className="font-tabular text-muted">
-                        {formatGb(disk.available)} {t(" free")}</span>
+                      </b>
+                      <span className="mono text-muted">
+                        {formatGb(disk.available)} {t("free")}</span>
                     </div>
-                    <div className="flex items-center justify-end gap-3 text-[10px]">
-                      <span className="font-tabular text-muted">
+                    <UsageBar value={disk.used} max={disk.total} />
+                    <div className="sp-lbl sp-lbl--sub">
+                      <span className="mono">
                         <span className="text-accent">↑</span> {formatBytesPerSec(disk.writeSpeed || 0)}
-                      </span>
-                      <span className="font-tabular text-muted">
+                        <span className="sp-sep">·</span>
                         <span className="text-accent">↓</span> {formatBytesPerSec(disk.readSpeed || 0)}
                       </span>
+                      <span className="mono">{formatGb(disk.available)} free</span>
                     </div>
                   </div>
                 );

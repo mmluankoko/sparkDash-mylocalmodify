@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useModalPresence } from "../hooks/useModalPresence";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { PowerOffIcon } from "./ui/icons";
+import "../styles/dialogs.css";
 
 const CONFIRM_PHRASE = "poweroff";
 
@@ -14,6 +15,8 @@ interface ConfirmShutdownDialogProps {
   title: string;
   description: string;
   confirmLabel?: string;
+  /** Lines naming running work this action will stop; rendered in a danger box. */
+  warnings?: string[];
 }
 
 function useEscape(enabled: boolean, onClose: () => void) {
@@ -34,6 +37,7 @@ export function ConfirmShutdownDialog({
   title,
   description,
   confirmLabel = "Shut down",
+  warnings,
 }: ConfirmShutdownDialogProps) {
   useI18n();
   const [phrase, setPhrase] = useState("");
@@ -92,39 +96,53 @@ export function ConfirmShutdownDialog({
     >
       <div
         ref={trapRef}
-        className="modal-sheet max-w-md"
+        className="modal-sheet modal-sheet--narrow"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <div className="modal-sheet__header flex items-center gap-2 text-danger" id={titleId}>
+        <div className="modal-sheet__header modal-sheet__header--danger">
           <PowerOffIcon className="h-4 w-4 shrink-0" />
-          <span>{t("Danger zone — ")}{title}</span>
+          <h2 className="modal-sheet__title" id={titleId}>
+            {t("Danger zone — ")}{title}
+          </h2>
         </div>
 
-        <div className="modal-sheet__body space-y-3">
-          <p className="text-xs leading-relaxed text-muted">{description}</p>
+        <div className="modal-sheet__body modal-sheet__stack">
+          <p className="modal-sheet__lead">{description}</p>
 
-          <div className="rounded-md border border-danger/35 bg-danger/10 px-3 py-2.5">
-            <p className="text-[11px] font-medium text-danger">
-              {t("This powers off hardware. Running containers and sessions will stop.")}</p>
+          <div className="danger-box" role="alert">
+            <b>
+              {warnings && warnings.length > 0
+                ? t("This stops running work.")
+                : t("This powers off hardware.")}
+            </b>
+            {warnings && warnings.length > 0 ? (
+              <ul>
+                {warnings.map((w, i) => (
+                  <li key={`${i}-${w}`}>{w}</li>
+                ))}
+              </ul>
+            ) : null}
+            <span>{t("Running containers and sessions will stop. The host powers off after a graceful stop.")}</span>
           </div>
 
-          <label className="flex cursor-pointer items-start gap-2.5 text-xs text-text">
+          <label className="check-row">
             <input
               type="checkbox"
               checked={acknowledged}
               disabled={submitting}
               onChange={(e) => setAcknowledged(e.target.checked)}
-              className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[var(--color-danger)]"
             />
             <span>{t("I understand this cannot be undone from the dashboard.")}</span>
           </label>
 
-          <div>
-            <label className="mb-1 block text-xs text-muted">
-              {t("Type ")}<span className="font-mono text-danger">{CONFIRM_PHRASE}</span> {t(" to confirm")}</label>
+          <div className="field">
+            <label htmlFor={`${titleId}-phrase`}>
+              {t("Type ")}<b className="mono">{CONFIRM_PHRASE}</b> {t(" to confirm")}
+            </label>
             <input
+              id={`${titleId}-phrase`}
               ref={inputRef}
               type="text"
               autoComplete="off"
@@ -138,7 +156,7 @@ export function ConfirmShutdownDialog({
                   void handleConfirm();
                 }
               }}
-              className="w-full rounded border border-border bg-surface-elevated px-3 py-1.5 font-mono text-xs text-text outline-none focus:border-danger"
+              className="field-input field-input--mono"
               placeholder={CONFIRM_PHRASE}
             />
           </div>
@@ -146,19 +164,16 @@ export function ConfirmShutdownDialog({
 
         <div className="modal-sheet__footer">
           <div className="modal-sheet__footer-actions">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-xs text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-50"
-            >
-              {t("Cancel")}</button>
+            <button type="button" onClick={onClose} disabled={submitting} className="btn btn--ghost">
+              {t("Cancel")}
+            </button>
             <button
               type="button"
               onClick={() => void handleConfirm()}
               disabled={!canConfirm}
-              className="rounded-md border border-danger/50 bg-danger px-3 py-1.5 text-xs font-medium text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn btn--danger"
             >
+              <PowerOffIcon className="h-3.5 w-3.5" />
               {submitting ? t("Shutting down…") : confirmLabel}
             </button>
           </div>

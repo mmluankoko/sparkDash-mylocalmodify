@@ -39,27 +39,70 @@ function host(overrides: { cpuTemp?: number; cpuUsage?: number; kind?: "spark" |
 
 /** Bar labels in render order. */
 function barLabels(container: HTMLElement): string[] {
-  return [...container.querySelectorAll(".space-y-1 > div:first-child > span:first-child")].map(
+  return [
+    ...container.querySelectorAll(
+      ".ov-lbl > span:first-child, .space-y-1 > div:first-child > span:first-child"
+    ),
+  ].map(
     (el) => el.textContent ?? ""
   );
 }
 
 describe("Overview card", () => {
-  it("shows bars in user-specified order with custom names", () => {
-    const { container } = render(<OverviewPage sparks={[host({ cpuTemp: 51, cpuUsage: 40 })]} />);
-    expect(barLabels(container)).toEqual([
-      "GPU Load", "VRAM", "RAM", "GPU Temperature", "CPU Load", "CPU Temperature",
-    ]);
+  it("names each bar for what it measures", () => {
+    const { container } = render(<OverviewPage sparks={[host({ cpuTemp: 51 })]} />);
+    expect(barLabels(container)).toEqual(["VRAM", "GPU", "RAM", "GPU temp", "GPU power"]);
   });
 
   it("omits CPU bars when no CPU data", () => {
     const { container } = render(<OverviewPage sparks={[host({ kind: "spark" })]} />);
-    expect(barLabels(container)).toEqual(["GPU Load", "VRAM", "GPU Temperature"]);
+    expect(barLabels(container)).toEqual(["VRAM", "GPU", "GPU temp", "GPU power"]);
+  });
+
+  it("fits a 1.8 TB root disk in the Storage mini-stat", () => {
+    const { container } = render(<OverviewPage sparks={[host()]} />);
+    const label = [...container.querySelectorAll("span")].find((el) => el.textContent === "Storage");
+    const value = label?.nextElementSibling as HTMLElement | null;
+    expect(value?.textContent).toBe("816 GB / 1.8 TB");
+    expect(value?.title).toBe("816.4 GB of 1831.7 GB used (45%)");
   });
 
   it("calls SGLang by its name", () => {
     const { container } = render(<OverviewPage sparks={[host()]} />);
-    expect(container.textContent).toContain("SGLang");
-    expect(container.textContent).not.toContain("sgLang");
+    // The engine name rides in the model row's tooltip.
+    expect(container.querySelector('[title*="SGLang"]')).not.toBeNull();
+    expect(container.innerHTML).not.toContain("sgLang");
+  });
+});
+
+describe("Overview panels can be hidden", () => {
+  const tileLabels = (c: HTMLElement) => [...c.querySelectorAll(".ov-kpi .eyebrow")].map((e) => e.textContent);
+
+  it("shows the four tiles, the cards and Recent activity by default", () => {
+    const { container } = render(<OverviewPage sparks={[host()]} />);
+    expect(tileLabels(container)).toEqual(["Fleet decode", "Fleet power", "Memory in use", "Online"]);
+    expect(container.querySelector('[aria-label="Recent activity"]')).not.toBeNull();
+    expect(container.textContent).not.toContain("Inference activity");
+  });
+
+  it("hides single tiles and sizes the row to the rest", () => {
+    const { container } = render(<OverviewPage sparks={[host()]} kpis={{ decode: false, memory: false }} />);
+    expect(tileLabels(container)).toEqual(["Fleet power", "Online"]);
+    expect(container.querySelector(".ov-kpis")?.getAttribute("data-count")).toBe("2");
+  });
+
+  it("drops the whole tile row when every tile is hidden", () => {
+    const { container } = render(
+      <OverviewPage sparks={[host()]} kpis={{ decode: false, power: false, memory: false, tokens: false }} />
+    );
+    expect(container.querySelector(".ov-kpis")).toBeNull();
+  });
+
+  it("hides Recent activity, and the side column when nothing is left in it", () => {
+    const { container } = render(
+      <OverviewPage sparks={[host()]} showActivityFeed={false} showFleetEnergy={false} showLlmTokenTotals={false} />
+    );
+    expect(container.querySelector('[aria-label="Recent activity"]')).toBeNull();
+    expect(container.querySelector(".ov-side")).toBeNull();
   });
 });
