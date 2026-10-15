@@ -1,4 +1,3 @@
-import { LanguageSwitch } from "../LanguageSwitch";
 import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../../styles/showcase.css";
@@ -817,7 +816,6 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
             </div>
           </div>
           <div className="showcase-config-peek__actions">
-            <LanguageSwitch />
             <button
               type="button"
               className="showcase-btn showcase-btn--ghost showcase-config-peek__show"
@@ -868,7 +866,6 @@ export function ShowcasePage({ sparkId, embedded = false }: ShowcasePageProps) {
             </div>
           </div>
           <div className="showcase-config__controls">
-            <LanguageSwitch />
             <fieldset className="showcase-config__lockgroup" disabled={controlsLocked}>
               <label className="showcase-field">
                 <span className="showcase-field__label">{t("Port")}</span>
