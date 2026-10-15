@@ -23,6 +23,7 @@ import { BENCH_TYPES } from "../bench/benchCatalog";
 import { BoltIcon, ChevronDownIcon, GearIcon, GithubIcon, GlobeIcon, GridIcon, ListIcon, PanelLeftIcon, PlusIcon, SearchIcon, ServerIcon, TerminalIcon, ThermometerIcon, TokensIcon, XLogoIcon } from "../ui/icons";
 import { OpenAccessChip } from "../OpenAccessChip";
 import { ThemeSwitch } from "../ThemeSwitch";
+import { LanguageSwitch } from "../LanguageSwitch";
 import { isThrottling, railSubLabel } from "./sparkSummary";
 
 interface AppSidebarProps {
@@ -419,7 +420,10 @@ export function AppSidebar({
               <span className="rail-item__name">Settings</span>
             </button>
           </nav>
-          <ThemeSwitch />
+          <div className="rail-switches">
+            <LanguageSwitch />
+            <ThemeSwitch />
+          </div>
         </div>
         <div className="rail-conn" role="status">
           <i className={`sdot ${connected ? "" : "sdot--warn"}`} aria-hidden />

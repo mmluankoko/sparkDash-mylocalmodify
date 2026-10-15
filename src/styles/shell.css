@@ -210,6 +210,15 @@ body {
 .rail-settings .icon-circle {
   flex: none;
 }
+.rail-switches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.rail-switches .icon-circle {
+  flex: none;
+}
 .rail-conn {
   display: flex;
   align-items: center;
