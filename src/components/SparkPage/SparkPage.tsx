@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
 import type { SparkSnapshot } from "../../api/types";
-import { isLlmMonitoringEnabled } from "../../api/sparkRole";
-import { updateSpark, refreshSparkMetric, addLlmPort, removeLlmPort } from "../../api/client";
+import { updateSpark, refreshSparkMetric } from "../../api/client";
 import { SparkHeader } from "./SparkHeader";
 import { HealthList } from "../ui/HealthFindings";
 import { SparkActions } from "./SparkActions";
@@ -11,9 +10,6 @@ import { RamPanel } from "./RamPanel";
 import { StoragePanel } from "./StoragePanel";
 import { NetworkPanel } from "./NetworkPanel";
 import { TailscalePanel } from "./TailscalePanel";
-import { LlmPanel } from "./LlmPanel";
-import { ComfyPanel } from "./ComfyPanel";
-import { LlmModelsPanel } from "./LlmModelsPanel";
 import { RocePanel } from "./RocePanel";
 import { UnifiedMemoryPanel } from "./UnifiedMemoryPanel";
 import "../../styles/spark.css";
@@ -31,10 +27,7 @@ interface SparkPageProps {
   onEdit?: () => void;
 }
 
-type SparkView = "all" | "resources" | "services";
-
-/** Panel wrapper carrying its single-column (mobile) order as a CSS variable. */
-function Item({ order, children }: { order: number; children: ReactNode }) {
+/** Panel wrapper carrying its single-column (mobile) order as a CSS variable. */function Item({ order, children }: { order: number; children: ReactNode }) {
   return (
     <div className="sp-item" style={{ ["--o" as string]: order } as CSSProperties}>
       {children}
@@ -46,7 +39,6 @@ export function SparkPage({
   spark,
   fleet,
   temperatureUnit,
-  benchShareImage = false,
   showVramBreakdown = true,
   onEdit,
 }: SparkPageProps) {
@@ -55,12 +47,9 @@ export function SparkPage({
   const [disabledInterfaces, setDisabledInterfaces] = useState<string[]>(
     spark.disabledInterfaces || []
   );
-  const [llmPorts, setLlmPorts] = useState<number[]>(spark.llmPorts ?? [spark.llmPort ?? 8888]);
   const [storagePollDisabled, setStoragePollDisabled] = useState<boolean>(
     spark.storagePollDisabled ?? false
   );
-  const [showAddPort, setShowAddPort] = useState(false);
-  const [newPortDraft, setNewPortDraft] = useState("");
   // Sync when spark data changes (WS push)
   useEffect(() => {
     setDisabledDevices(spark.disabledDevices || []);
@@ -69,10 +58,6 @@ export function SparkPage({
   useEffect(() => {
     setDisabledInterfaces(spark.disabledInterfaces || []);
   }, [spark.disabledInterfaces]);
-
-  useEffect(() => {
-    if (spark.llmPorts) setLlmPorts(spark.llmPorts);
-  }, [spark.llmPorts]);
 
   useEffect(() => {
     setStoragePollDisabled(spark.storagePollDisabled ?? false);
@@ -97,156 +82,11 @@ export function SparkPage({
     [spark.id]
   );
 
-  const handleAddPort = useCallback(
-    async (portOverride?: number) => {
-      const port = portOverride ?? parseInt(newPortDraft, 10);
-      if (!Number.isInteger(port) || port < 1 || port > 65535) return;
-      if (llmPorts.includes(port)) {
-        setNewPortDraft("");
-        setShowAddPort(false);
-        return;
-      }
-      try {
-        const result = await addLlmPort(spark.id, port);
-        setLlmPorts(result.llmPorts);
-        setNewPortDraft("");
-        setShowAddPort(false);
-      } catch (err) {
-        console.error("Failed to add LLM port:", err);
-      }
-    },
-    [spark.id, newPortDraft, llmPorts]
-  );
-
-  const handleRemovePort = useCallback(async (port: number) => {
-    try {
-      const result = await removeLlmPort(spark.id, port);
-      setLlmPorts(result.llmPorts);
-    } catch (err) {
-      console.error("Failed to remove LLM port:", err);
-    }
-  }, [spark.id]);
-
-  const llmOn = isLlmMonitoringEnabled(spark);
-  const comfyOn = Boolean(spark.comfyMonitoring);
+  // Services (LLM / ComfyUI / model launchers) live on the fleet pages, not on the
+  // Spark detail page — it only shows hardware and I/O panels.
   const tailscaleOn = Boolean(spark.tailscaleMonitoring);
-  const showServices = llmOn || comfyOn;
-  // Everything on one page: hardware and services together (no sub-tabs).
-  const view: SparkView = showServices ? "all" : "resources";
-  const showSvc = showServices && view !== "resources";
-  // Models you start/stop with your own start.sh / stop.sh. Shown on every Spark and in every tab,
-  // so it is always easy to find (a worker may have its own scripts too).
-  const modelsPanel = <LlmModelsPanel spark={spark} />;
-  const primaryPort = llmPorts[0];
-  const extraPorts = llmPorts.slice(1);
   const unified = metrics.unifiedMemory;
   const showUnified = spark.kind !== "host" && unified != null && unified.total > 0;
-
-  const renderLlmPanel = (port: number, portIndex: number, className?: string) => {
-    // Match by the snapshot's own port so a panel never shows another port's
-    // backend (stale-array window after adding/switching ports); fall back to
-    // position for servers that don't yet report `port`.
-    const llmMetrics =
-      metrics.llm?.find((l) => l?.port != null && l.port === port) ??
-      (metrics.llm?.[portIndex]?.port == null ? (metrics.llm?.[portIndex] ?? null) : null);
-    const canRemove = portIndex > 0;
-    return (
-      <LlmPanel
-        key={port}
-        llm={llmMetrics}
-        sparkId={spark.id}
-        sparkName={spark.name}
-        llmPort={port}
-        llmPorts={llmPorts}
-        hasApiKey={Boolean(spark.llmApiKeyPorts?.includes(port))}
-        shareImage={benchShareImage}
-        onRemovePort={canRemove ? handleRemovePort : undefined}
-        className={className}
-      />
-    );
-  };
-
-  const addPort = llmOn ? (
-    showAddPort ? (
-      <div className="panel sp-add-port">
-        <input
-          type="number"
-          min={1}
-          max={65535}
-          inputMode="numeric"
-          placeholder="Port number"
-          value={newPortDraft}
-          onChange={(e) => setNewPortDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void handleAddPort();
-            }
-          }}
-          className="sp-input sp-input--port"
-          autoFocus
-        />
-        <button
-          type="button"
-          onClick={() => void handleAddPort()}
-          disabled={!newPortDraft.trim()}
-          className="btn btn--sm btn--primary"
-        >
-          Add
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setShowAddPort(false);
-            setNewPortDraft("");
-          }}
-          className="btn btn--sm"
-        >
-          Cancel
-        </button>
-        <div className="sp-add-port__presets" role="group" aria-label="Server presets">
-          <span className="sp-hint">Presets:</span>
-          <button
-            type="button"
-            title="LM Studio default port"
-            onClick={() => void handleAddPort(1234)}
-            className="btn btn--sm"
-          >
-            LM Studio :1234
-          </button>
-          <button
-            type="button"
-            title="Ollama default port"
-            onClick={() => void handleAddPort(11434)}
-            className="btn btn--sm"
-          >
-            Ollama :11434
-          </button>
-          <button
-            type="button"
-            title="TensorFold default port"
-            onClick={() => void handleAddPort(8888)}
-            className="btn btn--sm"
-          >
-            TensorFold :8888
-          </button>
-        </div>
-      </div>
-    ) : (
-      <button type="button" onClick={() => setShowAddPort(true)} className="sp-add-port-btn">
-        + Add LLM port
-      </button>
-    )
-  ) : null;
-
-  const comfyPanel = comfyOn ? (
-    <ComfyPanel
-      comfy={metrics.comfy ?? null}
-      comfyPort={spark.comfyPort ?? 8188}
-      sparkId={spark.id}
-      lanIp={spark.lanIp}
-    />
-  ) : null;
 
   return (
     <div className="sp">
@@ -282,25 +122,10 @@ export function SparkPage({
                 />
                 {/* Dedicated hosts have system RAM instead of a unified pool: CPU and RAM side by side. */}
                 {spark.kind === "host" && <RamPanel ram={metrics.ram} sparkId={spark.id} />}
-                {/* Models is the third column of the row (Windows PCs have no launchers). */}
-                {spark.platform !== "windows" && modelsPanel}
               </div>
             </Item>
           </div>
           <div className="sp-col">
-            {view === "all" && showSvc && llmOn && primaryPort != null && (
-              <Item order={3}>{renderLlmPanel(primaryPort, 0)}</Item>
-            )}
-            {view === "all" && showSvc && comfyPanel && <Item order={4}>{comfyPanel}</Item>}
-            {view === "all" &&
-              showSvc &&
-              llmOn &&
-              extraPorts.map((port, j) => (
-                <Item key={port} order={10 + j}>
-                  {renderLlmPanel(port, j + 1)}
-                </Item>
-              ))}
-            {view === "all" && showSvc && addPort && <Item order={30}>{addPort}</Item>}
             <Item order={7}>
               <StoragePanel
                 storage={metrics.storage}
