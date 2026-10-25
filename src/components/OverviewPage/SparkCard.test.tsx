@@ -45,6 +45,30 @@ describe("SparkCard", () => {
     const { container } = render(<SparkCard spark={spark} temperatureUnit="celsius" />);
     expect(container.querySelector(".ov-chips")?.textContent).toContain("?/8 slots");
   });
+
+  it("names the parallel capacity next to running and queued, so --parallel 4 and 8 read differently", () => {
+    for (const total of [4, 8]) {
+      const spark = makeSpark("fixture");
+      Object.assign(spark.metrics.llm[0], {
+        backend: "tensorfold", slotsActive: 1, slotsTotal: total, requestsRunning: 1, requestsWaiting: 0,
+      });
+      const { container } = render(<SparkCard spark={spark} temperatureUnit="celsius" />);
+      const chip = container.querySelector(".ov-chips")!;
+      expect(chip.textContent).toContain(`1 running · 0 queued · ${total} slots`);
+      expect(chip.querySelector(`[title="${total} requests decode in parallel on this engine"]`)).not.toBeNull();
+    }
+  });
+
+  it("adds no slot count when the engine reports no capacity", () => {
+    const spark = makeSpark("fixture");
+    Object.assign(spark.metrics.llm[0], {
+      backend: "vllm", slotsActive: 0, slotsTotal: 0, requestsRunning: 2, requestsWaiting: 1,
+    });
+    const { container } = render(<SparkCard spark={spark} temperatureUnit="celsius" />);
+    const text = container.querySelector(".ov-chips")!.textContent!;
+    expect(text).toContain("2 running · 1 queued");
+    expect(text).not.toContain("slots");
+  });
   it("lists private loaded models alongside the monitored model without duplicates", () => {
     const spark = head(true);
     spark.metrics.residentModels = [
@@ -95,5 +119,35 @@ describe("SparkCard", () => {
     expect(container.textContent).not.toContain("big-model");
     expect(container.textContent).toContain("cfg-label");
     expect(container.textContent).toContain("Head is offline");
+  });
+});
+
+describe("SparkCard per-stream decode rate", () => {
+  it("shows the per-stream rate when the engine reports one", () => {
+    const spark = head(true);
+    Object.assign(spark.metrics.llm[0], { generationTps: 40, perStreamTps: 18.5 });
+    const { container } = render(<SparkCard spark={spark} temperatureUnit="celsius" />);
+    expect(container.textContent).toContain("18.5 tok/s per stream");
+  });
+  it("omits the per-stream line when the engine has no histogram", () => {
+    const spark = head(true);
+    Object.assign(spark.metrics.llm[0], { generationTps: 40, perStreamTps: null });
+    const { container } = render(<SparkCard spark={spark} temperatureUnit="celsius" />);
+    expect(container.textContent).not.toContain("per stream");
+  });
+});
+
+describe("SparkCard effective prefill rate", () => {
+  it("labels the per-request prefill as effective (incl. cached tokens)", () => {
+    const spark = head(true);
+    Object.assign(spark.metrics.llm[0], { prefillTps: 2813, perStreamPrefillTps: 2813 });
+    const { container } = render(<SparkCard spark={spark} temperatureUnit="celsius" />);
+    expect(container.textContent).toContain("2,813 tok/s per request — effective (incl. cached tokens)");
+  });
+  it("omits the prefill line when no request has finished", () => {
+    const spark = head(true);
+    Object.assign(spark.metrics.llm[0], { prefillTps: 0, perStreamPrefillTps: null });
+    const { container } = render(<SparkCard spark={spark} temperatureUnit="celsius" />);
+    expect(container.textContent).not.toContain("effective (incl. cached tokens)");
   });
 });

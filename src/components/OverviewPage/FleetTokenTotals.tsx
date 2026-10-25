@@ -18,7 +18,9 @@ const POLL_MS = 60_000;
 
 const RANGE_OPTIONS: Array<{ value: LlmTokenRange; label: () => string }> = [
   { value: "all", label: () => t("All time") },
-  { value: "today", label: () => t("Today") },
+  { value: "today", label: () => t("Last 24 hours") },
+  { value: "6h", label: () => t("Last 6 hours") },
+  { value: "1h", label: () => t("Last 1 hour") },
   { value: "7d", label: () => t("Last 7 days") },
   { value: "14d", label: () => t("Last 14 days") },
   { value: "30d", label: () => t("Last month") },
@@ -97,6 +99,33 @@ export function FleetTokenTotals({ onOpenDetails }: { onOpenDetails?: () => void
   if (!series || series.length === 0) return null;
 
   const { rows, totalPrompt, totalCached, totalCompletion } = aggregateModelTotals(series);
+  // One row per machine-model combination (merged across ports on the same
+  // machine serving the same model). Workers serve no LLM endpoint, so they
+  // produce no series and appear nowhere.
+  const combinedRows = (() => {
+    const byKey = new Map<
+      string,
+      { sparkId: string; modelId: string; promptTokens: number; cachedTokens: number; completionTokens: number }
+    >();
+    for (const s of Array.isArray(series) ? series : []) {
+      for (const m of Array.isArray(s.models) ? s.models : []) {
+        const key = `${s.sparkId}\u0000${m.modelId}`;
+        const entry =
+          byKey.get(key) ??
+          { sparkId: s.sparkId, modelId: m.modelId, promptTokens: 0, cachedTokens: 0, completionTokens: 0 };
+        entry.promptTokens = addTokens(entry.promptTokens, m.promptTokens || 0);
+        entry.cachedTokens = addTokens(entry.cachedTokens, m.cachedTokens || 0);
+        entry.completionTokens = addTokens(entry.completionTokens, m.completionTokens || 0);
+        byKey.set(key, entry);
+      }
+    }
+    return [...byKey.values()]
+      .map((e) => ({ ...e, cachedTokens: Math.min(e.cachedTokens, e.promptTokens) }))
+      .sort(
+        (a, b) =>
+          a.sparkId.localeCompare(b.sparkId) || a.modelId.localeCompare(b.modelId)
+      );
+  })();
   // Count only endpoints with token data in the selected period, not all configured ones.
   const activeEndpoints = series.filter((s) => s.models.length > 0).length;
   if (rows.length === 0 && range === "all") return null;
@@ -127,7 +156,7 @@ export function FleetTokenTotals({ onOpenDetails }: { onOpenDetails?: () => void
           </select>
           {onOpenDetails ? (
             <AppLink href={idToPath(TOKENS_ID)} className="btn btn--sm btn--ghost" onNavigate={onOpenDetails}>
-              Details
+              {t("Details")}
             </AppLink>
           ) : null}
         </div>
@@ -153,7 +182,7 @@ export function FleetTokenTotals({ onOpenDetails }: { onOpenDetails?: () => void
       </div>
       <div className="ov-rows">
         <div className="ov-row ov-row--head">
-          <span className="ov-row__name eyebrow">{t("Model")}</span>
+          <span className="ov-row__name eyebrow">{t("Machine · Model")}</span>
           <span className="ov-row__num eyebrow">{t("Cached")}</span>
           <span className="ov-row__num eyebrow">{t("Prefill")}</span>
           <span className="ov-row__num eyebrow">{t("Gen")}</span>
@@ -161,23 +190,21 @@ export function FleetTokenTotals({ onOpenDetails }: { onOpenDetails?: () => void
         {rows.length === 0 ? (
           <p className="ov-card__sub">{t("No tokens recorded in this period.")}</p>
         ) : (
-          rows.map((row) => (
+          combinedRows.map((row) => (
             <div
-              key={row.modelId}
+              key={`${row.sparkId}\u0000${row.modelId}`}
               className="ov-row"
               title={t(
-                "{0} prompt · {1} cached · {2} prefill · {3} generated · {4} {5}",
+                "{0} prompt · {1} cached · {2} prefill · {3} generated",
                 row.promptTokens.toLocaleString(),
                 row.cachedTokens.toLocaleString(),
                 (row.promptTokens - row.cachedTokens).toLocaleString(),
-                row.completionTokens.toLocaleString(),
-                row.sparkCount,
-                row.sparkCount === 1 ? t("Spark") : t("Sparks")
+                row.completionTokens.toLocaleString()
               )}
             >
-              <span className="ov-row__name" title={row.modelId}>
-                <ModelNameText id={row.modelId} />
-                {row.sparkCount > 1 && <span className="ov-row__x">{"\u00d7"}{row.sparkCount}</span>}
+              <span className="ov-row__name" title={`${row.sparkId} · ${row.modelId}`}>
+                {row.sparkId}
+                <span className="text-muted">{" \u00b7 "}<ModelNameText id={row.modelId} /></span>
               </span>
               <span className="ov-row__num mono">{row.cachedTokens > 0 ? formatTokensCompact(row.cachedTokens) : "\u2014"}</span>
               <span className="ov-row__num mono">{formatTokensCompact(row.promptTokens - row.cachedTokens)}</span>

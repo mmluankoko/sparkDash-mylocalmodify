@@ -1,6 +1,12 @@
 import type {
+  AlertChannel,
+  AlertTestResult,
+  AlertsConfig,
+  AlertsConfigUpdate,
+  AlertsResponse,
   ActivityEvent,
   ActivityEventsPage,
+  GpuClockPersistKind,
   EnergyHistory,
   MonthlyEnergy,
   TokenHistory,
@@ -11,6 +17,7 @@ import type {
   InferenceActivity,
   HermesBatchUpdateResponse,
   GpuClockStatus,
+  FleetGpuClockResult,
   HermesUpdatesResponse,
   LlmCtlUnit,
   LauncherAction,
@@ -21,6 +28,11 @@ import type {
   LlmLauncherInput,
   LlmMetrics,
   LlmDailyResponse,
+  MetricsHistoryRange,
+  MetricsHistoryResponse,
+  OccupancyCheck,
+  OccupancyHelper,
+  OccupancyHelperInput,
   Settings,
   ShowcaseListResponse,
   ShowcaseSessionState,
@@ -371,12 +383,16 @@ export function getQualityBench(
   return apiFetch(`/api/sparks/${id}/llm/quality-bench/${benchId}`);
 }
 
+/** `historyPort` scopes the saved-run list on its own: a port, or "all" for every endpoint on the unit. */
 export function listQualityBench(
   id: string,
-  port?: number
+  port?: number,
+  historyPort?: number | "all"
 ): Promise<QualityBenchListResponse> {
-  const q =
-    port != null && Number.isInteger(port) ? `?port=${encodeURIComponent(port)}` : "";
+  const params = new URLSearchParams();
+  if (port != null && Number.isInteger(port)) params.set("port", String(port));
+  if (historyPort != null) params.set("historyPort", String(historyPort));
+  const q = params.size ? `?${params}` : "";
   return apiFetch(`/api/sparks/${id}/llm/quality-bench${q}`);
 }
 
@@ -613,20 +629,51 @@ export function fetchGpuClock(id: string): Promise<GpuClockStatus> {
   return apiFetch(`/api/sparks/${encodeURIComponent(id)}/gpu-clock`);
 }
 
-/** Cap the GPU graphics clock now; `persist` also installs the boot service. */
+/** Command to paste into a terminal on the unit itself: asks for the sudo password there. */
+export function fetchGpuClockCommand(
+  id: string,
+  q: { action: "apply"; maxMHz: number; persist: boolean } | { action: "reset" }
+): Promise<{ command: string }> {
+  const params = new URLSearchParams({ action: q.action });
+  if (q.action === "apply") {
+    params.set("maxMHz", String(q.maxMHz));
+    params.set("persist", q.persist ? "1" : "0");
+  }
+  return apiFetch(`/api/sparks/${encodeURIComponent(id)}/gpu-clock/command?${params}`);
+}
+
+/** Cap the GPU graphics clock now; `persist` also installs the boot hook this unit can take. */
 export function setGpuClock(
   id: string,
-  body: { maxMHz: number; minMHz?: number; persist: boolean }
-): Promise<{ success: boolean; capMHz: number; persist: boolean }> {
+  body: { maxMHz: number; minMHz?: number; persist: boolean; sudoPassword?: string }
+): Promise<{ success: boolean; capMHz: number; persist: boolean; persistKind: GpuClockPersistKind }> {
   return apiFetch(`/api/sparks/${encodeURIComponent(id)}/gpu-clock`, {
     method: "PUT",
     body: JSON.stringify(body),
   });
 }
 
-/** Remove the cap and the boot service. */
-export function resetGpuClock(id: string): Promise<{ success: boolean }> {
-  return apiFetch(`/api/sparks/${encodeURIComponent(id)}/gpu-clock`, { method: "DELETE" });
+/** Remove the cap and its boot hook. */
+export function resetGpuClock(id: string, sudoPassword?: string): Promise<{ success: boolean }> {
+  return apiFetch(`/api/sparks/${encodeURIComponent(id)}/gpu-clock`, {
+    method: "DELETE",
+    ...(sudoPassword ? { body: JSON.stringify({ sudoPassword }) } : {}),
+  });
+}
+
+/** POST /api/sparks/gpu-clock-all: cap (or, with reset, clear) the cap on every Spark. */
+export function setFleetGpuClock(maxMHz: number, persist = false): Promise<{ success: boolean; applied: number; results: FleetGpuClockResult[] }> {
+  return apiFetch("/api/sparks/gpu-clock-all", {
+    method: "POST",
+    body: JSON.stringify({ maxMHz, persist }),
+  });
+}
+
+export function resetFleetGpuClock(): Promise<{ success: boolean; applied: number; results: FleetGpuClockResult[] }> {
+  return apiFetch("/api/sparks/gpu-clock-all", {
+    method: "POST",
+    body: JSON.stringify({ reset: true }),
+  });
 }
 
 // ─── Hermes update preview ───────────────────────────────
@@ -650,6 +697,33 @@ export function updateSettings(patch: Partial<Settings>): Promise<Settings> {
   return apiFetch("/api/settings", {
     method: "PUT",
     body: JSON.stringify(patch),
+  });
+}
+
+// ─── Alert notifications ─────────────────────────────────
+export function fetchAlerts(): Promise<AlertsResponse> {
+  return apiFetch("/api/alerts");
+}
+
+export function fetchAlertsConfig(): Promise<AlertsConfig> {
+  return apiFetch("/api/alerts/config");
+}
+
+export function updateAlertsConfig(update: AlertsConfigUpdate): Promise<AlertsConfig> {
+  return apiFetch("/api/alerts/config", {
+    method: "PUT",
+    body: JSON.stringify(update),
+  });
+}
+
+/**
+ * Send one test message. With `channel`, the unsaved draft is tested (a masked
+ * URL resolves against `channelId` on the server).
+ */
+export function testAlertChannel(channelId: string | undefined, channel?: AlertChannel): Promise<AlertTestResult> {
+  return apiFetch("/api/alerts/test", {
+    method: "POST",
+    body: JSON.stringify({ channelId, channel }),
   });
 }
 
@@ -798,6 +872,26 @@ export function fetchToolEvalResult(sparkId: string, runId: string): Promise<{ r
   return teFetch(`${teBase(sparkId)}/runs/${encodeURIComponent(runId)}/result`);
 }
 
+export function fetchOccupancyHelpers(): Promise<{ helpers: OccupancyHelper[] }> {
+  return apiFetch("/api/occupancy/helpers");
+}
+
+export function saveOccupancyHelpers(helpers: OccupancyHelperInput[]): Promise<{ helpers: OccupancyHelper[] }> {
+  return apiFetch("/api/occupancy/helpers", { method: "PUT", body: JSON.stringify({ helpers }) });
+}
+
+export function deleteOccupancyHelper(id: string): Promise<{ helpers: OccupancyHelper[] }> {
+  return apiFetch(`/api/occupancy/helpers/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+/** Connection check. The response is coverage and a count; it has no session titles. */
+export function checkOccupancyHelper(url: string, token = ""): Promise<OccupancyCheck> {
+  return apiFetch("/api/occupancy/helpers/check", {
+    method: "POST",
+    body: JSON.stringify({ url, token }),
+  });
+}
+
 export function deleteToolEvalRun(sparkId: string, runId: string): Promise<{ success: boolean }> {
   return teFetch(`${teBase(sparkId)}/runs/${encodeURIComponent(runId)}`, { method: "DELETE" });
 }
@@ -820,4 +914,9 @@ export interface GpuHistoryResponse {
 
 export function getGpuHistory(sparkId: string, windowMs: number): Promise<GpuHistoryResponse> {
   return apiFetch<GpuHistoryResponse>(`/api/sparks/${encodeURIComponent(sparkId)}/gpu-history?windowMs=${Math.round(windowMs)}`);
+}
+
+/** The 48 h / 30 d unit history (Settings → Metrics history; `{ enabled: false }` while off). */
+export function getUnitHistory(sparkId: string, range: MetricsHistoryRange): Promise<MetricsHistoryResponse> {
+  return apiFetch<MetricsHistoryResponse>(`/api/sparks/${encodeURIComponent(sparkId)}/history?range=${range}`);
 }

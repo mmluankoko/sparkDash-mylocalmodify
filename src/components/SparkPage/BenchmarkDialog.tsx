@@ -1,5 +1,6 @@
 import { t, useI18n } from "../../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { decodeBenchSamplingLabel, decodeBenchSamplingMixed } from "./decodeSampling";
 import { createPortal } from "react-dom";
 import "../../styles/dialogs.css";
 import {
@@ -30,6 +31,8 @@ import {
 const CONCURRENCY_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32] as const;
 const DEFAULT_SELECTED = [1, 2];
 const DEFAULT_MAX_TOKENS = 400;
+const DEFAULT_TEMPERATURE = 0.7;
+const DEFAULT_THINKING = true;
 const DEFAULT_PROMPT_TYPE: DecodeBenchPromptType = DECODE_BENCH_DEFAULT_TYPE;
 
 interface BenchmarkDialogProps {
@@ -109,7 +112,7 @@ function formatTtft(ms: number): string {
 function buildShareText(job: DecodeBenchJob, modelId: string | null): string {
   const name = modelId || "unknown model";
   const typeLabel = decodeBenchTypeLabel(job.config?.promptType);
-  const head = `${name} | decode tok/s results (${typeLabel}):`;
+  const head = `${name} | decode tok/s results (${typeLabel}, ${decodeBenchSamplingLabel(job.config)}):`;
 
   const lines = job.results
     .slice()
@@ -178,8 +181,7 @@ function ResultRow({ r, max }: { r: DecodeBenchJob["results"][number]; max: numb
 
 export function BenchmarkDialog({
   open: openProp = true,
-  onClose = () => {
-  useI18n();},
+  onClose = () => {},
   variant = "modal",
   sparkId,
   llmPort,
@@ -193,12 +195,15 @@ export function BenchmarkDialog({
   onSwitchBench,
   liveTps = null,
 }: BenchmarkDialogProps) {
+  useI18n();
   const isPage = variant === "page";
   const open = isPage || openProp;
   const [history, setHistory] = useState<DecodeBenchJob[]>([]);
   const [selected, setSelected] = useState<number[]>([...DEFAULT_SELECTED]);
   const [maxTokensDraft, setMaxTokensDraft] = useState(String(DEFAULT_MAX_TOKENS));
   const [promptType, setPromptType] = useState<DecodeBenchPromptType>(DEFAULT_PROMPT_TYPE);
+  const [temperatureDraft, setTemperatureDraft] = useState(String(DEFAULT_TEMPERATURE));
+  const [thinking, setThinking] = useState(DEFAULT_THINKING);
   const [job, setJob] = useState<DecodeBenchJob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -430,6 +435,11 @@ export function BenchmarkDialog({
       setError("Max tokens must be an integer between 64 and 2048");
       return;
     }
+    const temperature = Number(temperatureDraft.trim());
+    if (temperatureDraft.trim() === "" || !Number.isFinite(temperature) || temperature < 0 || temperature > 2) {
+      setError(t("Temperature must be a number between 0 and 2"));
+      return;
+    }
     startLockRef.current = true;
     setStarting(true);
     setError(null);
@@ -441,6 +451,8 @@ export function BenchmarkDialog({
         maxTokens,
         modelId: selectedModel || undefined,
         promptType,
+        temperature,
+        thinking,
         ...(remoteTarget
           ? { host: remoteTarget.host, tls: remoteTarget.tls }
           : {}),
@@ -542,7 +554,7 @@ export function BenchmarkDialog({
                   <h3 className="bench-sheet__section-title">{t("Type")}</h3>
                   <p className="bench-sheet__hint">
                     {DECODE_BENCH_TYPE_META.find((t) => t.id === promptType)?.hint}
-                    {" · temp 0, thinking off"}
+                    {t(" · temp {0}, thinking {1}", temperatureDraft || "?", thinking ? t("on") : t("off"))}
                   </p>
                 </div>
                 <div
@@ -568,6 +580,54 @@ export function BenchmarkDialog({
                     );
                   })}
                 </div>
+              </div>
+
+              <div className="bench-field">
+                <div className="bench-field__head">
+                  <h3 className="bench-sheet__section-title">{t("Thinking")}</h3>
+                  <p className="bench-sheet__hint">
+                    {t("On by default. Reasoning tokens count toward decode tok/s.")}
+                  </p>
+                </div>
+                <div className="bench-type-grid" role="radiogroup" aria-label={t("Thinking")}>
+                  {([true, false] as const).map((on) => (
+                    <button
+                      key={String(on)}
+                      type="button"
+                      role="radio"
+                      aria-checked={thinking === on}
+                      disabled={isRunning || starting}
+                      onClick={() => setThinking(on)}
+                      className={`bench-conc-btn${thinking === on ? " is-on" : ""}`}
+                    >
+                      {on ? t("With thinking") : t("Without thinking")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bench-field">
+                <div className="bench-field__head">
+                  <label htmlFor="bench-temperature" className="bench-sheet__section-title">
+                    {t("Temperature")}
+                  </label>
+                  <p className="bench-sheet__hint">
+                    {t("Default 0.7 · 0 is greedy · 0 to 2. Before v2.70 the bench always ran at temp 0 with thinking off: set 0 to compare with those runs. Temp above 0 can be much slower on servers that use speculative decoding.")}
+                  </p>
+                </div>
+                <input
+                  id="bench-temperature"
+                  type="text"
+                  inputMode="decimal"
+                  className="bench-input"
+                  size={6}
+                  disabled={isRunning || starting}
+                  value={temperatureDraft}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "" || /^\d*\.?\d{0,2}$/.test(raw)) setTemperatureDraft(raw);
+                  }}
+                />
               </div>
 
               <div className="bench-field">
@@ -601,7 +661,7 @@ export function BenchmarkDialog({
                     Max tokens / stream
                   </label>
                   <p className="bench-sheet__hint">
-                    Default 400 · temp 0, thinking off
+                    Default 400
                     {promptType === "structured" ? " · count 1→200" : ""}
                   </p>
                 </div>
@@ -681,6 +741,7 @@ export function BenchmarkDialog({
                 </span>
                 <span className="bench-status-meta">
                   {decodeBenchTypeLabel(job.config.promptType)} · {job.config.maxTokens} {t("tok ·")}{" "}
+                  {decodeBenchSamplingLabel(job.config)} ·{" "}
                   {job.config.concurrencies.join(", ")} conc
                   {job.durationMs != null ? ` · ${formatDuration(job.durationMs)}` : ""}
                 </span>
@@ -792,6 +853,11 @@ export function BenchmarkDialog({
         )}
         {history.length > 0 && (
           <PageCard title={`History · ${history.length}`}>
+            {decodeBenchSamplingMixed(history.map((h) => h.config)) && (
+              <p className="bench-sheet__hint" role="note">
+                {t("These runs use different temperature or thinking settings. Compare tok/s only between runs with the same settings; temp above 0 can be several times slower.")}
+              </p>
+            )}
             <HistoryTable
               rows={history.map(decodeHistoryRow)}
               activeId={job?.benchId ?? null}

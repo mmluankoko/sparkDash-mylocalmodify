@@ -528,7 +528,8 @@ export class SparkMonitor {
       ports.add(port);
       const gen = Number(entry.generationTps);
       const pre = Number(entry.prefillTps);
-      if ((Number.isFinite(gen) && gen > 0) || (Number.isFinite(pre) && pre > 0)) {
+      if (entry.available && (entry.decodeActive === true || entry.prefillActive === true ||
+        (Number.isFinite(gen) && gen > 0) || (Number.isFinite(pre) && pre > 0))) {
         this._llmLastActiveAt.set(port, now);
       }
       return { ...entry, lastActiveAt: this._llmLastActiveAt.get(port) ?? null };
@@ -686,13 +687,9 @@ export class SparkMonitor {
       health: this._health,
       hardware: this._hardwareSummary,
       metrics: {
-        // NOTE: no `timestamp` here on purpose. The broadcast path skips
-        // snapshots whose JSON is byte-identical to the previous one (see
-        // startBroadcast); a per-snapshot Date.now() would defeat that cache,
-        // forcing a broadcast + frontend re-render every tick even when all
-        // measured values are unchanged. The frontend does not consume a
-        // metrics timestamp; the WS receive time can serve if one is ever
-        // needed.
+        // NOTE: no `timestamp` here. The frontend does not consume a metrics
+        // timestamp; the broadcast envelope's `generatedAt` (see
+        // buildSnapshotPayload) and the WS receive time already serve.
         gpu: this._metrics.gpu,
         cpu: this._metrics.cpu,
         ram: this._metrics.ram,
@@ -850,6 +847,28 @@ export class SparkMonitor {
     if (this.spark.storagePollDisabled) delete out.storage;
     if (!this._llmMonitoringEnabled()) delete out.llm;
     return out;
+  }
+
+  /** Epoch ms of the last poll of `domain` that returned real data, or null (never, or not polled). */
+  lastCollectedAt(domain) {
+    const at = this._lastSuccess[domain];
+    return Number.isFinite(at) ? at : null;
+  }
+
+  /**
+   * Whether the latest completed poll of `domain` returned real data. A failed GPU/CPU read is
+   * zero-filled and every other domain keeps its previous value, so "the poll ran" is not enough.
+   */
+  collectionOk(domain) {
+    if (domain === "gpu" || domain === "cpu") return this._metricCollectionSuccessful[domain] === true;
+    const at = this._lastSuccess[domain];
+    return Number.isFinite(at) && at === this._lastUpdate[domain];
+  }
+
+  /** Current cadence (ms) of a collector that follows Settings → Poll interval, or null for other domains. */
+  pollIntervalMs(domain) {
+    const ms = this._fastIntervals[domain];
+    return Number.isFinite(ms) && ms > 0 ? ms : null;
   }
 
   _noteThrottle(gpu) {

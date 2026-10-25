@@ -16,7 +16,9 @@ const POLL_MS = 60_000;
 
 const RANGE_OPTIONS: Array<{ value: LlmTokenRange; label: () => string }> = [
   { value: "all", label: () => t("All time") },
-  { value: "today", label: () => t("Today") },
+  { value: "today", label: () => t("Last 24 hours") },
+  { value: "6h", label: () => t("Last 6 hours") },
+  { value: "1h", label: () => t("Last 1 hour") },
   { value: "7d", label: () => t("Last 7 days") },
   { value: "14d", label: () => t("Last 14 days") },
   { value: "30d", label: () => t("Last month") },

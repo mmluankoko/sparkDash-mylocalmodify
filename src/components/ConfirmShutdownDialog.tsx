@@ -2,6 +2,7 @@ import { t, useI18n } from "../i18n";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useModalPresence } from "../hooks/useModalPresence";
+import { useOverlayClose } from "../hooks/useOverlayClose";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { PowerOffIcon } from "./ui/icons";
 import "../styles/dialogs.css";
@@ -47,6 +48,7 @@ export function ConfirmShutdownDialog({
   const titleId = useId();
   const { mounted, visible } = useModalPresence(open);
   const trapRef = useFocusTrap(mounted);
+  const overlayClose = useOverlayClose(onClose, !submitting);
 
   useEscape(open && !submitting, onClose);
 
@@ -89,10 +91,7 @@ export function ConfirmShutdownDialog({
   return createPortal(
     <div
       className={`modal-overlay${visible ? " is-open" : ""}`}
-      onClick={(e) => {
-        if (submitting) return;
-        if (e.target === e.currentTarget) onClose();
-      }}
+      {...overlayClose}
     >
       <div
         ref={trapRef}

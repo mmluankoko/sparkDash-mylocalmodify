@@ -11,7 +11,7 @@ import { HealthChips, worstSeverity } from "../ui/HealthFindings";
 import { AppLink } from "../ui/AppLink";
 import { idToPath } from "../../constants";
 import { VramBreakdownBar } from "../ui/VramBreakdownBar";
-import { computeVramBreakdown, type VramBreakdownContext } from "../../shared/vramBreakdown";
+import { HEADROOM_THRESHOLDS_MB, computeVramBreakdown, memoryModelFor, type VramBreakdownContext } from "../../shared/vramBreakdown";
 import { ImageIcon, PowerOnIcon } from "../ui/icons";
 import { formatCtx } from "./fleetStats";
 import { ModelLauncher } from "./ModelLauncher";
@@ -110,6 +110,15 @@ function SparkCardImpl({
   const ringColor = hot ? "var(--color-warning)" : "var(--color-accent)";
   const memColor = memPct >= 90 ? "var(--color-danger)" : memPct >= 85 ? "var(--color-warning)" : "var(--color-info)";
   const tempColor = tempRaw > 80 ? "var(--color-danger)" : tempRaw >= 75 ? "var(--color-warning)" : "var(--color-success)";
+  // A Spark's CPU runs much hotter than its GPU under the same load — on the GB10 the CPU
+  // is the number that hits high temps first, so it belongs next to the GPU bars at a glance
+  // instead of hiding behind a per-unit page visit.
+  const cpuMetrics = spark.metrics.cpu ?? null;
+  const cpuTempRaw = cpuMetrics && Number.isFinite(cpuMetrics.temperature) && cpuMetrics.temperature > 0 ? cpuMetrics.temperature : null;
+  const cpuTempVal = cpuTempRaw === null ? 0 : temperatureUnit === "fahrenheit" ? toF(cpuTempRaw) : cpuTempRaw;
+  const cpuTempColor = cpuTempRaw !== null && cpuTempRaw > 80 ? "var(--color-danger)" : cpuTempRaw !== null && cpuTempRaw >= 75 ? "var(--color-warning)" : "var(--color-success)";
+  const cpuPower = cpuMetrics && (cpuMetrics.draw > 0 || cpuMetrics.tdp > 0) ? { draw: cpuMetrics.draw, tdp: cpuMetrics.tdp } : null;
+  const cpuPowerPct = cpuPower && cpuPower.tdp > 0 ? (cpuPower.draw / cpuPower.tdp) * 100 : 0;
   const power = gpu?.power;
   const powerPct = power && power.limit > 0 ? (power.draw / power.limit) * 100 : 0;
 
@@ -168,20 +177,34 @@ function SparkCardImpl({
   }
   // Idle Spark (nothing serving): the launcher block fills the free space instead.
   // Memory or compute in use while nothing serves yet: a model is most likely still loading.
+  // When nvidia-smi names the processes holding the GPU, say so: it may be a server sparkDash does not
+  // monitor (add its port under "+ Add LLM port"), not a model that is still starting.
+  const gpuHolders = (gpu?.processes ?? [])
+    .filter((p) => p.vramMB > 0)
+    .slice(0, 3)
+    .map((p) => `${p.name} (${formatMb(p.vramMB)})`);
   const loadingHint =
     !llm && (memUsed >= 2048 || usage >= 10)
-      ? `${formatMb(memUsed)} VRAM in use · GPU ${Math.round(usage)}%`
+      ? `${gpuHolders.length > 0 ? `${t("In use by {0}", gpuHolders.join(", "))} · ` : ""}${t("{0} VRAM in use · GPU {1}%", formatMb(memUsed), Math.round(usage))}`
       : null;
   const showLauncher = role !== "worker" && !llm && spark.llmMonitoring !== false && spark.platform !== "windows";
 
   const showTps = role !== "worker" && !!llm;
+  const isStrata = llm?.backend === "strata";
+  // Engines that report requests (TensorFold, Strata, …) used to hide their parallelism behind
+  // "N running": a unit set to --parallel 4 and one set to 8 read the same. Name the capacity too.
+  const parallel = llm && llm.slotsTotal > 0 ? llm.slotsTotal : null;
   const llmChip = llm
     ? llm.requestsRunning != null
-      ? `${llm.requestsRunning} running · ${llm.requestsWaiting == null ? "queue unknown" : `${llm.requestsWaiting} queued`}`
+      ? `${t("{0} running", llm.requestsRunning)} · ${llm.requestsWaiting == null ? t("queue unknown") : t("{0} queued", llm.requestsWaiting)}${
+          parallel != null ? ` · ${t("{0} slots", parallel)}` : ""
+        }`
       : llm.slotsTotal > 0
-        ? `${llm.slotsActive ?? "?"}/${llm.slotsTotal} slots`
+        ? t("{0}/{1} slots", llm.slotsActive ?? "?", llm.slotsTotal)
         : null
     : null;
+  const llmChipTitle =
+    parallel != null && llm?.requestsRunning != null ? t("{0} requests decode in parallel on this engine", parallel) : undefined;
 
   const chips = (
     <div className="ov-chips">
@@ -196,7 +219,7 @@ function SparkCardImpl({
           Cap {(throttle.clockCapMHz / 1000).toFixed(1)} GHz
         </Tag>
       ) : null}
-      {online && llmChip ? <Tag tone={(llm?.requestsRunning ?? llm?.slotsActive ?? 0) > 0 ? "good" : "neutral"}>{llmChip}</Tag> : null}
+      {online && llmChip ? <Tag tone={(llm?.requestsRunning ?? llm?.slotsActive ?? 0) > 0 ? "good" : "neutral"} title={llmChipTitle}>{llmChip}</Tag> : null}
       {comfy !== undefined || spark.comfyMonitoring ? (
         !comfy?.available ? (
           <Tag title={t("ComfyUI monitoring on — not reachable")}>{t("Comfy")}</Tag>
@@ -293,9 +316,19 @@ function SparkCardImpl({
                 pct={gpu.metricAvailability?.powerDraw === false ? 0 : powerPct}
                 color="var(--color-violet)"
               />
+              {cpuTempRaw !== null ? (
+                <Bar
+                  label={t("CPU temp")}
+                  title={cpuMetrics?.temperatureLabel ? t("Sensor: {0}", cpuMetrics.temperatureLabel) : undefined}
+                  caption={fmtTemp(cpuTempRaw)}
+                  pct={(cpuTempVal / tempMax) * 100}
+                  color={cpuTempColor}
+                />
+              ) : null}
+              {cpuPower ? <Bar label={t("CPU power")} caption={`${cpuPower.draw} / ${cpuPower.tdp} W`} pct={cpuPowerPct} color="var(--color-violet)" /> : null}
             </div>
           </div>
-          {showLauncher ? <ModelLauncher spark={spark} onOpen={onSelect} busy={loadingHint} /> : null}
+          {showLauncher ? <ModelLauncher spark={spark} onOpen={onSelect} busy={loadingHint} busyHolders={gpuHolders.length > 0} freeMb={memTotal > 0 ? memAvail : null} lowFreeMb={HEADROOM_THRESHOLDS_MB[memoryModelFor(spark.kind)].low} /> : null}
           {role === "worker" ? (
             <div className="ov-launch ov-launch--worker">
               <div className="eyebrow">{t("Worker of")}</div>
@@ -314,7 +347,7 @@ function SparkCardImpl({
               )}
               <div className="ov-launch__hint">
                 {headLlm
-                  ? `${backendLabel(headLlm.backend) ?? headLlm.backend ?? "LLM"} · ${headLlm.generationTps.toFixed(1)} tok/s decode`
+                  ? `${backendLabel(headLlm.backend) ?? headLlm.backend ?? "LLM"} · ${t("{0} tok/s decode", headLlm.measurementValid === false ? "—" : headLlm.generationTps.toFixed(1))}${headLlm.perStreamTps != null ? ` · ${t("{0} per stream", headLlm.perStreamTps.toFixed(1))}` : ""}${headLlm.perStreamPrefillTps != null ? ` · ${t("{0} prefill per request (effective, incl. cached)", Math.round(headLlm.perStreamPrefillTps).toLocaleString())}` : ""}`
                   : headSpark
                     ? headSpark.online
                       ? "No model loaded on the head"
@@ -325,20 +358,61 @@ function SparkCardImpl({
           ) : null}
           {showTps && llm ? (
             <div className="ov-tps">
-              <div>
+              <div
+                title={
+                  isStrata
+                    ? t("Live sliding-window decode rate. When that window is unavailable, the active-slot mean sums each active slot’s generated tokens divided by its elapsed time since first token; it excludes prefill time.")
+                    : undefined
+                }
+              >
                 <div className="eyebrow">{t("Decode")}</div>
-                <div className="big-num ov-tps__num">{llm.generationTps.toFixed(1)}<small>{t("tok/s")}</small></div>
+                {llm.measurementValid === false ? (
+                  <div className="big-num ov-tps__num" title={llm.measurementError ?? t("Stats could not be read")}>—</div>
+                ) : isStrata && llm.decodeActive && llm.generationTps <= 0 ? (
+                  <div className="big-num ov-tps__num ov-tps__num--live">
+                    <span className="ov-tps__dots" aria-hidden />
+                    <small>{t("decoding")}</small>
+                  </div>
+                ) : (
+                  <div className="big-num ov-tps__num">{llm.generationTps.toFixed(1)}<small>{t("tok/s")}</small></div>
+                )}
+                {isStrata && llm.generationTpsSource === "slot-mean" && <small className="text-muted">{t("active-slot mean")}</small>}
+                {llm.measurementValid !== false && llm.perStreamTps != null && (
+                  <small
+                    className="text-muted"
+                    title={t("Average decode throughput of one running stream (1 / mean seconds per output token). Only engines that publish a per-token latency histogram report it.")}
+                  >
+                    {t("{0} tok/s per stream", llm.perStreamTps.toFixed(1))}
+                  </small>
+                )}
               </div>
-              <div>
+              <div
+                title={
+                  isStrata
+                    ? t("Engine-reported mean for computed/new prompt tokens. It may be from an earlier prefill and is not an aggregate across slots.")
+                    : undefined
+                }
+              >
                 <div className="eyebrow">{t("Prefill")}</div>
-                {llm.prefillActive && llm.prefillTps <= 0 ? (
-                  <div className="big-num ov-tps__num ov-tps__num--live" title={t("A prompt is being processed. The engine reports its speed only when the request finishes.")}>
+                {llm.measurementValid === false ? (
+                  <div className="big-num ov-tps__num" title={llm.measurementError ?? t("Stats could not be read")}>—</div>
+                ) : llm.prefillActive && llm.prefillTps <= 0 ? (
+                  <div className="big-num ov-tps__num ov-tps__num--live" title={isStrata ? t("A prompt is being processed; no current prefill rate is available.") : t("A prompt is being processed. The engine reports its speed only when the request finishes.")}>
                     <span className="ov-tps__dots" aria-hidden />
                     <small>{t("prefilling")}</small>
                   </div>
                 ) : (
                   <div className="big-num ov-tps__num">{Math.round(llm.prefillTps).toLocaleString()}<small>{t("tok/s")}</small></div>
                 )}
+                {llm.measurementValid !== false && llm.perStreamPrefillTps != null && (
+                  <small
+                    className="text-muted"
+                    title={t("Effective prefill rate of one request (prompt tokens ÷ prefill seconds over finished requests). The prompt counter includes prefix-cache tokens, so this is an effective speed, not raw GPU speed; it is held between completions.")}
+                  >
+                    {t("{0} tok/s per request — effective (incl. cached tokens)", Math.round(llm.perStreamPrefillTps).toLocaleString())}
+                  </small>
+                )}
+                {isStrata && llm.prefillTps > 0 && <small className="text-muted">{t("last reported mean")}</small>}
               </div>
             </div>
           ) : null}

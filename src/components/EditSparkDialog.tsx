@@ -13,6 +13,7 @@ import type { SparkConfig, SparkRole, SparkTestResponse } from "../api/types";
 import { deviceKindNoun, editDeviceTitle, UNIT_TYPE_OPTIONS, unitTypeOf, unitTypePatch, type UnitType } from "../shared/deviceKind";
 import { resolveSparkRole } from "../api/sparkRole";
 import { useModalPresence } from "../hooks/useModalPresence";
+import { useOverlayClose } from "../hooks/useOverlayClose";
 import { InfoIcon } from "./ui/icons";
 import { TestResultList } from "./TestResultList";
 import { GpuClockSection } from "./GpuClockSection";
@@ -64,6 +65,7 @@ export function EditSparkDialog({
   useEscape(onClose);
 
   const { mounted, visible } = useModalPresence(open);
+  const overlayClose = useOverlayClose(onClose);
 
   // Prevent background scroll while the tall form is open (iOS)
   useEffect(() => {
@@ -297,9 +299,7 @@ export function EditSparkDialog({
   return createPortal(
     <div
       className={`modal-overlay${visible ? " is-open" : ""}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      {...overlayClose}
     >
       <div
         className="modal-sheet"

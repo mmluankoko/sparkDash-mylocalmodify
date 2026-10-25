@@ -1111,6 +1111,8 @@
   "Try a wider time range or clear a filter.": "请尝试更长时间范围，或清除筛选。",
   "UTC days": "UTC 天",
   "Uncached prefill": "未缓存 prefill",
+  "Unknown time zone. Try Europe/Paris.": "未知时区，请尝试 Europe/Paris。",
+  "\"{0}\" is not a known time zone (for example Europe/Paris), or clear the field to follow the browser.": "“{0}”不是已知时区（例如 Europe/Paris）；也可以清空该字段以跟随浏览器。",
   "Unknown benchmark.": "未知基准测试。",
   "Updated": "已更新",
   "Upload": "上传",

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ENERGY_ID, OVERVIEW_ID, TEMPS_ID, benchId, idToPath, initialActiveId, isStaleSparkId, pathToId } from "./constants";
+import { ENERGY_ID, OVERVIEW_ID, TEMPS_ID, benchId, benchTypeOf, idToPath, initialActiveId, isPageId, isStaleSparkId, pathToId } from "./constants";
 
 describe("route helpers", () => {
   it("round-trips ids and paths", () => {

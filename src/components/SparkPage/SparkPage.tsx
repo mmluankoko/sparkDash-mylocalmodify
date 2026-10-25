@@ -12,6 +12,7 @@ import { NetworkPanel } from "./NetworkPanel";
 import { TailscalePanel } from "./TailscalePanel";
 import { RocePanel } from "./RocePanel";
 import { UnifiedMemoryPanel } from "./UnifiedMemoryPanel";
+import { HistoryPanel } from "./HistoryPanel";
 import "../../styles/spark.css";
 import { vramContextFor } from "../../shared/vramBreakdown";
 
@@ -24,7 +25,12 @@ interface SparkPageProps {
   benchShareImage?: boolean;
   /** GPU panel VRAM bar split by engine / system / free (Settings, on by default). */
   showVramBreakdown?: boolean;
+  /** 48 h / 30 d History panel under the columns (Settings → Metrics history, off by default). */
+  metricsHistory?: boolean;
   onEdit?: () => void;
+  /** Navigate to a spark id (header back-to-overview link). */
+  onNavigate?: (sparkId: string) => void;
+  onAddHarness?: () => void;
 }
 
 /** Panel wrapper carrying its single-column (mobile) order as a CSS variable. */function Item({ order, children }: { order: number; children: ReactNode }) {
@@ -40,7 +46,9 @@ export function SparkPage({
   fleet,
   temperatureUnit,
   showVramBreakdown = true,
+  metricsHistory = false,
   onEdit,
+  onNavigate,
 }: SparkPageProps) {
   const { metrics } = spark;
   const [disabledDevices, setDisabledDevices] = useState<string[]>(spark.disabledDevices || []);
@@ -90,7 +98,7 @@ export function SparkPage({
 
   return (
     <div className="sp">
-      <SparkHeader spark={spark} onEdit={onEdit} />
+      <SparkHeader spark={spark} onEdit={onEdit} onNavigate={onNavigate} />
       {/* Mobile-only action row (Update Hermes / Edit / Power) — desktop keeps them in the header. */}
       <SparkActions spark={spark} onEdit={onEdit} className="sp-mobile-actions flex sm:hidden" />
       {spark.online ? <HealthList findings={spark.health} /> : null}
@@ -124,6 +132,14 @@ export function SparkPage({
                 {spark.kind === "host" && <RamPanel ram={metrics.ram} sparkId={spark.id} />}
               </div>
             </Item>
+            {/* History closes the hardware column: the right column (LLM, storage, network) is
+                usually the taller one, so this fills the space under the GPU / memory / CPU row
+                instead of starting below both columns. Stacked (below xl) it stays last. */}
+            {metricsHistory && (
+              <Item order={40}>
+                <HistoryPanel key={spark.id} sparkId={spark.id} kind={spark.kind} temperatureUnit={temperatureUnit} />
+              </Item>
+            )}
           </div>
           <div className="sp-col">
             <Item order={7}>
@@ -157,6 +173,7 @@ export function SparkPage({
           </div>
         </div>
       )}
+
     </div>
   );
 }

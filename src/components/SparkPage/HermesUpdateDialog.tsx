@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { fetchHermesUpdates, updateHermes } from "../../api/client";
 import type { HermesUpdatesResponse } from "../../api/types";
 import { useModalPresence } from "../../hooks/useModalPresence";
+import { useOverlayClose } from "../../hooks/useOverlayClose";
 import {
   closeHermesUpdateDialog,
   useHermesUpdateDialog,
@@ -287,6 +288,7 @@ export function HermesUpdateDialog() {
   const target = useHermesUpdateDialog();
   const open = target !== null;
   const { mounted, visible } = useModalPresence(open);
+  const overlayClose = useOverlayClose(() => closeHermesUpdateDialog());
   const [upd, setUpd] = useState<HermesUpdatesResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -353,9 +355,7 @@ export function HermesUpdateDialog() {
   return createPortal(
     <div
       className={`modal-overlay${visible ? " is-open" : ""}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) closeHermesUpdateDialog();
-      }}
+      {...overlayClose}
     >
       <div
         className="modal-sheet modal-sheet--wide"

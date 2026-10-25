@@ -17,6 +17,11 @@ export const BACKEND_LABELS = Object.freeze({
   atlas: "Atlas",
   tensorfold: "TensorFold",
   freetoken: "FreeToken",
+  radiance: "Radiance",
+  strata: "Strata",
+  flare: "Flare",
+  locals: "Locals",
+  splash: "Splash",
 });
 
 /**

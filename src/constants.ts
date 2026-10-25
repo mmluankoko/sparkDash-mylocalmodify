@@ -12,6 +12,8 @@ export const LLM_ID = "__llm__";
 export const COMFY_ID = "__comfy__";
 /** Reserved tab id for the fleet-level LLM service control view (not a real Spark). */
 export const LLMCTL_ID = "__llmctl__";
+/** Cost compare page: fleet token usage priced as a hosted API model. */
+export const COST_ID = "__cost__";
 /** Benchmark pages: the active id is this prefix + the benchmark type (decode, tool-eval, …). */
 export const BENCH_PREFIX = "__bench__:";
 
@@ -25,6 +27,7 @@ const FIXED_PATHS: Record<string, string> = {
   [LLM_ID]: "/llm",
   [COMFY_ID]: "/comfy",
   [LLMCTL_ID]: "/llmctl",
+  [COST_ID]: "/cost",
 };
 
 export function benchId(type: string): string {

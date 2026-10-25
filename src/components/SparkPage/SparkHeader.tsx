@@ -3,11 +3,14 @@ import type { SparkSnapshot } from "../../api/types";
 import { resolveSparkRole } from "../../api/sparkRole";
 import { backendLabel } from "../../shared/llmBackends.js";
 import { Tag } from "../ui/Tag";
+import { OVERVIEW_ID } from "../../constants";
 import { SparkActions } from "./SparkActions";
 
 interface SparkHeaderProps {
   spark: SparkSnapshot;
   onEdit?: () => void;
+  /** Navigate to a spark id — wired to the back-to-overview link. */
+  onNavigate?: (sparkId: string) => void;
 }
 
 function formatUptime(seconds: number): string {
@@ -22,7 +25,7 @@ function formatUptime(seconds: number): string {
   return `${days}d ${remainHours}h`;
 }
 
-export function SparkHeader({ spark, onEdit }: SparkHeaderProps) {
+export function SparkHeader({ spark, onEdit, onNavigate }: SparkHeaderProps) {
   useI18n();
   const { hardware } = spark;
   const online = spark.online;
@@ -50,6 +53,15 @@ export function SparkHeader({ spark, onEdit }: SparkHeaderProps) {
   return (
     <header className={`sp-header ${online ? "" : "is-offline"}`}>
       <div className="sp-header__id">
+        {onNavigate && (
+          <button
+            type="button"
+            className="sp-back text-xs text-muted transition-colors hover:text-text-strong"
+            onClick={() => onNavigate(OVERVIEW_ID)}
+          >
+            &larr; {t("Overview")}
+          </button>
+        )}
         <div className="sp-header__title">
           <span
             className={`sdot ${online ? "" : "sdot--bad"}`}

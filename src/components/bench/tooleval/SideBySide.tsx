@@ -25,11 +25,11 @@ function Delta({ a, b, higherIsBetter = true, suffix = "", digits }: { a: number
 
 const count = (n: NormToolResult, v: number) => (n.scenarios.length ? v : "–");
 
-function RunHead({ side, run, n, other }: { side: "A" | "B"; run: ToolEvalRun; n: NormToolResult; other: NormToolResult }) {
+function RunHead({ side, run, n, other, sparkName }: { side: "A" | "B"; run: ToolEvalRun; n: NormToolResult; other: NormToolResult; sparkName?: string | null }) {
   useI18n();
   return (
     <div className={`te-sbs__head te-sbs__head--${side.toLowerCase()}`}>
-      <span className="eyebrow">{t("Run")} {side}</span>
+      <span className="eyebrow">{t("Run")} {side}{sparkName ? ` · ${sparkName}` : ""}</span>
       <b className="te-sbs__title">{run.label || fmtDate(run.startedAt)}</b>
       <span className="te-faint">{run.label ? `${fmtDate(run.startedAt)} · ` : ""}{run.model ?? n.model ?? "auto model"}</span>
       <div className="te-sbs__score">
@@ -46,7 +46,24 @@ function RunHead({ side, run, n, other }: { side: "A" | "B"; run: ToolEvalRun; n
 }
 
 /** Two tool-call results next to each other: scores, category bars and a scenario-by-scenario table. */
-export function SideBySide({ a, b, runA, runB, onSwap }: { a: NormToolResult; b: NormToolResult; runA: ToolEvalRun; runB: ToolEvalRun; onSwap: () => void }) {
+export function SideBySide({
+  a,
+  b,
+  runA,
+  runB,
+  sparkNameA,
+  sparkNameB,
+  onSwap,
+}: {
+  a: NormToolResult;
+  b: NormToolResult;
+  runA: ToolEvalRun;
+  runB: ToolEvalRun;
+  /** Set when the runs came from different Sparks. */
+  sparkNameA?: string | null;
+  sparkNameB?: string | null;
+  onSwap: () => void;
+}) {
   useI18n();
   const [onlyDiff, setOnlyDiff] = useState(true);
   // One comparison, shared with the tests: the same row kinds and deltas everywhere.
@@ -60,13 +77,13 @@ export function SideBySide({ a, b, runA, runB, onSwap }: { a: NormToolResult; b:
   return (
     <div className="te-sbs">
       <div className="te-sbs__top">
-        <RunHead side="A" run={runA} n={a} other={b} />
+        <RunHead side="A" run={runA} n={a} other={b} sparkName={sparkNameA} />
         <div className="te-sbs__mid">
           <button type="button" className="btn btn--sm btn--ghost" onClick={onSwap} title={t("Swap A and B")}>
             ⇄ Swap
           </button>
         </div>
-        <RunHead side="B" run={runB} n={b} other={a} />
+        <RunHead side="B" run={runB} n={b} other={a} sparkName={sparkNameB} />
       </div>
 
       <h3>{t("Metrics")}</h3>

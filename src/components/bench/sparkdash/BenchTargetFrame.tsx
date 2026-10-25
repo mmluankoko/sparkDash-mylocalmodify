@@ -11,6 +11,7 @@ import { PageEmpty } from "./pageParts";
 import { isWorkerSpark } from "../../../api/sparkRole";
 import { SparkChips, useBenchSparks } from "../SparkChips";
 import { useStickyHeight } from "./useStickyHeight";
+import { measuredGenerationTps } from "../../../shared/llmRate";
 
 /** Same key the Spark page's Remote launcher uses, so a typed host carries over. */
 const REMOTE_STORAGE_KEY = "sparkdash.remote-bench-target";
@@ -142,7 +143,7 @@ export function BenchTargetFrame({
     engine: useRemote ? null : (llm?.backend ?? null),
     posture: useRemote ? null : (llm?.posture ?? null),
     shareImage: benchShareImage,
-    liveTps: useRemote ? null : (llm?.generationTps ?? null),
+    liveTps: useRemote ? null : measuredGenerationTps(llm),
   };
 
   let notice: ReactNode = null;

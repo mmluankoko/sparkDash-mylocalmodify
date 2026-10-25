@@ -33,6 +33,9 @@ function useNow(active: boolean): number {
   return now;
 }
 
+/** Rows that fit in the collapsed scenario list; past this the list gets an expand toggle. */
+const SCN_LIST_FOLD = 7;
+
 const CHIP: Record<string, "good" | "warn" | "bad" | "neutral"> = { pass: "good", partial: "warn", fail: "bad", other: "neutral" };
 
 /** Progress of the run being followed: counters, current scenario, per-scenario list, raw output, and the stop controls. */
@@ -45,6 +48,7 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
   const [confirmStop, setConfirmStop] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [showTerm, setShowTerm] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
   const end = run.finishedAt ?? (running ? now : (job?.finishedAt ?? now));
   const elapsed = Math.max(0, (end - run.startedAt) / 1000);
   const p = progress;
@@ -201,13 +205,20 @@ export function LiveRun({ followed, polling, pollError, actionError, scenarioMod
       {pollError ? <Notice tone="warn" title={t("Connection to sparkDash lost, retrying…")}>{pollError}</Notice> : null}
       {actionError ? <Notice tone="bad">{actionError}</Notice> : null}
 
+      {scenarioMode && p && p.scenarios.length > SCN_LIST_FOLD ? (
+        <div className="te-scn-toggle">
+          <button type="button" className="btn btn--sm btn--ghost" aria-expanded={listOpen} onClick={() => setListOpen((o) => !o)}>
+            {listOpen ? t("Collapse list") : t("Expand list")}
+          </button>
+        </div>
+      ) : null}
       {scenarioMode && p && p.scenarios.length ? (
         <ul
           ref={(el) => {
             if (el && listRef.current !== el) pinnedRef.current = true; // a freshly mounted list starts pinned
             listRef.current = el;
           }}
-          className={`te-scn-list${running ? " is-live" : ""}`}
+          className={`te-scn-list${running ? " is-live" : ""}${listOpen ? " is-open" : ""}`}
           aria-label={t("Scenarios so far")}
           onScroll={(e) => {
             const el = e.currentTarget;
