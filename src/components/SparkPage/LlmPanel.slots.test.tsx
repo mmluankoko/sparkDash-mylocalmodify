@@ -17,11 +17,18 @@ describe("TensorFold slot tile", () => {
 });
 
 describe("Radiance engine tiles", () => {
-  it("shows the vLLM-format KV cache tile", () => {
-    const llm = { ...makeSpark().metrics.llm[0], backend: "radiance" as const, kvCacheUsage: 0.25, kvCacheTokens: 1_087_768, ttftP95Seconds: 0.4 };
+  it("shows the vLLM-format KV cache tile with binary memory units", () => {
+    const llm = { ...makeSpark().metrics.llm[0], backend: "radiance" as const, kvCacheUsage: 0.25, kvCacheTokens: 1_087_768, kvCacheMemoryBytes: 10 * 1024 ** 3, ttftP95Seconds: 0.4 };
     const { container } = render(<LlmPanel llm={llm} sparkId="fixture" llmPort={8888} />);
     const labels = [...container.querySelectorAll(".sp-tile")].map((el) => el.querySelector("span")?.textContent);
     expect(labels).toContain("KV cache");
     expect(labels).toContain("TTFT p95");
+    expect(container.textContent).toContain("10 GiB");
+  });
+
+  it("formats a sub-GiB KV pool in MiB", () => {
+    const llm = { ...makeSpark().metrics.llm[0], backend: "radiance" as const, kvCacheUsage: 0.25, kvCacheMemoryBytes: 512 * 1024 ** 2 };
+    const { container } = render(<LlmPanel llm={llm} sparkId="fixture" llmPort={8888} />);
+    expect(container.textContent).toContain("512 MiB");
   });
 });

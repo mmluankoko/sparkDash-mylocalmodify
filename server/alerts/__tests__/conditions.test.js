@@ -30,9 +30,9 @@ test("GPU temperature follows HealthEvaluator exactly: nothing at 84, warn at 85
   assert.equal(c.summary, f.detail);
 });
 
-test("unified memory follows HealthEvaluator: 3 GB warns, 1.5 GB is critical, ~7 GB headroom is fine", () => {
+test("unified memory follows HealthEvaluator: 3 GiB warns, 1.5 GiB is critical, ~7 GiB headroom is fine", () => {
   const mem = (availableMb) => unit({ health: findingsFor({ unifiedMemory: { total: 124_610, available: availableMb } }) });
-  assert.deepEqual(ids(mem(7_000)), [], "spark-1's usual ~7 GB headroom does not alert");
+  assert.deepEqual(ids(mem(7_000)), [], "spark-1's usual ~7 GiB headroom does not alert");
   assert.deepEqual(ids(mem(3_000)), ["memory:warning"]);
   assert.deepEqual(ids(mem(1_400)), ["memory:critical"]);
 });

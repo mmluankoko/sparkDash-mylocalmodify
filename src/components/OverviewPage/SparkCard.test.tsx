@@ -2,8 +2,6 @@ import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../api/client", () => ({
-  fetchLaunchers: () => new Promise(() => {}),
-  runLauncher: vi.fn(),
   wakeSpark: vi.fn(),
 }));
 
@@ -119,6 +117,18 @@ describe("SparkCard", () => {
     expect(container.textContent).not.toContain("big-model");
     expect(container.textContent).toContain("cfg-label");
     expect(container.textContent).toContain("Head is offline");
+  });
+
+  it("shows an idle head with the read-only cluster layout and no model launcher", () => {
+    const spark = head(true);
+    spark.metrics.llm = [];
+    const { container } = render(<SparkCard spark={spark} clusterLabel="cluster01" temperatureUnit="celsius" />);
+    expect(container.querySelector(".ov-launch--worker")?.textContent).toContain("Head");
+    expect(container.querySelector(".ov-launch--worker")?.textContent).toContain("Spark h");
+    expect(container.querySelector(".ov-launch--worker")?.textContent).toContain("No model loaded on the head");
+    expect(container.querySelector(".ov-modelrow code")?.textContent).toBe("cluster01");
+    expect(container.textContent).not.toContain("Add a model");
+    expect(container.textContent).not.toContain("Add model");
   });
 });
 

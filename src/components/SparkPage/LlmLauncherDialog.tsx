@@ -193,7 +193,7 @@ export function LlmLauncherDialog({ open, sparkId, sparkName, launcher, onClose,
                 type="text"
                 value={form.notes}
                 onChange={(e) => set({ notes: e.target.value })}
-                placeholder={t("Optional, e.g. 2-node cluster, needs ~100 GB")}
+                placeholder={t("Optional, e.g. 2-node cluster, needs ~100 GiB")}
                 autoComplete="off"
               />
             </div>

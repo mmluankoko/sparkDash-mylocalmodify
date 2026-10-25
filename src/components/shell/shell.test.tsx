@@ -1,6 +1,6 @@
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AppSidebar, RAIL_KEYBOARD_CODES, markRailDrop } from "./AppSidebar";
+import { AppSidebar } from "./AppSidebar";
 import { MobileTabBar } from "./MobileTabBar";
 import { CommandPalette, filterCommands, fuzzyScore, type PaletteCommand } from "./CommandPalette";
 import { railSubLabel, showcaseTarget } from "./sparkSummary";
@@ -92,7 +92,7 @@ describe("AppSidebar", () => {
     expect(label()).toBe("0.0");
   });
 
-  it("keeps rates in the sortable rail and prioritizes offline and worker labels", () => {
+  it("keeps rates in the fixed rail and prioritizes offline and worker labels", () => {
     const strata = makeSpark("strata");
     Object.assign(strata.metrics.llm[0], { backend: "strata", generationTps: 42.5, prefillTps: 0, decodeActive: true });
     const offline = makeSpark("offline", false);
@@ -101,75 +101,30 @@ describe("AppSidebar", () => {
     Object.assign(worker, { role: "worker", workerNode: true });
     Object.assign(worker.metrics.llm[0], { backend: "strata", generationTps: 0, prefillActive: true });
     const { container } = render(
-      <AppSidebar sparks={[strata, offline, worker]} activeId={null} onSelect={() => {}} onAdd={() => {}} onReorder={() => {}} onOpenSettings={() => {}} onOpenSearch={() => {}} connected />,
+      <AppSidebar sparks={[strata, offline, worker]} activeId={null} onSelect={() => {}} onAdd={() => {}} onOpenSettings={() => {}} onOpenSearch={() => {}} connected />,
     );
     const labels = [...container.querySelectorAll(".rail-item__sub")].map((label) => label.textContent);
-    expect(labels).toEqual(["42.5", "off", "worker"]);
-  });
-});
-
-describe("keyboard access", () => {
-  it("the rail's keyboard drag does not start on Enter or Space", () => {
-    expect(RAIL_KEYBOARD_CODES.start).not.toContain("Enter");
-    expect(RAIL_KEYBOARD_CODES.start).not.toContain("Space");
-    expect(RAIL_KEYBOARD_CODES.end).toContain("Enter");
+    expect(labels).toEqual(["off", "42.5", "worker"]);
   });
 
-  it("Enter on a rail Spark is left to the link (not prevented by the drag sensor)", () => {
-    const onSelect = vi.fn();
+  it("puts the head first and naturally sorts the other nodes", () => {
+    const spark02 = makeSpark("02");
+    const spark10 = makeSpark("10");
+    const head = makeSpark("head");
+    const spark01 = makeSpark("01");
+    Object.assign(spark02, { name: "DGX 02", role: "worker" });
+    Object.assign(spark10, { name: "DGX 10" });
+    Object.assign(head, { name: "DGX 99", role: "head" });
+    Object.assign(spark01, { name: "DGX 01" });
     const { container } = render(
-      <AppSidebar sparks={[makeSpark("a"), makeSpark("b")]} activeId={null} onSelect={onSelect} onAdd={() => {}} onReorder={() => {}} onOpenSettings={() => {}} onOpenSearch={() => {}} connected />
+      <AppSidebar sparks={[spark02, spark10, head, spark01]} activeId={null} onSelect={() => {}} onAdd={() => {}} onOpenSettings={() => {}} onOpenSearch={() => {}} connected />,
     );
-    const btn = container.querySelector<HTMLAnchorElement>('nav[aria-label="Sparks"] a')!;
-    const ev = new KeyboardEvent("keydown", { key: "Enter", code: "Enter", bubbles: true, cancelable: true });
-    act(() => {
-      btn.dispatchEvent(ev);
-    });
-    expect(ev.defaultPrevented).toBe(false);
-  });
-});
-
-describe("rail drag", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-  it("the click that follows a drop does not open the Spark, a later click does", () => {
-    const onSelect = vi.fn();
-    const { container } = render(
-      <AppSidebar sparks={[makeSpark("a"), makeSpark("b")]} activeId={null} onSelect={onSelect} onAdd={() => {}} onReorder={() => {}} onOpenSettings={() => {}} onOpenSearch={() => {}} connected />
-    );
-    const link = container.querySelector<HTMLAnchorElement>('nav[aria-label="Sparks"] a')!;
-    act(() => markRailDrop());
-    act(() => link.click());
-    expect(onSelect).not.toHaveBeenCalled();
-    act(() => vi.advanceTimersByTime(500));
-    act(() => link.click());
-    expect(onSelect).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("rail drag native click", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-  it("cancels the link's default navigation even when the click is stopped at the document", () => {
-    const { container } = render(
-      <AppSidebar sparks={[makeSpark("a"), makeSpark("b")]} activeId={null} onSelect={() => {}} onAdd={() => {}} onReorder={() => {}} onOpenSettings={() => {}} onOpenSearch={() => {}} connected />
-    );
-    const link = container.querySelector<HTMLAnchorElement>('nav[aria-label="Sparks"] a')!;
-    // What dnd-kit does while a drag winds down.
-    const stop = (e: Event) => e.stopPropagation();
-    document.addEventListener("click", stop, true);
-    try {
-      act(() => markRailDrop());
-      const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
-      link.dispatchEvent(ev);
-      expect(ev.defaultPrevented).toBe(true);
-      act(() => vi.advanceTimersByTime(500));
-      const later = new MouseEvent("click", { bubbles: true, cancelable: true });
-      link.dispatchEvent(later);
-      expect(later.defaultPrevented).toBe(false);
-    } finally {
-      document.removeEventListener("click", stop, true);
-    }
+    expect([...container.querySelectorAll('nav[aria-label="Sparks"] .rail-item__name')].map((el) => el.textContent)).toEqual([
+      "DGX 99",
+      "DGX 01",
+      "DGX 02",
+      "DGX 10",
+    ]);
   });
 });
 

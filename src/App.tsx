@@ -7,7 +7,7 @@ import { useFleetAlerts } from "./hooks/useFleetAlerts";
 import { useBrowserAlerts } from "./hooks/useBrowserAlerts";
 import { useAppRoute, useRoute } from "./hooks/useRoute";
 import { useSmoothWheel } from "./hooks/useSmoothWheel";
-import { fetchSparks, reorderSparks, fetchSettings, fetchHealth, fetchLlmCtl } from "./api/client";
+import { fetchSparks, fetchSettings, fetchHealth, fetchLlmCtl } from "./api/client";
 import { loadLlmModelNames } from "./api/llmModelNames";
 import { AppSidebar } from "./components/shell/AppSidebar";
 import { MobileTabBar } from "./components/shell/MobileTabBar";
@@ -76,26 +76,6 @@ import type { AuthMode, Settings, SparkSnapshot } from "./api/types";
 import { AccessTokenPrompt } from "./components/AccessTokenDialog";
 import { onTokenChange } from "./api/authToken";
 import { isWorkerSpark } from "./api/sparkRole";
-
-/** Keep hidden worker ids in their original slots when the visible tabs are reordered. */
-function mergeTabOrderKeepingHidden(
-  allSparks: SparkSnapshot[],
-  visibleOrder: string[],
-  hiddenIds: Set<string>
-): string[] {
-  if (hiddenIds.size === 0) return visibleOrder;
-  const result: string[] = [];
-  let vi = 0;
-  for (const spark of allSparks) {
-    if (hiddenIds.has(spark.id)) {
-      result.push(spark.id);
-    } else if (vi < visibleOrder.length) {
-      result.push(visibleOrder[vi++]);
-    }
-  }
-  while (vi < visibleOrder.length) result.push(visibleOrder[vi++]);
-  return result;
-}
 
 function placeholderSnapshot(
   id: string,
@@ -243,23 +223,7 @@ function DashboardApp() {
 
   // Prefer live WS data; fall back to API-fetched list when empty
   const liveSparks = sparks.length > 0 ? sparks : fallbackSparks;
-  /** Optimistic tab order while drag-save races the next WS snapshot */
-  const [orderOverride, setOrderOverride] = useState<string[] | null>(null);
-
-  const displaySparks = useMemo(() => {
-    if (!orderOverride?.length) return liveSparks;
-    const map = new Map(liveSparks.map((s) => [s.id, s]));
-    const ordered: SparkSnapshot[] = [];
-    for (const id of orderOverride) {
-      const s = map.get(id);
-      if (s) {
-        ordered.push(s);
-        map.delete(id);
-      }
-    }
-    for (const s of map.values()) ordered.push(s);
-    return ordered;
-  }, [liveSparks, orderOverride]);
+  const displaySparks = liveSparks;
 
   // Tab badge + desktop notifications (both opt-in, per browser): the strip's own
   // list, every alert whatever the strip shows. Live snapshots only — placeholders from the REST fallback are all "offline".
@@ -270,13 +234,6 @@ function DashboardApp() {
     temperatureUnit: settings?.temperatureUnit ?? "celsius",
   });
   useBrowserAlerts(fleetAlerts.rows, fleetAlerts.ready && settings != null, fleetAlerts.source);
-
-  // Drop override once server/WS order matches
-  useEffect(() => {
-    if (!orderOverride) return;
-    const live = liveSparks.map((s) => s.id).join("\0");
-    if (live === orderOverride.join("\0")) setOrderOverride(null);
-  }, [liveSparks, orderOverride]);
 
   const isOverview = activeId === OVERVIEW_ID;
   const onPage = isPageId(activeId);
@@ -421,23 +378,6 @@ function DashboardApp() {
     }
   }, [sparks, activeId, replace]);
 
-  const handleReorder = useCallback(
-    async (orderedIds: string[]) => {
-      const next = mergeTabOrderKeepingHidden(displaySparks, orderedIds, hiddenWorkerIds);
-      setOrderOverride(next);
-      try {
-        await reorderSparks(next);
-      } catch (err) {
-        console.error("Failed to reorder Sparks:", err);
-        setOrderOverride(null);
-        setActionError(
-          `Could not save the Spark order: ${err instanceof Error ? err.message : String(err)}. The previous order was restored.`
-        );
-      }
-    },
-    [displaySparks, hiddenWorkerIds]
-  );
-
   const [showPalette, setShowPalette] = useState(false);
 
   // Deep components (e.g. the LLM panel's "Tool Eval" button) navigate without prop drilling.
@@ -540,7 +480,6 @@ function DashboardApp() {
           activeId={displayActive?.id ?? activeId}
           onSelect={navigate}
           onAdd={() => setShowAdd(true)}
-          onReorder={handleReorder}
           onOpenSettings={() => setShowSettings(true)}
           onOpenSearch={() => setShowPalette(true)}
           benchType={benchType}

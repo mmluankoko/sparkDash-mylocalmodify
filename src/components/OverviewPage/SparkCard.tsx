@@ -11,10 +11,9 @@ import { HealthChips, worstSeverity } from "../ui/HealthFindings";
 import { AppLink } from "../ui/AppLink";
 import { idToPath } from "../../constants";
 import { VramBreakdownBar } from "../ui/VramBreakdownBar";
-import { HEADROOM_THRESHOLDS_MB, computeVramBreakdown, memoryModelFor, type VramBreakdownContext } from "../../shared/vramBreakdown";
+import { computeVramBreakdown, type VramBreakdownContext } from "../../shared/vramBreakdown";
 import { ImageIcon, PowerOnIcon } from "../ui/icons";
 import { formatCtx } from "./fleetStats";
-import { ModelLauncher } from "./ModelLauncher";
 
 type Unit = "celsius" | "fahrenheit";
 
@@ -25,6 +24,13 @@ function toF(c: number): number {
 function fmtStorage(mb: number, unit: boolean): string {
   const val = mb >= 1024 ? mb / 1024 : mb;
   const label = mb >= 1024 ? "GB" : "MB";
+  const s = val.toFixed(1).replace(/\.0$/, "");
+  return unit ? `${s} ${label}` : s;
+}
+
+function fmtMemory(mb: number, unit: boolean): string {
+  const val = mb >= 1024 ? mb / 1024 : mb;
+  const label = mb >= 1024 ? "GiB" : "MiB";
   const s = val.toFixed(1).replace(/\.0$/, "");
   return unit ? `${s} ${label}` : s;
 }
@@ -68,6 +74,7 @@ function Bar({
 function SparkCardImpl({
   spark,
   headSpark,
+  clusterLabel = null,
   vramContext = null,
   temperatureUnit,
   onSelect,
@@ -75,6 +82,8 @@ function SparkCardImpl({
   spark: SparkSnapshot;
   /** The head this worker serves for (workers only). */
   headSpark?: SparkSnapshot | null;
+  /** Cluster name mirrored from a worker when the head has no live model. */
+  clusterLabel?: string | null;
   /** Breakdown inputs (see `vramContextFor`); null keeps the plain VRAM bar. */
   vramContext?: VramBreakdownContext | null;
   temperatureUnit: Unit;
@@ -162,32 +171,21 @@ function SparkCardImpl({
   const liveHead = usableHead(headSpark);
   const headLlmList = Array.isArray(liveHead?.metrics.llm) ? liveHead.metrics.llm : [];
   const headLlm = headLlmList.find((l) => l.available) ?? null;
+  const clusterPanelHead = role === "head" ? spark : headSpark;
+  const clusterPanelLlm = role === "head" ? llm : headLlm;
   if (role === "worker") {
     // Prefer the head's live model; fall back to the configured / mirrored worker label.
     const label = headLlm?.modelId || spark.workerLabel?.trim() || spark.workerDerivedLabel?.trim() || null;
     modelEyebrowRight = headLlm ? formatCtx(headLlm.contextLength) : null;
     modelText = label ?? (headName ? "No model on head" : "Worker");
     modelTitle = headName ? `${label ?? "No model"} · worker of ${headName}` : `${label ?? "Distributed"} · LLM worker`;
-  } else if (llm) {
+  } else if (llm || role === "head") {
     // The engine name lives in the tooltip; the row itself is just model + context.
-    const engine = backendLabel(llm.backend) ?? llm.backend ?? "LLM";
-    modelEyebrowRight = formatCtx(llm.contextLength);
-    modelText = llm.modelId ?? "unknown";
-    modelTitle = llm.modelId ? `${llm.modelId} · ${engine}` : engine;
+    const engine = backendLabel(llm?.backend) ?? llm?.backend ?? "LLM";
+    modelEyebrowRight = llm ? formatCtx(llm.contextLength) : null;
+    modelText = llm ? llm.modelId ?? "unknown" : clusterLabel;
+    modelTitle = llm?.modelId ? `${llm.modelId} · ${engine}` : clusterLabel ?? (llm ? engine : "Cluster head");
   }
-  // Idle Spark (nothing serving): the launcher block fills the free space instead.
-  // Memory or compute in use while nothing serves yet: a model is most likely still loading.
-  // When nvidia-smi names the processes holding the GPU, say so: it may be a server sparkDash does not
-  // monitor (add its port under "+ Add LLM port"), not a model that is still starting.
-  const gpuHolders = (gpu?.processes ?? [])
-    .filter((p) => p.vramMB > 0)
-    .slice(0, 3)
-    .map((p) => `${p.name} (${formatMb(p.vramMB)})`);
-  const loadingHint =
-    !llm && (memUsed >= 2048 || usage >= 10)
-      ? `${gpuHolders.length > 0 ? `${t("In use by {0}", gpuHolders.join(", "))} · ` : ""}${t("{0} VRAM in use · GPU {1}%", formatMb(memUsed), Math.round(usage))}`
-      : null;
-  const showLauncher = role !== "worker" && !llm && spark.llmMonitoring !== false && spark.platform !== "windows";
 
   const showTps = role !== "worker" && !!llm;
   const isStrata = llm?.backend === "strata";
@@ -294,7 +292,7 @@ function SparkCardImpl({
               ) : (
                 <Bar
                   label={gpu.vram?.total ? "VRAM" : "Unified memory"}
-                  caption={vramAvailable && memTotal > 0 ? `${fmtStorage(memUsed, false)} / ${fmtStorage(memTotal, true)}` : "—"}
+                  caption={vramAvailable && memTotal > 0 ? `${fmtMemory(memUsed, false)} / ${fmtMemory(memTotal, true)}` : "—"}
                   pct={vramAvailable ? memPct : 0}
                   color={memColor}
                   sub={memTotal > 0 && memAvail > 0 ? { label: "Available", value: formatMb(memAvail) } : null}
@@ -304,7 +302,7 @@ function SparkCardImpl({
               {spark.kind === "host" && spark.metrics.ram?.total ? (
                 <Bar
                   label="RAM"
-                  caption={`${fmtStorage(spark.metrics.ram.used, false)} / ${fmtStorage(spark.metrics.ram.total, true)}`}
+                  caption={`${fmtMemory(spark.metrics.ram.used, false)} / ${fmtMemory(spark.metrics.ram.total, true)}`}
                   pct={(spark.metrics.ram.used / spark.metrics.ram.total) * 100}
                   color="var(--color-info)"
                 />
@@ -328,31 +326,30 @@ function SparkCardImpl({
               {cpuPower ? <Bar label={t("CPU power")} caption={`${cpuPower.draw} / ${cpuPower.tdp} W`} pct={cpuPowerPct} color="var(--color-violet)" /> : null}
             </div>
           </div>
-          {showLauncher ? <ModelLauncher spark={spark} onOpen={onSelect} busy={loadingHint} busyHolders={gpuHolders.length > 0} freeMb={memTotal > 0 ? memAvail : null} lowFreeMb={HEADROOM_THRESHOLDS_MB[memoryModelFor(spark.kind)].low} /> : null}
-          {role === "worker" ? (
+          {role === "worker" || role === "head" ? (
             <div className="ov-launch ov-launch--worker">
-              <div className="eyebrow">{t("Worker of")}</div>
-              {headSpark ? (
+              <div className="eyebrow">{role === "head" ? t("Head") : t("Worker of")}</div>
+              {clusterPanelHead ? (
                 <AppLink
-                  href={idToPath(headSpark.id)}
+                  href={idToPath(clusterPanelHead.id)}
                   className="ov-launch__head"
-                  onNavigate={() => onSelect?.(headSpark.id)}
-                  title={`Open ${headSpark.name}`}
+                  onNavigate={() => onSelect?.(clusterPanelHead.id)}
+                  title={`Open ${clusterPanelHead.name}`}
                 >
-                  <i className={`sdot ${headSpark.online ? "" : "sdot--off"}`} aria-hidden />
-                  {headSpark.name}
+                  <i className={`sdot ${clusterPanelHead.online ? "" : "sdot--off"}`} aria-hidden />
+                  {clusterPanelHead.name}
                 </AppLink>
               ) : (
                 <div className="ov-launch__title">{t("Head not set")}</div>
               )}
               <div className="ov-launch__hint">
-                {headLlm
-                  ? `${backendLabel(headLlm.backend) ?? headLlm.backend ?? "LLM"} · ${t("{0} tok/s decode", headLlm.measurementValid === false ? "—" : headLlm.generationTps.toFixed(1))}${headLlm.perStreamTps != null ? ` · ${t("{0} per stream", headLlm.perStreamTps.toFixed(1))}` : ""}${headLlm.perStreamPrefillTps != null ? ` · ${t("{0} prefill per request (effective, incl. cached)", Math.round(headLlm.perStreamPrefillTps).toLocaleString())}` : ""}`
-                  : headSpark
-                    ? headSpark.online
-                      ? "No model loaded on the head"
-                      : "Head is offline"
-                    : "Pick its head in Edit Spark to see the model here"}
+                {clusterPanelLlm
+                  ? `${backendLabel(clusterPanelLlm.backend) ?? clusterPanelLlm.backend ?? "LLM"} · ${t("{0} tok/s decode", clusterPanelLlm.measurementValid === false ? "—" : clusterPanelLlm.generationTps.toFixed(1))}${clusterPanelLlm.perStreamTps != null ? ` · ${t("{0} per stream", clusterPanelLlm.perStreamTps.toFixed(1))}` : ""}${clusterPanelLlm.perStreamPrefillTps != null ? ` · ${t("{0} prefill per request (effective, incl. cached)", Math.round(clusterPanelLlm.perStreamPrefillTps).toLocaleString())}` : ""}`
+                  : clusterPanelHead
+                    ? clusterPanelHead.online
+                      ? t("No model loaded on the head")
+                      : t("Head is offline")
+                    : t("Pick its head in Edit Spark to see the model here")}
               </div>
             </div>
           ) : null}

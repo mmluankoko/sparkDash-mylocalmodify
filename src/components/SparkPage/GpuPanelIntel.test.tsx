@@ -53,6 +53,6 @@ describe("GpuPanel with an Intel card", () => {
     const { container } = render(
       <GpuPanel gpu={mixedHost({ vramSource: "pci-bar", vram: { used: 0, total: 32_768, percentage: 0, available: 32_768 } })} sparkId="host-1" temperatureUnit="celsius" />,
     );
-    expect(container.textContent).toContain("32.0 GB total");
+    expect(container.textContent).toContain("32.0 GiB total");
   });
 });

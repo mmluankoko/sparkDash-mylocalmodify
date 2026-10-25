@@ -80,11 +80,13 @@ test("regression: an NVIDIA-only gpus list gives the same findings as the bare a
   assert.equal(fa.find((x) => x.id === "thermal").severity, "critical");
 });
 
-test("memory: warn below 3 GB available, critical below 1.5 GB", () => {
+test("memory: warn below 3 GiB available, critical below 1.5 GiB", () => {
   const h = new HealthEvaluator();
   const mk = (available) => ({ unifiedMemory: { total: 124000, available, percentage: 97 } });
   assert.deepEqual(h.evaluate(mk(8000)), []);
-  assert.equal(h.evaluate(mk(2500))[0].severity, "warn");
+  const warning = h.evaluate(mk(2500))[0];
+  assert.equal(warning.severity, "warn");
+  assert.equal(warning.detail, "2.4 GiB available of 121 GiB.");
   assert.deepEqual(h.evaluate(mk(3500)), []);
   assert.equal(h.evaluate(mk(1000))[0].severity, "critical");
   assert.deepEqual(h.evaluate({ unifiedMemory: { total: 0, available: 0 } }), []);

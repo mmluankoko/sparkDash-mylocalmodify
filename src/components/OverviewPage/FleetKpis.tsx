@@ -149,7 +149,7 @@ export function FleetKpis({
         <Kpi
           label="Memory in use"
           value={memGb.toFixed(0)}
-          unit="GB"
+          unit="GiB"
           right={memPct != null ? <span className="ov-delta mono">{memPct}%</span> : undefined}
           trend={trends.mem}
           color="var(--color-info)"

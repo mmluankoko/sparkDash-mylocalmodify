@@ -162,18 +162,18 @@ describe("ModelLauncher", () => {
     it("names the process holding the GPU instead of claiming something is loading", async () => {
       fetchLaunchers.mockResolvedValue(list({ a: "stopped", b: "stopped" }));
       const { container } = render(
-        <ModelLauncher spark={makeSpark("s1")} busy="In use by flare (107.7 GB) · 107.7 GB VRAM in use · GPU 96%" busyHolders />,
+        <ModelLauncher spark={makeSpark("s1")} busy="In use by flare (107.7 GiB) · 107.7 GiB VRAM in use · GPU 96%" busyHolders />,
       );
       await flush();
       expect(container.textContent).toContain("GPU is in use");
-      expect(container.textContent).toContain("flare (107.7 GB)");
+      expect(container.textContent).toContain("flare (107.7 GiB)");
       expect(container.textContent).toContain("Add LLM port");
       expect(container.textContent).not.toContain("Something is loading");
     });
 
     it("keeps the loading wording when no process is named", async () => {
       fetchLaunchers.mockResolvedValue(list({ a: "stopped", b: "stopped" }));
-      const { container } = render(<ModelLauncher spark={makeSpark("s1")} busy="9 GB VRAM in use" />);
+      const { container } = render(<ModelLauncher spark={makeSpark("s1")} busy="9 GiB VRAM in use" />);
       await flush();
       expect(container.textContent).toContain("Something is loading");
     });

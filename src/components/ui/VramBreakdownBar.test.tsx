@@ -49,10 +49,10 @@ describe("VramBreakdownBar", () => {
     expect(segs[0].style.getPropertyValue("--bar-pct")).toBe("81.06%");
     expect(container.querySelector(".bg-danger, .bg-warning, .bg-accent")).toBeNull();
     const headroom = container.querySelector<HTMLElement>("[data-headroom]")!;
-    expect(headroom.textContent).toBe("7.2 GB free");
+    expect(headroom.textContent).toBe("7.2 GiB free");
     expect(headroom.className).toContain("text-warning");
     expect(container.querySelector("[data-legend]")?.textContent).toBe(
-      "Model 98.6 GB · System 15.8 GB",
+      "Model 98.6 GiB · System 15.8 GiB",
     );
   });
 
@@ -81,13 +81,13 @@ describe("VramBreakdownBar", () => {
     act(() => group.focus());
     expect(tip.hidden).toBe(false);
     const text = tip.textContent ?? "";
-    expect(text).toContain("Unified memory · 114.5 GB of 121.7 GB used");
+    expect(text).toContain("Unified memory · 114.5 GiB of 121.7 GiB used");
     expect(text).toContain("python3 · pid 92271");
-    expect(text).toContain("98.6 GB");
+    expect(text).toContain("98.6 GiB");
     expect(text).toContain("KV in use 5%");
-    expect(text).toContain("System / CPU 15.8 GB");
-    expect(text).toContain("Free 7.2 GB");
-    expect(text).not.toContain("Weights"); // TensorFold reports no GB split
+    expect(text).toContain("System / CPU 15.8 GiB");
+    expect(text).toContain("Free 7.2 GiB");
+    expect(text).not.toContain("Weights"); // TensorFold reports no GiB split
     expect(tip.querySelector("[data-verdict]")?.textContent).toBe(
       "Low headroom: CPU-side growth could trigger the OOM killer",
     );
@@ -165,10 +165,10 @@ describe("VramBreakdownBar", () => {
     );
     const sgText = parts(sg.container).tip.textContent ?? "";
     expect(sgText).toContain("sglang::scheduler · pid 4009");
-    expect(sgText).toContain("Weights 71.1 GB");
-    expect(sgText).toContain("KV pool 10.7 GB");
+    expect(sgText).toContain("Weights 71.1 GiB");
+    expect(sgText).toContain("KV pool 10.7 GiB");
     expect(sgText).toContain("KV in use 0%");
-    expect(sgText).toContain("Other GPU 680 MB");
+    expect(sgText).toContain("Other GPU 680 MiB");
     expect(sgText).not.toContain("System / CPU");
     expect(sgText).toContain("Plenty of headroom");
 

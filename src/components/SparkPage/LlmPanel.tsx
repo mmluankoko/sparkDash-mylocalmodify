@@ -82,12 +82,12 @@ function formatKvTokens(n: number): string {
 
 function formatKvBytes(n: number): string {
   const gib = n / 1024 ** 3;
-  if (gib >= 10) return `${Math.round(gib)} GB`;
+  if (gib >= 10) return `${Math.round(gib)} GiB`;
   if (gib >= 1) {
     const v = Math.round(gib * 10) / 10;
-    return `${Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1)} GB`;
+    return `${Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1)} GiB`;
   }
-  return `${Math.round(n / 1024 ** 2)} MB`;
+  return `${Math.round(n / 1024 ** 2)} MiB`;
 }
 
 const REMOTE_STORAGE_KEY = "sparkdash.remote-bench-target";

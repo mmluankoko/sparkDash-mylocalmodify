@@ -18,5 +18,6 @@ describe("SparkHeader back link", () => {
   it("renders no link without onNavigate", () => {
     const { container } = render(<SparkHeader spark={makeSpark()} />);
     expect(container.querySelector("button.sp-back")).toBeNull();
+    expect(container.textContent).toContain("128 GiB");
   });
 });

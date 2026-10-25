@@ -123,7 +123,7 @@ export class HealthEvaluator {
       id: "memory",
       severity: critical ? "critical" : "warn",
       title: critical ? "Unified memory is almost exhausted" : "Unified memory is running low",
-      detail: `${(avail / 1024).toFixed(1)} GB available of ${(total / 1024).toFixed(0)} GB.`,
+      detail: `${(avail / 1024).toFixed(1)} GiB available of ${(total / 1024).toFixed(0)} GiB.`,
       hint: "The kernel may start killing processes. Stop a model you are not using, lower the context length or the GPU memory utilisation.",
     });
   }

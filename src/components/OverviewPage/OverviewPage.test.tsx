@@ -59,6 +59,38 @@ describe("Overview card", () => {
     expect(barLabels(container)).toEqual(["VRAM", "GPU", "GPU temp", "GPU power", "CPU power"]);
   });
 
+  it("puts the head first and sorts the other cards naturally by name", () => {
+    const spark02 = { ...host(), id: "02", name: "DGX 02", role: "worker" } as SparkSnapshot;
+    const spark10 = { ...host(), id: "10", name: "DGX 10" } as SparkSnapshot;
+    const head = { ...host(), id: "head", name: "DGX 99", role: "head" } as SparkSnapshot;
+    const spark03 = { ...host(), id: "03", name: "DGX 03" } as SparkSnapshot;
+    const { container } = render(<OverviewPage sparks={[spark02, spark10, head, spark03]} />);
+    expect([...container.querySelectorAll(".ov-sc__name")].map((el) => el.textContent)).toEqual([
+      "DGX 99",
+      "DGX 02",
+      "DGX 03",
+      "DGX 10",
+    ]);
+  });
+
+  it("mirrors the worker cluster label onto an idle head without showing a launcher", () => {
+    const head = { ...host(), id: "head", name: "DGX 01", role: "head" } as SparkSnapshot;
+    head.metrics.llm = [];
+    const worker = {
+      ...host(),
+      id: "worker",
+      name: "DGX 02",
+      role: "worker",
+      workerHeadId: "head",
+      workerLabel: "cluster01",
+    } as SparkSnapshot;
+    const { container } = render(<OverviewPage sparks={[worker, head]} />);
+    const headCard = container.querySelector(".ov-sc");
+    expect(headCard?.querySelector(".ov-launch--worker")?.textContent).toContain("No model loaded on the head");
+    expect(headCard?.querySelector(".ov-modelrow code")?.textContent).toBe("cluster01");
+    expect(container.textContent).not.toContain("Add a model");
+  });
+
   it("fits a 1.8 TB root disk in the Storage mini-stat", () => {
     const { container } = render(<OverviewPage sparks={[host()]} />);
     const label = [...container.querySelectorAll("span")].find((el) => el.textContent === "Storage");

@@ -47,7 +47,7 @@ export function SparkHeader({ spark, onEdit, onNavigate }: SparkHeaderProps) {
   const tailscaleIp = spark.metrics.tailscale?.tailscaleIp ?? null;
   const hw = [
     hardware.gpuChip ? `${hardware.device} · ${hardware.gpuChip}` : hardware.device,
-    hardware.totalMemoryGB != null ? `${Math.round(hardware.totalMemoryGB)} GB` : null,
+    hardware.totalMemoryGB != null ? `${Math.round(hardware.totalMemoryGB)} GiB` : null,
   ].filter(Boolean);
 
   return (

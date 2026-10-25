@@ -11,10 +11,10 @@ export function formatBytesPerSec(bps: number): string {
   return `${bps} B/s`;
 }
 
-/** RAM and GPU memory. 1024 MB rolls into 1.0 GB. */
+/** RAM and GPU memory. 1024 MiB rolls into 1.0 GiB. */
 export function formatMb(mb: number): string {
-  if (mb >= K || Math.round(mb) >= K) return `${(mb / K).toFixed(1)} GB`;
-  return `${Math.round(mb)} MB`;
+  if (mb >= K || Math.round(mb) >= K) return `${(mb / K).toFixed(1)} GiB`;
+  return `${Math.round(mb)} MiB`;
 }
 
 /** Disk size. Whole gigabytes. 1024 MB rolls into 1 GB. */
@@ -28,7 +28,7 @@ export function formatGb(mb: number): string {
  * GB below a terabyte, then TB to one decimal. Each side of a "used / total"
  * pair carries its own unit, so a 1.8 TB disk reads `816 GB / 1.8 TB` instead
  * of `816.4 / 1831.7 GB`, which no longer fits an Overview mini-stat.
- * 1024 GB rolls into 1.0 TB, the same way {@link formatMb} rolls MB into GB.
+ * 1024 GB rolls into 1.0 TB, the same way {@link formatMb} rolls MiB into GiB.
  */
 export function formatDiskSize(mb: number): string {
   const gb = mb / K;

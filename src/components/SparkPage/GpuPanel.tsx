@@ -133,7 +133,7 @@ function GpuDeviceRow({
           label="VRAM"
           value={d.vram.used}
           max={d.vram.total}
-          caption={`${formatMb(d.vram.used).replace(/ (GB|MB)$/, "")} / ${formatMb(d.vram.total)}`}
+          caption={`${formatMb(d.vram.used).replace(/ (GiB|MiB|GB|MB)$/, "")} / ${formatMb(d.vram.total)}`}
         />
       ) : (
         <div className="flex justify-between text-xs">
@@ -314,7 +314,7 @@ export function GpuPanel({
                 value={vramUsed}
                 max={vramTotal}
                 color="bg-info"
-                caption={`${formatMb(vramUsed).replace(/ (GB|MB)$/, "")} / ${formatMb(vramTotal)}`}
+                caption={`${formatMb(vramUsed).replace(/ (GiB|MiB|GB|MB)$/, "")} / ${formatMb(vramTotal)}`}
               />
               {gpu.vram.available > 0 && (
                 <div className="sp-row">

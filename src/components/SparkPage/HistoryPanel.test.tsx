@@ -151,8 +151,8 @@ describe("HistoryPanel", () => {
     const mem = chart(container, "memFree");
     expect(mem.textContent).toContain("Memory free (unified)");
     expect(mem.querySelectorAll("[data-threshold]")).toHaveLength(2);
-    expect(mem.textContent).toContain("low 8.0 GB");
-    expect(mem.textContent).toContain("critical 4.0 GB");
+    expect(mem.textContent).toContain("low 8.0 GiB");
+    expect(mem.textContent).toContain("critical 4.0 GiB");
   });
 
   it("uses the discrete thresholds on a GPU host", async () => {
@@ -161,7 +161,7 @@ describe("HistoryPanel", () => {
     await flush();
     const mem = chart(container, "memFree");
     expect(mem.textContent).toContain("VRAM free");
-    expect(mem.textContent).toContain("low 2.0 GB");
+    expect(mem.textContent).toContain("low 2.0 GiB");
   });
 
   it("charts each LLM endpoint, KV only when reported", async () => {

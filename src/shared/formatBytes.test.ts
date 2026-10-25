@@ -16,13 +16,13 @@ describe("formatBytesPerSec", () => {
 });
 
 describe("formatMb", () => {
-  it("rolls 1024 MB into 1.0 GB", () => {
-    expect(formatMb(1023.5)).toBe("1.0 GB");
+  it("rolls 1024 MiB into 1.0 GiB", () => {
+    expect(formatMb(1023.5)).toBe("1.0 GiB");
   });
 
-  it("keeps a smaller reading and an exact gigabyte", () => {
-    expect(formatMb(512)).toBe("512 MB");
-    expect(formatMb(1536)).toBe("1.5 GB");
+  it("keeps a smaller reading and an exact gibibyte", () => {
+    expect(formatMb(512)).toBe("512 MiB");
+    expect(formatMb(1536)).toBe("1.5 GiB");
   });
 });
 

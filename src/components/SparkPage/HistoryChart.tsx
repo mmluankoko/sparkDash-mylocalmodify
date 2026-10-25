@@ -49,7 +49,7 @@ export interface HistoryChartProps {
   /** Fixed y bounds (e.g. 0–100 for a percentage); otherwise from the data. */
   yMin?: number;
   yMax?: number;
-  /** Round an auto y range to this unit (1024 for MB → whole GB, 5 for degrees). */
+  /** Round an auto y range to this unit (1024 for MiB → whole GiB, 5 for degrees). */
   yUnit?: number;
   thresholds?: readonly HistoryThreshold[];
   /** The shared crosshair timestamp, or null. */

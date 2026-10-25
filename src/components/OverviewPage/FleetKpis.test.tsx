@@ -13,6 +13,8 @@ describe("FleetKpis trend samples", () => {
   it("adds a sample per snapshot, not per filtered re-render", () => {
     const snap1 = [makeSpark("a"), makeSpark("b")];
     const { container, root } = render(<FleetKpis sparks={snap1} snapshotKey={snap1} />);
+    const memory = [...container.querySelectorAll(".ov-kpi")].find((el) => el.querySelector(".eyebrow")?.textContent === "Memory in use");
+    expect(memory?.querySelector(".big-num small")?.textContent).toBe("GiB");
     // One sample so far: nothing to draw.
     expect(container.querySelectorAll("svg").length).toBe(0);
     // Same snapshot, new filtered array (typing in the search box): still one sample.

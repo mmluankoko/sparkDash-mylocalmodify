@@ -1,7 +1,8 @@
 import { t, useI18n } from "../../i18n";
 import { useEffect, useMemo, useState } from "react";
 import type { AlertInstance, SparkSnapshot } from "../../api/types";
-import { isWorkerSpark } from "../../api/sparkRole";
+import { isWorkerSpark, resolveSparkRole } from "../../api/sparkRole";
+import { compareSparks } from "../../shared/sparkOrder";
 import { updateAllHermes, wakeAllSparks } from "../../api/client";
 import { ShutdownAll } from "../ShutdownAll";
 import { FleetEnergyCard } from "./FleetEnergyCard";
@@ -72,23 +73,32 @@ export function OverviewPage({
   // Stable between renders that change nothing it depends on (a keystroke elsewhere, a dialog).
   const visibleSparks = useMemo(
     () =>
-      withoutWorkers.filter((spark) => {
-        if (hideOffline && !spark.online) return false;
-        if (showOverviewSearch && query && !spark.name.toLowerCase().includes(query.toLowerCase())) return false;
-        if (showOverviewSearch && statusFilter === "online" && !spark.online) return false;
-        if (showOverviewSearch && statusFilter === "offline" && spark.online) return false;
-        if (showOverviewSearch && statusFilter === "issues" && spark.online && !spark.metrics.storage.some((disk) => disk.percentage >= 90)) return false;
-        return true;
-      }),
+      withoutWorkers
+        .filter((spark) => {
+          if (hideOffline && !spark.online) return false;
+          if (showOverviewSearch && query && !spark.name.toLowerCase().includes(query.toLowerCase())) return false;
+          if (showOverviewSearch && statusFilter === "online" && !spark.online) return false;
+          if (showOverviewSearch && statusFilter === "offline" && spark.online) return false;
+          if (showOverviewSearch && statusFilter === "issues" && spark.online && !spark.metrics.storage.some((disk) => disk.percentage >= 90)) return false;
+          return true;
+        })
+        .sort(compareSparks),
     [withoutWorkers, hideOffline, showOverviewSearch, query, statusFilter]
   );
   // Head lookup and VRAM contexts for the whole fleet in one pass (not one scan per card).
   const cardContext = useMemo(() => {
     const resolveHead = makeHeadResolver(sparks);
-    const byId = new Map<string, { head: SparkSnapshot | null; vram: ReturnType<typeof vramContextFor> | null }>();
+    const byId = new Map<string, { head: SparkSnapshot | null; clusterLabel: string | null; vram: ReturnType<typeof vramContextFor> | null }>();
     for (const spark of sparks) {
+      const clusterLabel = resolveSparkRole(spark) === "head"
+        ? sparks
+            .filter((candidate) => resolveSparkRole(candidate) === "worker" && resolveHead(candidate)?.id === spark.id)
+            .map((worker) => worker.workerLabel?.trim() || worker.workerDerivedLabel?.trim() || null)
+            .find((label): label is string => Boolean(label)) ?? null
+        : null;
       byId.set(spark.id, {
         head: resolveHead(spark),
+        clusterLabel,
         vram: showVramBreakdown ? vramContextFor(spark, sparks, resolveHead) : null,
       });
     }
@@ -339,6 +349,7 @@ export function OverviewPage({
                 key={spark.id}
                 spark={spark}
                 headSpark={ctx?.head ?? null}
+                clusterLabel={ctx?.clusterLabel ?? null}
                 vramContext={ctx?.vram ?? null}
                 temperatureUnit={temperatureUnit}
                 onSelect={onSelectSpark}

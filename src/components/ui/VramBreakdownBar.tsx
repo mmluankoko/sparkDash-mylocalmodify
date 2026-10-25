@@ -20,7 +20,7 @@ interface VramBreakdownBarProps {
 const pct = (mb: number, total: number) =>
   `${total > 0 ? Math.min(100, Math.max(0, (mb / total) * 100)).toFixed(2) : 0}%`;
 
-const gb = (n: number) => `${n.toFixed(1)} GB`;
+const gb = (n: number) => `${n.toFixed(1)} GiB`;
 
 /** "/usr/bin/python3" → "python3": the card is too narrow for interpreter paths. */
 const processLabel = (name: string) => name.split("/").filter(Boolean).pop() || name;
@@ -163,7 +163,7 @@ export function VramBreakdownBar({ label, breakdown: b, showLegend = false }: Vr
             <span key={it.key} className="inline-flex items-center gap-1">
               {i > 0 ? <span aria-hidden>{" · "}</span> : null}
               {it.key !== "free" ? <Swatch kind={it.key} /> : null}
-              {it.label} {it.gb} GB
+              {it.label} {it.gb} GiB
             </span>
           ))}
         </div>

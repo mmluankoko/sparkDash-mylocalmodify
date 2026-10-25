@@ -1074,11 +1074,8 @@
   border-color: color-mix(in srgb, var(--color-danger) 45%, var(--color-border));
 }
 .sp .sp-roce-port__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 10px;
-  flex-wrap: wrap;
 }
 .sp .sp-roce-port__rates {
   display: flex;

@@ -72,13 +72,13 @@ describe("GpuPanel VRAM", () => {
     const bar = container.querySelector<HTMLElement>("[data-vram-breakdown]")!;
     expect(bar.textContent).toContain("Unified memory");
     expect(bar.querySelector("[data-legend]")?.textContent).toBe(
-      "Model 98.6 GB · System 15.8 GB",
+      "Model 98.6 GiB · System 15.8 GiB",
     );
     const availLabel = Array.from(container.querySelectorAll("span")).find(
       (s) => s.textContent === "Available",
     )!;
     const avail = availLabel.nextElementSibling as HTMLElement;
-    expect(avail.textContent).toBe("7.2 GB");
+    expect(avail.textContent).toBe("7.2 GiB");
     expect(avail.className).toContain("text-warning");
   });
 
@@ -97,10 +97,10 @@ describe("GpuPanel VRAM", () => {
     const bars = Array.from(container.querySelectorAll<HTMLElement>("[data-vram-breakdown]"));
     expect(bars).toHaveLength(3); // two cards + the all-cards aggregate
     const [card0, card1, all] = bars;
-    expect(card0.querySelector("[data-legend]")?.textContent).toBe("Model 14.9 GB");
-    expect(card0.querySelector("[data-headroom]")?.className).toContain("text-danger"); // 1003 MB < 1 GB
+    expect(card0.querySelector("[data-legend]")?.textContent).toBe("Model 14.9 GiB");
+    expect(card0.querySelector("[data-headroom]")?.className).toContain("text-danger"); // 1003 MiB < 1 GiB
     expect(card1.querySelector("[data-legend]")?.textContent).toBe(
-      "Model 14.0 GB · Other 0.5 GB",
+      "Model 14.0 GiB · Other 0.5 GiB",
     );
     expect(card1.querySelector('[role="tooltip"]')?.textContent).not.toContain("KV");
     expect(all.textContent).toContain("VRAM (all cards)");
@@ -113,7 +113,7 @@ describe("GpuPanel VRAM", () => {
     );
     expect(container.querySelector("[data-vram-breakdown]")).toBeNull();
     const expected = render(
-      <MetricBar label="VRAM" value={101_008} max={124_610} caption="98.6 / 121.7 GB" />,
+      <MetricBar label="VRAM" value={101_008} max={124_610} caption="98.6 / 121.7 GiB" />,
     ).container.firstElementChild!.outerHTML;
     const vramBlock = Array.from(container.querySelectorAll("span"))
       .find((s) => s.textContent === "VRAM")!

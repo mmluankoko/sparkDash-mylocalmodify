@@ -1,25 +1,9 @@
 import { t, useI18n } from "../../i18n";
 import { BenchIcon } from "../bench/BenchIcon";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { useMemo, useState, type MouseEvent } from "react";
 import type { AuthMode, SparkSnapshot } from "../../api/types";
 import { isWorkerSpark } from "../../api/sparkRole";
+import { compareSparks } from "../../shared/sparkOrder";
 import { ACTIVITY_ID, COMFY_ID, COST_ID, ENERGY_ID, LLM_ID, LLMCTL_ID, OVERVIEW_ID, SHOWCASE_ID, TEMPS_ID, TOKENS_ID, benchId, idToPath } from "../../constants";
 import { BENCH_TYPES } from "../bench/benchCatalog";
 import { BoltIcon, ChevronDownIcon, CoinsIcon, GearIcon, GithubIcon, GlobeIcon, GridIcon, ListIcon, PanelLeftIcon, PlusIcon, SearchIcon, ServerIcon, TerminalIcon, ThermometerIcon, TokensIcon, XLogoIcon } from "../ui/icons";
@@ -33,7 +17,6 @@ interface AppSidebarProps {
   activeId: string | null;
   onSelect: (id: string) => void;
   onAdd: () => void;
-  onReorder?: (orderedIds: string[]) => void;
   onOpenSettings: () => void;
   onOpenSearch: () => void;
   /** Benchmark type whose page is showing, if any. */
@@ -47,23 +30,6 @@ interface AppSidebarProps {
   /** Hide the sidebar (a strip with a show button stays behind). */
   onCollapse?: () => void;
 }
-
-/**
- * Keyboard drag on the rail: M picks a Spark up. The default Enter/Space start would swallow the
- * very keys that activate the Spark's button, so keyboard users could not open a Spark at all.
- * Once lifted, arrows move it and Enter/Space drop it, Escape cancels.
- */
-export const RAIL_KEYBOARD_CODES = {
-  start: ["KeyM"],
-  cancel: ["Escape"],
-  end: ["Space", "Enter"],
-};
-
-const RAIL_ANNOUNCEMENTS = {
-  screenReaderInstructions: {
-    draggable: "Press Enter to open this Spark. To reorder it, press M, use the arrow keys to move it, then Enter to drop it or Escape to cancel.",
-  },
-};
 
 function dotClass(spark: SparkSnapshot): string {
   if (!spark.online) return "sdot sdot--off";
@@ -87,41 +53,9 @@ function sidebarSubLabel(spark: SparkSnapshot): string {
   return railSubLabel(spark);
 }
 
-/**
- * A drag ends on pointer-up over the very link that was lifted, and the browser then fires a click on
- * it. dnd-kit stops that click at the document (capture phase), so React's onClick never sees it and
- * the browser follows the link's href on its own. A window-level capture listener runs before dnd-kit's
- * and cancels the default action for a moment after a drop.
- */
-const DROP_CLICK_GUARD_MS = 400;
-let lastDropAt = 0;
-let removeDropGuard: (() => void) | null = null;
-export function markRailDrop(now: number = Date.now()) {
-  lastDropAt = now;
-  removeDropGuard?.();
-  if (typeof window === "undefined") return;
-  const onClick = (e: Event) => {
-    e.preventDefault();
-  };
-  window.addEventListener("click", onClick, true);
-  const timer = window.setTimeout(() => removeDropGuard?.(), DROP_CLICK_GUARD_MS);
-  removeDropGuard = () => {
-    window.removeEventListener("click", onClick, true);
-    window.clearTimeout(timer);
-    removeDropGuard = null;
-  };
-}
-export function clickFollowsRailDrop(now: number = Date.now()): boolean {
-  return now - lastDropAt < DROP_CLICK_GUARD_MS;
-}
-
 /** Plain left-click navigates in-app; modified clicks and the context menu keep normal link behaviour. */
 function inApp(go: () => void) {
   return (e: MouseEvent<HTMLAnchorElement>) => {
-    if (clickFollowsRailDrop()) {
-      e.preventDefault();
-      return;
-    }
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
     go();
@@ -138,25 +72,14 @@ function RailSpark({
   onSelect: (id: string) => void;
 }) {
   useI18n();
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
-    useSortable({ id: spark.id });
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : undefined, opacity: isDragging ? 0.6 : 1 }}
-      className={`rail-item ${isActive ? "is-active" : ""}`}
-    >
+    <div className={`rail-item ${isActive ? "is-active" : ""}`}>
       <a
         href={idToPath(spark.id)}
-        draggable={false}
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
         className="flex min-w-0 flex-1 items-center gap-2.5 border-0 bg-transparent p-0 text-left text-inherit no-underline"
         onClick={inApp(() => onSelect(spark.id))}
         aria-current={isActive ? "page" : undefined}
-        aria-roledescription={t("sortable")}
-        title={`${spark.name}${spark.online ? "" : " (offline)"}. Drag to reorder (keyboard: M).`}
+        title={`${spark.name}${spark.online ? "" : ` (${t("offline")})`}`}
       >
         <i className={dotClass(spark)} aria-hidden />
         <span className="rail-item__name">{spark.name}</span>
@@ -166,13 +89,12 @@ function RailSpark({
   );
 }
 
-/** Left fleet rail: brand, workspace links, reorderable Spark list, settings and live-link status. */
+/** Left fleet rail: brand, workspace links, sorted Spark list, settings and live-link status. */
 export function AppSidebar({
   sparks,
   activeId,
   onSelect,
   onAdd,
-  onReorder,
   onOpenSettings,
   onOpenSearch,
   benchType = null,
@@ -183,8 +105,6 @@ export function AppSidebar({
   onCollapse,
 }: AppSidebarProps) {
   useI18n();
-  const [items, setItems] = useState<string[]>(() => sparks.map((s) => s.id));
-  const [dragging, setDragging] = useState(false);
   const [benchOpen, setBenchOpen] = useState(() => {
     try {
       return localStorage.getItem("sparkdash.sidebar.benchOpen") !== "0";
@@ -202,31 +122,7 @@ export function AppSidebar({
       return !open;
     });
 
-  useEffect(() => {
-    if (dragging) return;
-    setItems(sparks.map((s) => s.id));
-  }, [sparks, dragging]);
-
-  const byId = useMemo(() => new Map(sparks.map((s) => [s.id, s])), [sparks]);
-  const ordered = items.map((id) => byId.get(id)).filter(Boolean) as SparkSnapshot[];
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates, keyboardCodes: RAIL_KEYBOARD_CODES })
-  );
-  const canReorder = Boolean(onReorder) && sparks.length > 1;
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    markRailDrop();
-    setDragging(false);
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const from = items.indexOf(String(active.id));
-    const to = items.indexOf(String(over.id));
-    if (from < 0 || to < 0) return;
-    const next = arrayMove(items, from, to);
-    setItems(next);
-    onReorder?.(next);
-  };
+  const orderedSparks = useMemo(() => [...sparks].sort(compareSparks), [sparks]);
 
   return (
     <aside className="app-side" aria-label={t("Fleet navigation")}>
@@ -271,44 +167,11 @@ export function AppSidebar({
             <PlusIcon className="h-3.5 w-3.5" />
           </button>
         </div>
-        {canReorder ? (
-          <DndContext
-            sensors={sensors}
-            accessibility={RAIL_ANNOUNCEMENTS}
-            collisionDetection={closestCenter}
-            onDragStart={() => setDragging(true)}
-            onDragEnd={handleDragEnd}
-            onDragCancel={() => {
-              markRailDrop();
-              setDragging(false);
-            }}
-          >
-            <SortableContext items={items} strategy={verticalListSortingStrategy}>
-              <nav className="rail-list" aria-label={t("Sparks")}>
-                {ordered.map((s) => (
-                  <RailSpark key={s.id} spark={s} isActive={activeId === s.id} onSelect={onSelect} />
-                ))}
-              </nav>
-            </SortableContext>
-          </DndContext>
-        ) : (
-          <nav className="rail-list" aria-label={t("Sparks")}>
-            {sparks.map((s) => (
-              <div key={s.id} className={`rail-item ${activeId === s.id ? "is-active" : ""}`}>
-                <a
-                  href={idToPath(s.id)}
-                  className="flex min-w-0 flex-1 items-center gap-2.5 border-0 bg-transparent p-0 text-left text-inherit no-underline"
-                  onClick={inApp(() => onSelect(s.id))}
-                  aria-current={activeId === s.id ? "page" : undefined}
-                >
-                  <i className={dotClass(s)} aria-hidden />
-                  <span className="rail-item__name">{s.name}</span>
-                </a>
-                <span className="rail-item__sub">{sidebarSubLabel(s)}</span>
-              </div>
-            ))}
-          </nav>
-        )}
+        <nav className="rail-list" aria-label={t("Sparks")}>
+          {orderedSparks.map((s) => (
+            <RailSpark key={s.id} spark={s} isActive={activeId === s.id} onSelect={onSelect} />
+          ))}
+        </nav>
         {sparks.length === 0 ? (
           <p className="px-2.5 pt-1 text-xs text-muted">{t("No Sparks yet. Use + to add one.")}</p>
         ) : null}

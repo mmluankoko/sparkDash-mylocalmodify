@@ -41,7 +41,7 @@ export function RamPanel({ ram, sparkId, className }: RamPanelProps) {
             max={total}
             caption={
               total > 0
-                ? `${formatMb(used).replace(/ (GB|MB)$/, "")} / ${formatMb(total)}`
+                ? `${formatMb(used).replace(/ (GiB|MiB|GB|MB)$/, "")} / ${formatMb(total)}`
                 : "—"
             }
           />

@@ -26,7 +26,7 @@ function serverAlert(over: Partial<AlertInstance> = {}): AlertInstance {
     severity: "warning",
     state: "firing",
     label: "Unified memory is running low",
-    summary: "2.8 GB available of 122 GB.",
+    summary: "2.8 GiB available of 122 GiB.",
     startsAt: NOW - 125 * 60_000,
     firingAt: NOW - 124 * 60_000,
     ...over,
@@ -71,7 +71,7 @@ describe("FleetAlertStrip", () => {
     );
     // 125 minutes, not "0m": the duration survives a page reload.
     expect(rows()).toEqual([
-      "Spark spark-1 Unified memory is running low.2.8 GB available of 122 GB. · 125m active",
+      "Spark spark-1 Unified memory is running low.2.8 GiB available of 122 GiB. · 125m active",
       "X Host unreachable.Unreachable: timeout · 1m active",
     ]);
     expect(document.querySelectorAll(".ov-alert")[1].className).toContain("ov-alert--bad");
